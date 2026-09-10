@@ -1,0 +1,491 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head><meta charset="utf-8"/><meta content="width=device-width, initial-scale=1.0" name="viewport"/><link href="https://fonts.googleapis.com/css2?family=Anton&amp;family=JetBrains+Mono:wght@400;500;600;700&amp;family=Space+Grotesk:wght@400;600;700&amp;display=swap" rel="stylesheet"/><link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/><style>@layer base{html,body{margin:0;padding:0;}body{overscroll-behavior:none;}main>:first-child{margin-top:0!important;}main>:last-child{margin-bottom:0!important;}}::-webkit-scrollbar{display:none;}</style><script src="https://cdn.tailwindcss.com"></script><script id="tailwind-config">tailwind.config = {
+    darkMode: "class",
+    theme: {
+      extend: {
+        "colors": {
+          "secondary-fixed": "#ffdad7",
+          "on-surface-variant": "#d8c3ad",
+          "surface": "#111319",
+          "primary-container": "#f59e0b",
+          "on-error-container": "#ffdad6",
+          "background": "#111319",
+          "secondary": "#ffb3ad",
+          "on-secondary-fixed-variant": "#930013",
+          "on-tertiary-fixed-variant": "#004e5c",
+          "outline-variant": "#534434",
+          "tertiary-container": "#29c1df",
+          "inverse-on-surface": "#2e3037",
+          "primary": "#ffc174",
+          "surface-dim": "#111319",
+          "surface-bright": "#373940",
+          "surface-container": "#1e1f26",
+          "outline": "#a08e7a",
+          "surface-container-lowest": "#0c0e14",
+          "on-secondary": "#68000a",
+          "on-tertiary": "#003640",
+          "tertiary-fixed": "#acedff",
+          "primary-fixed-dim": "#ffb95f",
+          "inverse-surface": "#e2e2eb",
+          "on-tertiary-fixed": "#001f26",
+          "tertiary": "#54ddfc",
+          "on-surface": "#e2e2eb",
+          "on-primary-container": "#613b00",
+          "on-background": "#e2e2eb",
+          "surface-variant": "#33343b",
+          "secondary-container": "#a40217",
+          "surface-container-high": "#282a30",
+          "primary-fixed": "#ffddb8",
+          "on-primary-fixed": "#2a1700",
+          "surface-tint": "#ffb95f",
+          "on-tertiary-container": "#004b58",
+          "on-secondary-fixed": "#410004",
+          "surface-container-low": "#191b22",
+          "inverse-primary": "#855300",
+          "on-error": "#690005",
+          "on-secondary-container": "#ffaea8",
+          "error": "#ffb4ab",
+          "surface-container-highest": "#33343b",
+          "tertiary-fixed-dim": "#4cd7f6",
+          "on-primary": "#472a00",
+          "secondary-fixed-dim": "#ffb3ad",
+          "error-container": "#93000a",
+          "on-primary-fixed-variant": "#653e00"
+        },
+        "borderRadius": {
+          "DEFAULT": "0.25rem",
+          "lg": "0.5rem",
+          "xl": "0.75rem",
+          "full": "9999px"
+        },
+        "spacing": {
+          "space-lg": "1.5rem",
+          "margin-safe": "1.5rem",
+          "space-xl": "2rem",
+          "gutter-hud": "1.25rem",
+          "space-md": "1rem",
+          "space-2xs": "0.25rem",
+          "space-sm": "0.75rem",
+          "space-2xl": "3rem",
+          "space-xs": "0.5rem"
+        },
+        "fontFamily": {
+          "display-xl-mobile": ["Anton"],
+          "display-xl": ["Anton"],
+          "label-md": ["JetBrains Mono"],
+          "body-lg": ["Space Grotesk"],
+          "label-sm": ["JetBrains Mono"],
+          "headline-md": ["Anton"],
+          "title-md": ["Space Grotesk"],
+          "label-lg": ["JetBrains Mono"],
+          "body-md": ["Space Grotesk"],
+          "headline-lg": ["Anton"],
+          "title-lg": ["Space Grotesk"],
+          "headline-lg-mobile": ["Anton"]
+        },
+        "fontSize": {
+          "display-xl-mobile": ["38px", {"lineHeight": "42px", "letterSpacing": "0.04em", "fontWeight": "400"}],
+          "display-xl": ["56px", {"lineHeight": "60px", "letterSpacing": "0.04em", "fontWeight": "400"}],
+          "label-md": ["12px", {"lineHeight": "16px", "letterSpacing": "0.06em", "fontWeight": "500"}],
+          "body-lg": ["16px", {"lineHeight": "24px", "fontWeight": "400"}],
+          "label-sm": ["10px", {"lineHeight": "14px", "letterSpacing": "0.08em", "fontWeight": "500"}],
+          "headline-md": ["24px", {"lineHeight": "28px", "letterSpacing": "0.02em", "fontWeight": "400"}],
+          "title-md": ["16px", {"lineHeight": "22px", "fontWeight": "600"}],
+          "label-lg": ["14px", {"lineHeight": "18px", "letterSpacing": "0.05em", "fontWeight": "600"}],
+          "body-md": ["14px", {"lineHeight": "20px", "fontWeight": "400"}],
+          "headline-lg": ["36px", {"lineHeight": "40px", "letterSpacing": "0.03em", "fontWeight": "400"}],
+          "title-lg": ["20px", {"lineHeight": "26px", "letterSpacing": "0.01em", "fontWeight": "700"}],
+          "headline-lg-mobile": ["26px", {"lineHeight": "30px", "letterSpacing": "0.03em", "fontWeight": "400"}]
+        }
+      }
+    }
+  };</script></head><body class="bg-background font-body-md text-body-md text-on-surface select-none"><header class="fixed top-0 left-0 w-full z-50 pointer-events-none"><div class="h-16 w-full px-margin-safe flex items-center justify-between"><div class="flex items-center gap-space-sm pointer-events-auto"><div class="bg-primary-container px-space-xs py-space-2xs -skew-x-6 shadow-[2px_2px_0px_#000000]"><span class="font-headline-md text-headline-md text-on-primary-container tracking-wider uppercase">CHAOS // 01</span></div><div class="bg-surface-container-high/80 backdrop-blur-md px-space-xs py-space-2xs"><span class="font-label-sm text-label-sm text-tertiary">ACT.II: ROOFTOP TURF</span></div></div><nav class="pointer-events-auto flex items-center gap-space-xs bg-surface-container-lowest/85 backdrop-blur-xl px-space-xs py-space-2xs shadow-[0_1px_8px_rgba(0,0,0,0.04)]" data-active-classes="bg-primary text-on-primary shadow-[2px_2px_0px_#000000]"><a class="px-space-sm py-space-2xs font-label-md text-label-md text-on-surface-variant hover:text-on-surface transition-colors uppercase" data-path="campus-roam" href="#">Campus Roam</a><a class="px-space-sm py-space-2xs font-label-md text-label-md text-on-surface-variant hover:text-on-surface transition-colors uppercase" data-path="delinquent-roster" href="#">Roster</a><a aria-current="page" class="px-space-sm py-space-2xs font-label-md transition-colors uppercase bg-primary text-on-primary shadow-[2px_2px_0px_#000000]" data-path="detention-log" href="#">Detention Log</a><a class="px-space-sm py-space-2xs font-label-md text-label-md text-on-surface-variant hover:text-on-surface transition-colors uppercase" data-path="tactical-inventory" href="#">Locker Stash</a></nav><div class="flex items-center gap-space-sm pointer-events-auto"><div class="flex flex-col text-right"><span class="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-widest">BELL TIMETABLE</span><span class="font-label-md text-label-md text-primary font-bold">16:45 // AFTER SCHOOL</span></div><div class="w-8 h-8 rounded-full bg-primary flex items-center justify-center"><span class="material-symbols-outlined text-on-primary text-[18px]">person</span></div></div></div></header><main class="w-full pt-16 bg-surface"><div class="flex flex-col w-full">
+<div class="w-full px-margin-safe py-space-md flex flex-col gap-space-md">
+<!-- TOP TACTICAL HUD RAIL -->
+<div class="w-full flex flex-wrap items-center justify-between gap-space-sm bg-surface-container-low px-space-md py-space-xs -skew-x-2 shadow-[4px_4px_0px_#0c0e14]">
+<div class="flex items-center gap-space-sm">
+<span class="bg-primary-container text-on-primary-container font-headline-md text-headline-md px-space-xs py-space-2xs uppercase tracking-tight">MAP // GRID_07</span>
+<div class="flex flex-col">
+<span class="font-title-lg text-title-lg text-on-surface uppercase tracking-wider">SCHEMATIC CAMPUS OVERVIEW</span>
+<span class="font-label-sm text-label-sm text-outline uppercase tracking-widest">SMA YUSON // TOPOLOGY_TRANSIT_v2.1</span>
+</div>
+</div>
+<!-- LEGEND CHIPS -->
+<div class="flex items-center gap-space-xs flex-wrap">
+<div class="flex items-center gap-space-2xs bg-surface-container-high px-space-xs py-space-2xs">
+<span class="w-2.5 h-2.5 rounded-full bg-primary animate-ping"></span>
+<span class="font-label-sm text-label-sm text-primary uppercase font-bold">KAMU (REN)</span>
+</div>
+<div class="flex items-center gap-space-2xs bg-surface-container-high px-space-xs py-space-2xs">
+<span class="material-symbols-outlined text-tertiary text-[14px]">star</span>
+<span class="font-label-sm text-label-sm text-tertiary uppercase">OBJEKTIF</span>
+</div>
+<div class="flex items-center gap-space-2xs bg-surface-container-high px-space-xs py-space-2xs">
+<span class="w-2 h-2 rounded-full bg-outline"></span>
+<span class="font-label-sm text-label-sm text-on-surface-variant uppercase">TERBUKA</span>
+</div>
+<div class="flex items-center gap-space-2xs bg-surface-container-high px-space-xs py-space-2xs">
+<span class="material-symbols-outlined text-error text-[14px]">lock</span>
+<span class="font-label-sm text-label-sm text-error uppercase">TERKUNCI</span>
+</div>
+</div>
+</div>
+<!-- MAIN INTERACTIVE NODE CANVAS & INTEL PANEL -->
+<div class="w-full grid grid-cols-1 lg:grid-cols-12 gap-space-md items-start">
+<!-- SCHEMATIC MAP VIEWPORT (COL-8) -->
+<div class="lg:col-span-8 bg-surface-container-lowest p-space-md relative overflow-hidden flex flex-col justify-center min-h-[580px] shadow-[6px_6px_0px_#000000]">
+<!-- CRT Halftone / Diagonal Stripe Background Grid Accent -->
+<div class="absolute inset-0 opacity-10 pointer-events-none bg-[radial-gradient(#a08e7a_1px,transparent_1px)] [background-size:24px_24px]"></div>
+<!-- Live Topology SVG Path Layer -->
+<svg class="absolute inset-0 w-full h-full pointer-events-none z-0" xmlns="http://www.w3.org/2000/svg">
+<!-- Cross Connector: ROOFTOP (top) -> HALL (center) -->
+<line stroke="#534434" stroke-dasharray="6,4" stroke-width="3" x1="50%" x2="50%" y1="16%" y2="46%"></line>
+<!-- Cross Connector: CLASS (left) -> HALL (center) -> CANTEEN (right) -->
+<line stroke="#ffc174" stroke-opacity="0.8" stroke-width="3" x1="22%" x2="78%" y1="46%" y2="46%"></line>
+<!-- Cross Connector: HALL (center) -> COURT (mid-bottom) -->
+<line stroke="#ffc174" stroke-opacity="0.8" stroke-width="3" x1="50%" x2="50%" y1="46%" y2="72%"></line>
+<!-- Cross Connector: COURT (mid-bottom) -> GATE (bottom) -->
+<line stroke="#534434" stroke-width="3" x1="50%" x2="50%" y1="72%" y2="92%"></line>
+</svg>
+<!-- TOP LEVEL: ROOFTOP (LOCKED) -->
+<div class="relative z-10 w-full flex justify-center mb-space-xl">
+<button class="node-btn group flex items-center gap-space-sm bg-surface-container-high px-space-md py-space-xs transition-all duration-150 hover:-translate-y-0.5 shadow-[4px_4px_0px_#000000] cursor-pointer" id="node-rooftop" onclick="selectNode('rooftop')" type="button">
+<div class="w-8 h-8 bg-secondary-container flex items-center justify-center text-on-secondary-container">
+<span class="material-symbols-outlined text-[18px]">lock</span>
+</div>
+<div class="flex flex-col text-left">
+<span class="font-label-sm text-label-sm text-error uppercase font-bold tracking-widest">[ROOFTOP] ATAP GEDUNG</span>
+<span class="font-body-md text-body-md text-on-surface-variant font-medium">TERKUNCI // JAM SEKOLAH</span>
+</div>
+</button>
+</div>
+<!-- MID LEVEL: [CLASS] <---> [HALL] &lt;---&gt; [CANTEEN] --&gt;
+        <div class="relative z-10 w-full flex items-center justify-between px-space-xs md:px-space-md mb-space-xl gap-space-xs">
+<!-- CLASS (ACTIVE OBJECTIVE) -->
+<button class="node-btn group flex flex-col md:flex-row items-start md:items-center gap-space-xs md:gap-space-sm bg-surface-container px-space-sm md:px-space-md py-space-xs -skew-x-3 transition-all duration-150 hover:-translate-y-0.5 shadow-[4px_4px_0px_#000000] cursor-pointer max-w-[210px] md:max-w-none" id="node-class" onclick="selectNode('class')" type="button">
+<div class="w-8 h-8 bg-tertiary-container flex items-center justify-center text-on-tertiary-container">
+<span class="material-symbols-outlined text-[20px]">star</span>
+</div>
+<div class="flex flex-col text-left">
+<div class="flex items-center gap-space-2xs">
+<span class="bg-tertiary text-on-tertiary font-label-sm text-label-sm px-1 uppercase font-bold">OBJ</span>
+<span class="font-label-sm text-label-sm text-tertiary font-bold">[CLASS] XII-B &amp; TU</span>
+</div>
+<span class="font-body-md text-body-md text-on-surface font-semibold truncate">Ruang Tata Usaha</span>
+</div>
+</button>
+<!-- HALL (CURRENT PLAYER NODE) -->
+<button class="node-btn active-node group flex flex-col md:flex-row items-center gap-space-xs md:gap-space-sm bg-primary px-space-md py-space-xs -skew-x-3 transition-all duration-150 shadow-[6px_6px_0px_#000000] cursor-pointer" id="node-hall" onclick="selectNode('hall')" type="button">
+<div class="w-9 h-9 bg-on-primary-container text-primary flex items-center justify-center relative">
+<span class="material-symbols-outlined text-[20px]">my_location</span>
+<span class="absolute -top-1 -right-1 flex h-3 w-3">
+<span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-error opacity-75"></span>
+<span class="relative inline-flex rounded-full h-3 w-3 bg-secondary-container"></span>
+</span>
+</div>
+<div class="flex flex-col text-left">
+<div class="flex items-center gap-space-2xs">
+<span class="bg-surface text-primary font-label-sm text-label-sm px-1 uppercase font-bold">POSISI REN</span>
+<span class="font-headline-md text-headline-md text-on-primary uppercase leading-none">[HALL]</span>
+</div>
+<span class="font-body-md text-body-md text-on-primary font-bold">Koridor Utama Lt. 2</span>
+</div>
+</button>
+<!-- CANTEEN (DISCOVERED) -->
+<button class="node-btn group flex flex-col md:flex-row items-start md:items-center gap-space-xs md:gap-space-sm bg-surface-container px-space-sm md:px-space-md py-space-xs skew-x-3 transition-all duration-150 hover:-translate-y-0.5 shadow-[4px_4px_0px_#000000] cursor-pointer max-w-[210px] md:max-w-none" id="node-canteen" onclick="selectNode('canteen')" type="button">
+<div class="w-8 h-8 bg-surface-container-highest flex items-center justify-center text-primary-fixed-dim">
+<span class="material-symbols-outlined text-[20px]">storefront</span>
+</div>
+<div class="flex flex-col text-left">
+<span class="font-label-sm text-label-sm text-outline uppercase font-bold">[CANTEEN]</span>
+<span class="font-body-md text-body-md text-on-surface font-semibold truncate">Kantin Belakang</span>
+</div>
+</button>
+</div>
+<!-- LOWER LEVEL: COURT (DISCOVERED) -->
+<div class="relative z-10 w-full flex justify-center mb-space-xl">
+<button class="node-btn group flex items-center gap-space-sm bg-surface-container-high px-space-md py-space-xs transition-all duration-150 hover:-translate-y-0.5 shadow-[4px_4px_0px_#000000] cursor-pointer" id="node-court" onclick="selectNode('court')" type="button">
+<div class="w-8 h-8 bg-surface-container-highest flex items-center justify-center text-on-surface">
+<span class="material-symbols-outlined text-[20px]">sports_volleyball</span>
+</div>
+<div class="flex flex-col text-left">
+<span class="font-label-sm text-label-sm text-outline uppercase font-bold">[COURT] LAPANGAN</span>
+<span class="font-body-md text-body-md text-on-surface font-semibold">Lapangan Upacara &amp; Olahraga</span>
+</div>
+</button>
+</div>
+<!-- BASE LEVEL: GATE (ENTRANCE) -->
+<div class="relative z-10 w-full flex justify-center">
+<button class="node-btn group flex items-center gap-space-sm bg-surface-container-low px-space-md py-space-xs transition-all duration-150 hover:-translate-y-0.5 shadow-[4px_4px_0px_#000000] cursor-pointer" id="node-gate" onclick="selectNode('gate')" type="button">
+<div class="w-8 h-8 bg-surface-container-highest flex items-center justify-center text-on-surface-variant">
+<span class="material-symbols-outlined text-[20px]">door_front</span>
+</div>
+<div class="flex flex-col text-left">
+<span class="font-label-sm text-label-sm text-outline uppercase font-bold">[GATE] GERBANG</span>
+<span class="font-body-md text-body-md text-on-surface-variant font-medium">Gerbang Utama SMA Yuson</span>
+</div>
+</button>
+</div>
+</div>
+<!-- RIGHT SIDE: INTEL TELEMETRY PANEL (COL-4) -->
+<div class="lg:col-span-4 flex flex-col gap-space-md">
+<!-- TARGET NODE PROFILE CARD -->
+<div class="bg-surface-container-low p-space-md shadow-[4px_4px_0px_#000000] flex flex-col gap-space-sm">
+<div class="flex items-center justify-between pb-space-xs bg-surface-container px-space-xs py-space-2xs">
+<span class="font-label-sm text-label-sm text-primary uppercase tracking-widest font-bold">// TARGET_NODE_INTEL</span>
+<span class="font-label-sm text-label-sm bg-primary text-on-primary px-space-2xs" id="intel-id-tag">NODE_02:HALL</span>
+</div>
+<div class="flex flex-col">
+<span class="font-label-sm text-label-sm text-on-surface-variant uppercase">NAMA LOKASI</span>
+<span class="font-headline-lg text-headline-lg text-primary uppercase tracking-tight" id="intel-title">Koridor Utama Lt. 2</span>
+<span class="font-body-md text-body-md text-on-surface font-medium" id="intel-subtitle">Lantai Dua - Sektor Tengah Gedung A</span>
+</div>
+<!-- THREAT METER WIDGET -->
+<div class="bg-surface-container-high p-space-xs flex flex-col gap-space-2xs">
+<div class="flex items-center justify-between">
+<span class="font-label-sm text-label-sm text-outline uppercase">TINGKAT KERAWANAN</span>
+<span class="font-label-sm text-label-sm text-primary font-bold uppercase px-space-2xs bg-surface-container-lowest" id="intel-threat-badge">SEDANG (THREAT 02)</span>
+</div>
+<!-- Striped bar gauge -->
+<div class="w-full h-2.5 bg-surface-container-lowest flex gap-1 p-0.5">
+<div class="h-full w-1/3 bg-primary transition-all" id="threat-bar-1"></div>
+<div class="h-full w-1/3 bg-primary transition-all" id="threat-bar-2"></div>
+<div class="h-full w-1/3 bg-surface-variant transition-all" id="threat-bar-3"></div>
+</div>
+<p class="font-body-md text-body-md text-on-surface-variant pt-space-2xs" id="intel-threat-desc">
+              Anak buah Bimo sering berkumpul di tangga darurat lantai 2. Waspadai patroli guru piket.
+            </p>
+</div>
+<!-- NPC RADAR LIST -->
+<div class="flex flex-col gap-space-2xs">
+<span class="font-label-sm text-label-sm text-outline uppercase tracking-wider">NPC TERDETEKSI DI SEKITAR:</span>
+<div class="flex flex-wrap gap-space-xs" id="intel-npc-list">
+<div class="flex items-center gap-space-2xs bg-surface-container-high px-space-xs py-space-2xs">
+<span class="material-symbols-outlined text-primary text-[16px]">person</span>
+<span class="font-label-md text-label-md text-on-surface">Aris (Teman Sekelas)</span>
+</div>
+<div class="flex items-center gap-space-2xs bg-surface-container-high px-space-xs py-space-2xs">
+<span class="material-symbols-outlined text-outline text-[16px]">security</span>
+<span class="font-label-md text-label-md text-on-surface">Pak Satpam (Patroli)</span>
+</div>
+</div>
+</div>
+<!-- RAPID ACTION ROUTE TRIGGER -->
+<div class="pt-space-xs flex flex-col gap-space-xs">
+<button class="w-full bg-primary hover:bg-primary-fixed-dim text-on-primary font-headline-md text-headline-md uppercase py-space-xs px-space-md flex items-center justify-center gap-space-xs shadow-[3px_3px_0px_#000000] active:translate-x-0.5 active:translate-y-0.5" id="btn-waypoint" onclick="setWaypoint()" type="button">
+<span class="material-symbols-outlined text-[20px]">navigation</span>
+<span id="btn-waypoint-text">RUTE AKTIF: POSISI REN</span>
+</button>
+<div class="hidden bg-surface-container-highest px-space-xs py-space-2xs font-label-sm text-label-sm text-tertiary uppercase flex items-center justify-between" id="route-toast">
+<span>WAYPOINT TERKUNCI PADA HUD</span>
+<span class="material-symbols-outlined text-[14px]">check_circle</span>
+</div>
+</div>
+</div>
+<!-- RECENT ACTIVITY TICKER -->
+<div class="bg-surface-container-lowest p-space-sm flex flex-col gap-space-2xs shadow-[4px_4px_0px_#000000]">
+<span class="font-label-sm text-label-sm text-outline uppercase font-mono">STATUS RUTE &amp; NAVIGASI</span>
+<div class="flex items-center justify-between text-on-surface">
+<span class="font-body-md text-body-md font-medium">Jarak ke TU: 1 Lantai</span>
+<span class="font-label-sm text-label-sm text-tertiary">EST. 30 DETIK</span>
+</div>
+<div class="w-full bg-surface-container h-1 overflow-hidden">
+<div class="bg-tertiary h-full w-2/3"></div>
+</div>
+<span class="font-label-sm text-label-sm text-on-surface-variant font-mono uppercase">HINDARI KELAS XII-A (TAWURAN SIAGA I)</span>
+</div>
+</div>
+</div>
+<!-- BOTTOM CONTROLS HINT BAR -->
+<div class="w-full bg-surface-container-lowest px-space-md py-space-xs flex flex-wrap items-center justify-between gap-space-sm shadow-[4px_4px_0px_#000000]">
+<div class="flex items-center gap-space-md flex-wrap">
+<div class="flex items-center gap-space-2xs">
+<span class="font-label-sm text-label-sm bg-surface-container-high text-primary px-space-2xs py-0.5">[KLIK / WASD]</span>
+<span class="font-label-sm text-label-sm text-on-surface-variant uppercase">Pilih Node</span>
+</div>
+<div class="flex items-center gap-space-2xs">
+<span class="font-label-sm text-label-sm bg-surface-container-high text-tertiary px-space-2xs py-0.5">[F]</span>
+<span class="font-label-sm text-label-sm text-on-surface-variant uppercase">Tandai Rute Waypoint</span>
+</div>
+<div class="flex items-center gap-space-2xs">
+<span class="font-label-sm text-label-sm bg-surface-container-high text-outline px-space-2xs py-0.5">[M / ESC]</span>
+<span class="font-label-sm text-label-sm text-on-surface-variant uppercase">Tutup Peta</span>
+</div>
+</div>
+<div class="flex items-center gap-space-xs font-label-sm text-label-sm text-outline uppercase">
+<span class="w-2 h-2 rounded-full bg-primary"></span>
+<span>GPS SYNC: YUSON_SYS_LOCAL</span>
+</div>
+</div>
+</div>
+</div>
+<script>
+  // Node Intelligence Database
+  const nodeDatabase = {
+    hall: {
+      idTag: "NODE_02:HALL",
+      title: "Koridor Utama Lt. 2",
+      subtitle: "Lantai Dua - Sektor Tengah Gedung A",
+      threat: "SEDANG (THREAT 02)",
+      bars: ["bg-primary", "bg-primary", "bg-surface-variant"],
+      desc: "Anak buah Bimo sering berkumpul di tangga darurat lantai 2. Waspadai patroli guru piket.",
+      npcs: [
+        { name: "Aris (Teman Sekelas)", icon: "person", color: "text-primary" },
+        { name: "Pak Satpam (Patroli)", icon: "security", color: "text-outline" }
+      ],
+      btnText: "RUTE AKTIF: POSISI REN",
+      isCurrent: true
+    },
+    class: {
+      idTag: "NODE_01:CLASS",
+      title: "Kelas XII-B & Ruang TU",
+      subtitle: "Sayap Barat Lantai 2",
+      threat: "AMAN (THREAT 01)",
+      bars: ["bg-tertiary", "bg-surface-variant", "bg-surface-variant"],
+      desc: "Objektif aktif saat ini. Mengambil formulir beasiswa dan surat dispensasi sebelum bel pulang.",
+      npcs: [
+        { name: "Ibu Lilis (Staf TU)", icon: "badge", color: "text-tertiary" },
+        { name: "Rendi (Ketua Murid)", icon: "person", color: "text-on-surface" }
+      ],
+      btnText: "KUNCI TUJUAN KE RUANG TU",
+      isCurrent: false
+    },
+    canteen: {
+      idTag: "NODE_03:CANTEEN",
+      title: "Kantin Belakang",
+      subtitle: "Area Belakang Sekolah - Paviliun Barat",
+      threat: "RENDAH (THREAT 01)",
+      bars: ["bg-primary-fixed-dim", "bg-surface-variant", "bg-surface-variant"],
+      desc: "Tempat istirahat, mengembalikan stamina, dan membeli perban darurat dari Mbok Nah.",
+      npcs: [
+        { name: "Mbok Nah (Penjual)", icon: "store", color: "text-primary" },
+        { name: "Deni (Penyedia Gosip)", icon: "chat", color: "text-on-surface" }
+      ],
+      btnText: "SET WAYPOINT: KANTIN",
+      isCurrent: false
+    },
+    court: {
+      idTag: "NODE_04:COURT",
+      title: "Lapangan Upacara & Olahraga",
+      subtitle: "Area Terbuka - Tengah Kompleks SMA Yuson",
+      threat: "TERBUKA (THREAT 02)",
+      bars: ["bg-primary", "bg-primary", "bg-surface-variant"],
+      desc: "Area terbuka lebar. Pandangan bebas namun mudah terpantau oleh geng motor luar pagar.",
+      npcs: [
+        { name: "Pak Hendra (Guru Olahraga)", icon: "sports", color: "text-outline" },
+        { name: "Murid Kelas X", icon: "groups", color: "text-on-surface-variant" }
+      ],
+      btnText: "SET WAYPOINT: LAPANGAN",
+      isCurrent: false
+    },
+    gate: {
+      idTag: "NODE_05:GATE",
+      title: "Gerbang Utama SMA Yuson",
+      subtitle: "Akses Jalan Keluar Masuk",
+      threat: "SIAGA TINGGI (THREAT 03)",
+      bars: ["bg-error", "bg-error", "bg-error"],
+      desc: "Pintu gerbang dijaga ketat. Siswa tanpa kartu izin keluar tidak diizinkan melintas.",
+      npcs: [
+        { name: "Pak Satpam Joko", icon: "local_police", color: "text-error" }
+      ],
+      btnText: "SET WAYPOINT: GERBANG UTAMA",
+      isCurrent: false
+    },
+    rooftop: {
+      idTag: "NODE_00:ROOFTOP",
+      title: "Atap Gedung (Rooftop)",
+      subtitle: "Akses Tangga Tertutup Gembok Rantai",
+      threat: "BAHAYA / TERKUNCI",
+      bars: ["bg-error", "bg-error", "bg-error"],
+      desc: "Pintu atap digembok rantai baja. 'TERKUNCI — Jam Pelajaran Berlangsung'. Memerlukan kunci master gudang.",
+      npcs: [
+        { name: "Suara Langkah Misterius", icon: "help_outline", color: "text-error" }
+      ],
+      btnText: "AKSES DITOLAK (TERKUNCI)",
+      isCurrent: false
+    }
+  };
+
+  let currentNodeKey = 'hall';
+
+  function selectNode(nodeKey) {
+    const data = nodeDatabase[nodeKey];
+    if (!data) return;
+    currentNodeKey = nodeKey;
+
+    // Update Info Panel Fields
+    document.getElementById('intel-id-tag').textContent = data.idTag;
+    document.getElementById('intel-title').textContent = data.title;
+    document.getElementById('intel-subtitle').textContent = data.subtitle;
+    document.getElementById('intel-threat-badge').textContent = data.threat;
+    document.getElementById('intel-threat-desc').textContent = data.desc;
+    document.getElementById('btn-waypoint-text').textContent = data.btnText;
+
+    // Update Threat Meter Bars
+    const b1 = document.getElementById('threat-bar-1');
+    const b2 = document.getElementById('threat-bar-2');
+    const b3 = document.getElementById('threat-bar-3');
+    
+    b1.className = `h-full w-1/3 transition-all ${data.bars[0]}`;
+    b2.className = `h-full w-1/3 transition-all ${data.bars[1]}`;
+    b3.className = `h-full w-1/3 transition-all ${data.bars[2]}`;
+
+    // Update NPCs
+    const npcContainer = document.getElementById('intel-npc-list');
+    npcContainer.innerHTML = '';
+    data.npcs.forEach(npc => {
+      const chip = document.createElement('div');
+      chip.className = 'flex items-center gap-space-2xs bg-surface-container-high px-space-xs py-space-2xs';
+      chip.innerHTML = `
+        <span class="material-symbols-outlined ${npc.color} text-[16px]">${npc.icon}</span>
+        <span class="font-label-md text-label-md text-on-surface">${npc.name}</span>
+      `;
+      npcContainer.appendChild(chip);
+    });
+
+    // Toggle button style if locked
+    const waypointBtn = document.getElementById('btn-waypoint');
+    if (nodeKey === 'rooftop') {
+      waypointBtn.className = 'w-full bg-surface-variant text-outline cursor-not-allowed font-headline-md text-headline-md uppercase py-space-xs px-space-md flex items-center justify-center gap-space-xs shadow-[3px_3px_0px_#000000]';
+    } else {
+      waypointBtn.className = 'w-full bg-primary hover:bg-primary-fixed-dim text-on-primary font-headline-md text-headline-md uppercase py-space-xs px-space-md flex items-center justify-center gap-space-xs shadow-[3px_3px_0px_#000000] active:translate-x-0.5 active:translate-y-0.5 cursor-pointer';
+    }
+
+    // Visual selection outline on buttons
+    document.querySelectorAll('.node-btn').forEach(btn => {
+      btn.classList.remove('ring-2', 'ring-primary', 'ring-offset-2', 'ring-offset-surface');
+    });
+    const selectedBtn = document.getElementById(`node-${nodeKey}`);
+    if (selectedBtn && nodeKey !== 'hall') {
+      selectedBtn.classList.add('ring-2', 'ring-primary', 'ring-offset-2', 'ring-offset-surface');
+    }
+  }
+
+  function setWaypoint() {
+    if (currentNodeKey === 'rooftop') return;
+    const toast = document.getElementById('route-toast');
+    toast.classList.remove('hidden');
+    setTimeout(() => {
+      toast.classList.add('hidden');
+    }, 2400);
+  }
+
+  // Keyboard navigation support
+  window.addEventListener('keydown', (e) => {
+    if (e.key === 'w' || e.key === 'W' || e.key === 'ArrowUp') {
+      selectNode('rooftop');
+    } else if (e.key === 'a' || e.key === 'A' || e.key === 'ArrowLeft') {
+      selectNode('class');
+    } else if (e.key === 's' || e.key === 'S' || e.key === 'ArrowDown') {
+      if (currentNodeKey === 'rooftop') selectNode('hall');
+      else if (currentNodeKey === 'hall' || currentNodeKey === 'class' || currentNodeKey === 'canteen') selectNode('court');
+      else selectNode('gate');
+    } else if (e.key === 'd' || e.key === 'D' || e.key === 'ArrowRight') {
+      selectNode('canteen');
+    } else if (e.key === 'f' || e.key === 'F') {
+      setWaypoint();
+    }
+  });
+</script></main><footer class="fixed bottom-0 left-0 w-full z-40 pointer-events-none"><div class="w-full px-margin-safe py-space-xs flex items-center justify-between"><div class="pointer-events-auto flex items-center gap-space-xs bg-surface-container-lowest/80 backdrop-blur-md px-space-sm py-space-2xs"><span class="font-label-sm text-label-sm text-outline uppercase">SYS_CLIENT // R3F_CANVAS_ACTIVE</span><span class="font-label-sm text-label-sm text-tertiary">60 FPS</span></div><div class="pointer-events-auto flex items-center gap-space-md bg-surface-container-lowest/80 backdrop-blur-md px-space-sm py-space-2xs"><span class="font-label-sm text-label-sm text-on-surface-variant uppercase">[WASD] MOVE</span><span class="font-label-sm text-label-sm text-on-surface-variant uppercase">[SPACE] VAULT</span><span class="font-label-sm text-label-sm text-primary-fixed-dim uppercase">[TAB] HUD TOGGLE</span></div><div class="pointer-events-auto bg-surface-container-lowest/80 backdrop-blur-md px-space-sm py-space-2xs"><span class="font-label-sm text-label-sm text-on-surface-variant">CHAOS SCHOOL LIFE © 2025</span></div></div></footer></body></html>

@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="id"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>SMA Yuson - Game Viewport</title>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=Oswald:wght@500;600;700&amp;family=JetBrains+Mono:wght@500;600&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          fontFamily: {
+            headline: ["Oswald", "sans-serif"],
+            body: ["Inter", "sans-serif"],
+            mono: ["JetBrains Mono", "monospace"]
+          },
+          colors: {
+            canvas: "#101114",
+            charcoal: {
+              900: "#13151a",
+              800: "#1c1f26",
+              700: "#272b35"
+            },
+            dust: "#e4ded5",
+            warmAmber: "#e09038",
+            subtleRed: "#c24138"
+          }
+        }
+      }
+    };
+  </script>
+<style>
+    @layer base {
+      html, body {
+        margin: 0;
+        padding: 0;
+        height: 100%;
+        overflow: hidden;
+        user-select: none;
+        background-color: #0d0f12;
+      }
+    }
+    .cinematic-vignette {
+      box-shadow: inset 0 0 120px rgba(0, 0, 0, 0.85);
+    }
+    .letterbox-bar {
+      height: clamp(14px, 2.5vw, 24px);
+    }
+  </style>
+</head>
+<body class="h-screen w-screen overflow-hidden font-body text-dust relative bg-[#0b0c0f]">
+<!-- FULLSCREEN GAME VIEWPORT CONTAINER -->
+<div class="relative w-full h-full flex flex-col justify-between overflow-hidden">
+<!-- 3D Exploration / Corridor Background Viewport -->
+<div class="absolute inset-0 w-full h-full z-0 pointer-events-none">
+<div class="w-full h-full bg-cover bg-center transition-transform duration-700 ease-out scale-[1.02]" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuCGow-I61FS2Hgm-byAwWb-LdVUFaf2G0c32AeVaAKFNRSqoDU0Wg7tpBjlwr5phY5KZPES-rwe63w0F1kEwi_mX283pcTavU0PLwiFE8cLfSRKoCXtss0OqILqww5vOq3_vI2XHqQfWKzh3kcApOgSupn4eScEr6-dqK38zHVhEQYp48m_DRfJP86BjN-u9pFZO2BkoxwsyqlisY7HbliBnW4dbaq2_OtL9ULRPL6bcSwpnWBALKEWpw')"></div>
+<!-- Natural tropical sunlight warm wash + depth gradations -->
+<div class="absolute inset-0 bg-gradient-to-t from-charcoal-900/95 via-charcoal-900/30 to-black/60"></div>
+<div class="absolute inset-0 bg-gradient-to-r from-black/45 via-transparent to-black/40"></div>
+<!-- Vignette filmic edges -->
+<div class="cinematic-vignette absolute inset-0 pointer-events-none"></div>
+</div>
+<!-- CINEMATIC TOP LETTERBOX & COMPACT IN-GAME HUD -->
+<header class="relative z-20 w-full pt-4 px-6 lg:px-10 flex items-start justify-between">
+<!-- POJOK KIRI ATAS: STATUS REN & OBJECTIVE -->
+<div class="flex flex-col gap-3">
+<!-- Player Vitals Card (Grounded Minimalist) -->
+<div class="flex items-center gap-3.5 bg-black/65 backdrop-blur-md px-4 py-2.5 rounded border border-white/10 shadow-lg">
+<div class="relative w-11 h-11 rounded overflow-hidden border border-white/20 bg-charcoal-800 shrink-0">
+<img alt="Ren Pratama" class="w-full h-full object-cover object-top filter contrast-[1.05]" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAWmJnS0RAbXV0F9I-VLv5wixoIvT79Fppx_Ccc2VH_i5MDq3J2gD2zQfA39sGa1cI-q63QLp-rj5f2bbMdHKPfepcqdBmqSxGZ2QPv5KhL-EwFDi2E1HH1EH_nQrj-QWqxtTsVfgbRYeuIp1ef6eYrIPdZR7sma6E0OOJjaxaJ-HqOj0NUUi8BN_QNrPiS3FOnqLansmOQ2dGWCSi40L4XXNCgwJPIk1QxD9BLa_H3cW4RagCRNFOvPw"/>
+</div>
+<div class="flex flex-col gap-1.5 min-w-[150px]">
+<div class="flex items-baseline justify-between">
+<span class="font-headline font-semibold tracking-wider text-sm text-white uppercase">REN</span>
+<span class="font-mono text-[11px] text-white/50 tracking-tight" id="hp-counter">85 / 100</span>
+</div>
+<!-- HP Bar -->
+<div class="w-full h-1.5 bg-white/15 rounded-sm overflow-hidden flex">
+<div class="h-full bg-subtleRed transition-all duration-300 rounded-sm" id="hp-bar" style="width: 85%;"></div>
+</div>
+<!-- Focus Bar (Amber Warm) -->
+<div class="w-full h-1 bg-white/10 rounded-sm overflow-hidden flex">
+<div class="h-full bg-warmAmber/80 transition-all duration-300 rounded-sm" id="focus-bar" style="width: 65%;"></div>
+</div>
+</div>
+</div>
+<!-- Objective Tracker Kecil Alami -->
+<div class="flex items-center gap-2 px-3 py-1.5 bg-black/50 backdrop-blur-sm border-l-2 border-warmAmber text-xs rounded-r">
+<span class="material-symbols-outlined text-warmAmber text-[15px]">flag</span>
+<span class="text-white/80 font-medium">Tujuan:</span>
+<span class="text-white/95">Pergi ke Ruang Tata Usaha (Bawa Berkas Pindahan)</span>
+</div>
+</div>
+<!-- POJOK KANAN ATAS: WIDGET WAKTU SEKOLAH & LOKASI -->
+<div class="flex flex-col items-end gap-1">
+<div class="flex items-center gap-2.5 bg-black/65 backdrop-blur-md px-4 py-2 rounded border border-white/10 shadow-lg text-right">
+<span class="material-symbols-outlined text-warmAmber text-[18px]">schedule</span>
+<div>
+<div class="font-mono text-xs font-semibold text-white tracking-wide">Senin, 12:45 WIB</div>
+<div class="text-[11px] text-white/60">Istirahat Pertama • Koridor Kelas XII</div>
+</div>
+</div>
+<div class="text-[11px] font-mono text-white/40 tracking-wider uppercase pr-1">SMA YUSON // GEDUNG A</div>
+</div>
+</header>
+<!-- MIDDLE VIEWPORT: CLEAN CINEMATIC ACTION SPACE -->
+<div class="flex-1 w-full relative pointer-events-none">
+<!-- Grounded 3D Camera / Scene Center -->
+</div>
+<!-- BOTTOM SCREEN: GROUNDED SINEMATIK DIALOG BOX & PILIHAN INTERAKSI -->
+<footer class="relative z-30 w-full px-4 pb-5 sm:px-8 max-w-4xl mx-auto flex flex-col gap-3">
+<!-- Dialogue Box -->
+<div class="w-full bg-[#12141a]/95 backdrop-blur-md rounded-md border border-white/10 p-4 sm:p-5 shadow-2xl flex flex-col gap-4">
+<!-- Header Dialog & Karakter Bicara -->
+<div class="flex items-start gap-4">
+<!-- NPC Portrait / Bimo -->
+<div class="relative w-14 h-14 sm:w-16 sm:h-16 rounded overflow-hidden shrink-0 border border-white/15 bg-charcoal-900">
+<img alt="Bimo Prakoso" class="w-full h-full object-cover object-top" src="https://lh3.googleusercontent.com/aida-public/AB6AXuClhk5JgDkTjPeAmyLBIkhkSDAQDPRixw1CWxMDTdMT1651DkmwGC6K44vhBiQR8ZYw0IZR_WOR13qifLD7w8jGn9agnsnSpYuMOL6chWmofsAJPpjcUF7BXzTd5vhA8ihj6bKOTn8bvK2CnG9JX26FcbBRyKcBiJpaS6MsZufdop-ZAtGI2UaHEsTCZPebb4IyhJdGhyPPSefOYnf-efs3LV7kLWekKtTgANf7Lbb0EtNHiyD9vqcEkQ"/>
+</div>
+<div class="flex-1 flex flex-col">
+<div class="flex items-baseline gap-2.5 mb-1.5">
+<span class="font-headline font-bold text-base sm:text-lg tracking-wider text-warmAmber uppercase">BIMO</span>
+<span class="text-[11px] font-mono text-white/40 uppercase">Kelas XII-B</span>
+</div>
+<p class="text-dust/95 text-sm sm:text-[15px] leading-relaxed font-normal" id="dialogue-speech">
+              “Gua denger lu hajar anak-anak luar di gerbang tadi pagi, Ren. Di SMA Yuson, lu gabung geng gua, atau lu bakal jadi santapan tiap hari.”
+            </p>
+</div>
+</div>
+<!-- Pilihan Respons Natural Bernomor -->
+<div class="flex flex-col gap-2 pt-2 border-t border-white/10" id="dialogue-options">
+<!-- Pilihan 1 -->
+<button class="group w-full text-left px-3.5 py-2.5 rounded bg-black/40 hover:bg-white/10 active:bg-white/15 border border-white/10 hover:border-warmAmber/50 transition-all duration-150 flex items-start gap-3" onclick="selectChoice(1)" type="button">
+<span class="font-mono text-xs font-bold text-warmAmber group-hover:text-white shrink-0 mt-0.5">[1]</span>
+<div class="flex-1">
+<div class="text-sm font-medium text-white group-hover:text-warmAmber transition-colors">
+                “Gua ke sini cuma mau lulus, bukan cari ribut.”
+              </div>
+<div class="text-[11px] text-white/45 mt-0.5">Menolak halus tanpa memperkeruh suasana.</div>
+</div>
+</button>
+<!-- Pilihan 2 -->
+<button class="group w-full text-left px-3.5 py-2.5 rounded bg-black/40 hover:bg-white/10 active:bg-white/15 border border-white/10 hover:border-warmAmber/50 transition-all duration-150 flex items-start gap-3" onclick="selectChoice(2)" type="button">
+<span class="font-mono text-xs font-bold text-warmAmber group-hover:text-white shrink-0 mt-0.5">[2]</span>
+<div class="flex-1">
+<div class="text-sm font-medium text-white group-hover:text-warmAmber transition-colors">
+                “Tergantung apa untungnya buat gua.”
+              </div>
+<div class="text-[11px] text-white/45 mt-0.5">Pendekatan pragmatis, mengulur kesepakatan.</div>
+</div>
+</button>
+<!-- Pilihan 3 -->
+<button class="group w-full text-left px-3.5 py-2.5 rounded bg-black/40 hover:bg-white/10 active:bg-white/15 border border-white/10 hover:border-subtleRed/60 transition-all duration-150 flex items-start gap-3" onclick="selectChoice(3)" type="button">
+<span class="font-mono text-xs font-bold text-subtleRed group-hover:text-white shrink-0 mt-0.5">[3]</span>
+<div class="flex-1">
+<div class="text-sm font-medium text-white group-hover:text-subtleRed transition-colors">
+                “Jangan sentuh Aris, atau lu urusan sama gua.”
+              </div>
+<div class="text-[11px] text-white/45 mt-0.5">Konfrontasi terbuka, tegaskan posisi membela teman.</div>
+</div>
+</button>
+</div>
+</div>
+<!-- Minimalist Game Control Prompts Bar -->
+<div class="w-full flex items-center justify-between text-[11px] font-mono text-white/50 px-2 py-0.5">
+<div class="flex items-center gap-4">
+<span><span class="text-white/80 font-semibold">[1-3]</span> Pilih Jawaban</span>
+<span><span class="text-white/80 font-semibold">[Space]</span> Lanjut</span>
+<span><span class="text-white/80 font-semibold">[Tab]</span> Buka Tas</span>
+</div>
+<div class="hidden sm:block text-white/35">
+          [W,A,S,D] Gerak • [Shift] Lari
+        </div>
+</div>
+</footer>
+</div>
+<!-- GAME LOGIC / CHOICE SCRIPT -->
+<script>
+    function selectChoice(index) {
+      const speech = document.getElementById('dialogue-speech');
+      const hpBar = document.getElementById('hp-bar');
+      const focusBar = document.getElementById('focus-bar');
+      const hpCounter = document.getElementById('hp-counter');
+
+      if (index === 1) {
+        speech.innerHTML = '<span class="text-warmAmber font-semibold">Bimo</span> menatap sinis: &ldquo;Anak manis, ya? Di sekolah ini mereka yang sok netral justru yang paling pertama bonyok. Gua kasih lu waktu sampai bel pulang.&rdquo;';
+        if (focusBar) focusBar.style.width = '55%';
+      } else if (index === 2) {
+        speech.innerHTML = '<span class="text-warmAmber font-semibold">Bimo</span> tersenyum tipis: &ldquo;Bagus, lu punya otak bisnis. Ikut gua ke kantin sekarang, ada hal yang perlu lu buktiin ke anak-anak.&rdquo;';
+        if (focusBar) focusBar.style.width = '75%';
+      } else if (index === 3) {
+        speech.innerHTML = '<span class="text-subtleRed font-semibold">Bimo</span> melangkah maju mendesak ke dinding: &ldquo;Lu punya nyali juga nyebut nama dia di depan muka gua. Simpan tenaga lu, Ren. Jam istirahat kedua nanti kita selesaikan di lapangan basket.&rdquo;';
+        if (hpBar) hpBar.style.width = '80%';
+        if (hpCounter) hpCounter.innerText = '80 / 100';
+      }
+    }
+
+    // Keyboard Hotkey Support (1, 2, 3)
+    document.addEventListener('keydown', function(event) {
+      if (event.key === '1') selectChoice(1);
+      if (event.key === '2') selectChoice(2);
+      if (event.key === '3') selectChoice(3);
+    });
+  </script>
+</body></html>

@@ -1,0 +1,427 @@
+<!DOCTYPE html>
+<html lang="id" class="dark">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Combat HUD & Duel System — SMA Yuson</title>
+  <link href="https://fonts.googleapis.com/css2?family=Anton&family=JetBrains+Mono:ital,wght@0,400;0,600;0,700;0,800;1,700&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@300..700,0..1&display=swap" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          colors: {
+            background: "#0c0e14",
+            surface: "#111319",
+            "surface-dim": "#0a0c10",
+            "surface-container": "#191b22",
+            "surface-container-high": "#232630",
+            primary: "#ffc174",
+            "primary-container": "#f59e0b",
+            secondary: "#ff4d4d",
+            "secondary-dark": "#b91c1c",
+            tertiary: "#38bdf8",
+            "on-surface": "#f1f3f9",
+            "on-surface-variant": "#9ba1b0",
+            outline: "rgba(255, 255, 255, 0.12)",
+          },
+          fontFamily: {
+            headline: ["Anton", "sans-serif"],
+            mono: ["JetBrains Mono", "monospace"],
+            sans: ["Space Grotesk", "sans-serif"],
+          }
+        }
+      }
+    };
+  </script>
+  <style>
+    /* Custom game screen styling */
+    ::-webkit-scrollbar { display: none; }
+    .clip-slant {
+      clip-path: polygon(0 0, 100% 0, 92% 100%, 0% 100%);
+    }
+    .clip-slant-reverse {
+      clip-path: polygon(8% 0, 100% 0, 100% 100%, 0 100%);
+    }
+    .clip-badge {
+      clip-path: polygon(10px 0, 100% 0, calc(100% - 10px) 100%, 0 100%);
+    }
+    .text-stroke-sm {
+      -webkit-text-stroke: 1px rgba(0, 0, 0, 0.8);
+    }
+    @keyframes pulse-intense {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.85; transform: scale(1.03); }
+    }
+    .animate-danger {
+      animation: pulse-intense 1s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+    }
+    @keyframes hit-shake {
+      0% { transform: translate(0, 0); }
+      20% { transform: translate(-3px, 2px); }
+      40% { transform: translate(3px, -2px); }
+      60% { transform: translate(-2px, -1px); }
+      80% { transform: translate(2px, 1px); }
+      100% { transform: translate(0, 0); }
+    }
+    .impact-shake {
+      animation: hit-shake 0.3s ease-out;
+    }
+  </style>
+</head>
+<body class="bg-background text-on-surface font-sans select-none overflow-hidden h-screen w-screen relative m-0 p-0">
+
+  <!-- BACKGROUND 3D COMBAT ARENA (Belakang Gedung SMA Yuson / Lorong Kantin Luar) -->
+  <div class="absolute inset-0 z-0 pointer-events-none overflow-hidden">
+    <!-- Atmospheric Visual Backdrop -->
+    <div class="w-full h-full bg-cover bg-center filter contrast-125 brightness-90 transform scale-105"
+         style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuCGow-I61FS2Hgm-byAwWb-LdVUFaf2G0c32AeVaAKFNRSqoDU0Wg7tpBjlwr5phY5KZPES-rwe63w0F1kEwi_mX283pcTavU0PLwiFE8cLfSRKoCXtss0OqILqww5vOq3_vI2XHqQfWKzh3kcApOgSupn4eScEr6-dqK38zHVhEQYp48m_DRfJP86BjN-u9pFZO2BkoxwsyqlisY7HbliBnW4dbaq2_OtL9ULRPL6bcSwpnWBALKEWpw');">
+    </div>
+
+    <!-- Vignette, High-contrast Cinematic Dark Gradient & Grit -->
+    <div class="absolute inset-0 bg-gradient-to-t from-background via-background/60 to-background/40 mix-blend-multiply"></div>
+    <div class="absolute inset-0 bg-gradient-to-r from-background/80 via-transparent to-background/80"></div>
+    <!-- Red Combat Danger Vignette -->
+    <div class="absolute inset-0 shadow-[inset_0_0_120px_rgba(239,68,68,0.25)] pointer-events-none"></div>
+
+    <!-- Dust Particle & Gritty Half-tone Grid Overlay -->
+    <div class="absolute inset-0 bg-[radial-gradient(rgba(255,193,116,0.1)_1px,transparent_1px)] [background-size:28px_28px] opacity-30"></div>
+  </div>
+
+  <!-- TARGET LOCK-ON / FOCUS RETICLE IN 3D WORLD (DI TENGAH LAYAR MENYOROT MUSUH) -->
+  <div class="absolute top-[40%] left-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none z-10 flex flex-col items-center">
+    <!-- Lock-on Brackets with Warning Sign -->
+    <div class="relative w-36 h-36 border border-secondary/40 rounded-full flex items-center justify-center animate-pulse">
+      <div class="absolute -top-1 w-4 h-1 bg-secondary shadow-[0_0_8px_#ff4d4d]"></div>
+      <div class="absolute -bottom-1 w-4 h-1 bg-secondary shadow-[0_0_8px_#ff4d4d]"></div>
+      <div class="absolute -left-1 h-4 w-1 bg-secondary shadow-[0_0_8px_#ff4d4d]"></div>
+      <div class="absolute -right-1 h-4 w-1 bg-secondary shadow-[0_0_8px_#ff4d4d]"></div>
+      
+      <div class="w-2 h-2 rounded-full bg-secondary shadow-[0_0_10px_#ff4d4d]"></div>
+      <span class="absolute -bottom-6 font-mono text-[10px] text-secondary tracking-widest uppercase font-bold bg-background/80 px-1.5 py-0.5 rounded">
+        LOCK-ON: BIMO [RIVAL]
+      </span>
+    </div>
+
+    <!-- Floating Counter Indicator (Quick Time Event / Parried) -->
+    <div class="mt-4 flex items-center gap-2 bg-primary-container/90 backdrop-blur-md px-3 py-1 rounded-md shadow-lg border border-amber-300/40 animate-bounce">
+      <span class="bg-black/80 text-primary font-mono text-xs px-1.5 py-0.5 rounded font-bold">[SPACE]</span>
+      <span class="font-headline tracking-wide text-xs text-black uppercase">TANGKIS / COUNTER</span>
+    </div>
+  </div>
+
+  <!-- HUD INTERFACE LAYOUT (FULLSCREEN HUD) -->
+  <div class="relative z-20 h-full w-full flex flex-col justify-between p-4 md:p-6 lg:p-8">
+
+    <!-- ======================================================== -->
+    <!-- TOP SECTION: PLAYER VITALS (LEFT) VS ENEMY BOSS BAR (RIGHT) -->
+    <!-- ======================================================== -->
+    <div class="w-full flex items-start justify-between gap-4">
+
+      <!-- LEFT: REN PRATAMA VITALS & STANCE -->
+      <div class="flex items-center gap-3.5 bg-surface/90 backdrop-blur-md p-3.5 rounded-2xl border border-white/10 shadow-2xl min-w-[280px] sm:min-w-[340px]">
+        <!-- Ren Avatar Portrait with HP Outline Ring -->
+        <div class="relative w-14 h-14 rounded-xl overflow-hidden shrink-0 border-2 border-primary/60 shadow-md">
+          <img class="w-full h-full object-cover object-top" 
+               src="https://lh3.googleusercontent.com/aida-public/AB6AXuAWmJnS0RAbXV0F9I-VLv5wixoIvT79Fppx_Ccc2VH_i5MDq3J2gD2zQfA39sGa1cI-q63QLp-rj5f2bbMdHKPfepcqdBmqSxGZ2QPv5KhL-EwFDi2E1HH1EH_nQrj-QWqxtTsVfgbRYeuIp1ef6eYrIPdZR7sma6E0OOJjaxaJ-HqOj0NUUi8BN_QNrPiS3FOnqLansmOQ2dGWCSi40L4XXNCgwJPIk1QxD9BLa_H3cW4RagCRNFOvPw" 
+               alt="Ren Avatar">
+          <span class="absolute bottom-0 inset-x-0 bg-primary/95 text-black font-headline text-[10px] text-center uppercase tracking-wider py-0.2">
+            STANCE: TANGAN KOSONG
+          </span>
+        </div>
+
+        <!-- Bars & Name -->
+        <div class="flex-1 flex flex-col gap-1.5">
+          <div class="flex items-center justify-between">
+            <div class="flex items-center gap-2">
+              <span class="font-headline text-lg tracking-wider text-white">REN PRATAMA</span>
+              <span class="font-mono text-[10px] bg-white/10 text-primary px-1.5 py-0.5 rounded font-semibold">XII-A</span>
+            </div>
+            <span class="font-mono text-xs font-bold text-secondary" id="player-hp-text">640 / 800</span>
+          </div>
+
+          <!-- HP Bar (Red) -->
+          <div class="w-full bg-surface-dim/80 h-3 rounded-full overflow-hidden p-0.5 border border-white/10">
+            <div id="player-hp-bar" class="h-full bg-gradient-to-r from-red-600 via-secondary to-rose-400 rounded-full transition-all duration-300 shadow-[0_0_10px_rgba(255,77,77,0.5)]" style="width: 80%;"></div>
+          </div>
+
+          <!-- Stamina / Focus Bar (Amber & Cyan) -->
+          <div class="flex items-center gap-2">
+            <div class="flex-1 bg-surface-dim/80 h-1.5 rounded-full overflow-hidden border border-white/5">
+              <div id="player-stamina-bar" class="h-full bg-primary transition-all duration-200" style="width: 65%;"></div>
+            </div>
+            <span class="font-mono text-[10px] text-primary/90 font-medium">STAMINA 65%</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- CENTER-TOP: COMBAT STATUS BADGE & TIMER -->
+      <div class="hidden md:flex flex-col items-center">
+        <div class="bg-secondary/20 border border-secondary/50 px-4 py-1.5 rounded-full backdrop-blur-md flex items-center gap-2 shadow-lg">
+          <span class="w-2 h-2 rounded-full bg-secondary animate-ping"></span>
+          <span class="font-headline tracking-widest text-secondary text-sm uppercase">DUEL SENGIT // KORIDOR GUDANG</span>
+        </div>
+        <span class="font-mono text-[11px] text-on-surface-variant mt-1">Bel Masuk Istirahat: 03:42</span>
+      </div>
+
+      <!-- RIGHT: ENEMY BOSS (BIMO PRAKOSO) VITALS -->
+      <div class="flex items-center gap-3.5 bg-surface/90 backdrop-blur-md p-3.5 rounded-2xl border border-secondary/30 shadow-2xl min-w-[280px] sm:min-w-[340px] text-right">
+        <!-- Enemy Bars & Name -->
+        <div class="flex-1 flex flex-col gap-1.5">
+          <div class="flex items-center justify-between flex-row-reverse">
+            <div class="flex items-center gap-2 flex-row-reverse">
+              <span class="font-headline text-lg tracking-wider text-secondary">BIMO PRAKOSO</span>
+              <span class="font-mono text-[10px] bg-red-950 text-red-400 border border-red-500/30 px-1.5 py-0.5 rounded font-semibold uppercase">BOSS</span>
+            </div>
+            <span class="font-mono text-xs font-bold text-red-400" id="enemy-hp-text">1,420 / 2,000</span>
+          </div>
+
+          <!-- Enemy HP Bar (Slanted Boss Gauge) -->
+          <div class="w-full bg-surface-dim/80 h-3 rounded-full overflow-hidden p-0.5 border border-white/10">
+            <div id="enemy-hp-bar" class="h-full bg-gradient-to-l from-red-600 via-rose-500 to-amber-500 rounded-full transition-all duration-300 shadow-[0_0_12px_rgba(244,63,94,0.6)]" style="width: 71%;"></div>
+          </div>
+
+          <!-- Enemy Posture / Guard Break Bar -->
+          <div class="flex items-center justify-between gap-2 flex-row-reverse">
+            <div class="flex-1 bg-surface-dim/80 h-1.5 rounded-full overflow-hidden border border-white/5">
+              <div id="enemy-guard-bar" class="h-full bg-amber-400 transition-all duration-200" style="width: 45%;"></div>
+            </div>
+            <span class="font-mono text-[10px] text-amber-300/90 font-medium">GUARD BREAK 45%</span>
+          </div>
+        </div>
+
+        <!-- Enemy Portrait -->
+        <div class="relative w-14 h-14 rounded-xl overflow-hidden shrink-0 border-2 border-secondary/60 shadow-md">
+          <img class="w-full h-full object-cover object-top" 
+               src="https://lh3.googleusercontent.com/aida-public/AB6AXuClhk5JgDkTjPeAmyLBIkhkSDAQDPRixw1CWxMDTdMT1651DkmwGC6K44vhBiQR8ZYw0IZR_WOR13qifLD7w8jGn9agnsnSpYuMOL6chWmofsAJPpjcUF7BXzTd5vhA8ihj6bKOTn8bvK2CnG9JX26FcbBRyKcBiJpaS6MsZufdop-ZAtGI2UaHEsTCZPebb4IyhJdGhyPPSefOYnf-efs3LV7kLWekKtTgANf7Lbb0EtNHiyD9vqcEkQ" 
+               alt="Bimo Prakoso Boss">
+          <span class="absolute bottom-0 inset-x-0 bg-red-600 text-white font-headline text-[9px] text-center uppercase tracking-wider py-0.2">
+            SENIOR XII-F
+          </span>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- ======================================================== -->
+    <!-- MID-LEFT FLOATING: COMBO COUNTER & MOMENTUM STACK -->
+    <!-- ======================================================== -->
+    <div class="flex items-center justify-between w-full pointer-events-none">
+      <!-- Dynamic Combo Hit System -->
+      <div class="flex flex-col gap-1 pl-2">
+        <div class="flex items-baseline gap-2">
+          <span id="combo-number" class="font-headline text-5xl md:text-7xl text-primary drop-shadow-[0_4px_12px_rgba(245,158,11,0.5)] italic tracking-tighter">
+            07
+          </span>
+          <span class="font-headline text-xl md:text-2xl text-white tracking-wider uppercase">HITS!</span>
+        </div>
+        <div class="flex items-center gap-2">
+          <span class="font-mono text-xs uppercase tracking-widest text-amber-300 font-bold bg-amber-950/60 border border-amber-500/40 px-2 py-0.5 rounded">
+            STREET BRAWLER RATING: A
+          </span>
+        </div>
+        <!-- Momentum / Adrenaline Bar -->
+        <div class="w-44 mt-1 flex flex-col gap-1">
+          <div class="flex justify-between font-mono text-[10px] text-tertiary">
+            <span>ADRENALINE GAUGE</span>
+            <span class="font-bold">READY (MAX)</span>
+          </div>
+          <div class="h-2 w-full bg-surface-dim rounded-full overflow-hidden border border-tertiary/40">
+            <div class="h-full bg-gradient-to-r from-cyan-500 to-tertiary shadow-[0_0_8px_#38bdf8]" style="width: 100%;"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- MID-RIGHT: RECENT COMBAT LOG / DAMAGE FLYTEXT -->
+      <div class="flex flex-col items-end gap-1.5 pr-2">
+        <div class="font-headline text-3xl text-amber-400 drop-shadow-[0_2px_8px_rgba(0,0,0,0.9)] animate-pulse">
+          CRITICAL -185
+        </div>
+        <div class="font-mono text-xs text-on-surface-variant bg-surface-dim/80 px-2 py-1 rounded border border-white/10">
+          Tangkisan Sempurna: Guard Musuh Turun!
+        </div>
+      </div>
+    </div>
+
+    <!-- ======================================================== -->
+    <!-- BOTTOM SECTION: ACTION WHEEL & BRAWL HOTKEYS (DIEGETIC UI) -->
+    <!-- ======================================================== -->
+    <div class="w-full flex flex-col md:flex-row items-end md:items-center justify-between gap-4">
+
+      <!-- QUICK BATTLE INVENTORY / POCKET ITEMS -->
+      <div class="flex items-center gap-2 bg-surface/90 backdrop-blur-md p-2 rounded-xl border border-white/10 shadow-xl">
+        <span class="font-headline text-xs text-primary/80 uppercase px-1 tracking-wider">KANTONG:</span>
+        
+        <!-- Slot 1: Kotak Bekal -->
+        <button onclick="useCombatItem('bekal')" type="button" class="group relative flex items-center gap-2 bg-surface-container hover:bg-surface-container-high px-2.5 py-1.5 rounded-lg border border-white/10 transition-all">
+          <span class="material-symbols-outlined text-amber-400 text-base">lunch_dining</span>
+          <div class="flex flex-col text-left leading-none">
+            <span class="font-headline text-xs text-white">BEKAL TELUR</span>
+            <span class="font-mono text-[9px] text-emerald-400">+150 HP</span>
+          </div>
+          <span class="font-mono text-[9px] bg-black/60 text-primary px-1 rounded font-bold">[1]</span>
+        </button>
+
+        <!-- Slot 2: Plester Luka -->
+        <button onclick="useCombatItem('plester')" type="button" class="group relative flex items-center gap-2 bg-surface-container hover:bg-surface-container-high px-2.5 py-1.5 rounded-lg border border-white/10 transition-all">
+          <span class="material-symbols-outlined text-red-400 text-base">healing</span>
+          <div class="flex flex-col text-left leading-none">
+            <span class="font-headline text-xs text-white">PLESTER LUKA</span>
+            <span class="font-mono text-[9px] text-tertiary">+Regen HP</span>
+          </div>
+          <span class="font-mono text-[9px] bg-black/60 text-primary px-1 rounded font-bold">[2]</span>
+        </button>
+
+        <!-- Slot 3: Penggaris Besi -->
+        <button onclick="useCombatItem('penggaris')" type="button" class="group relative flex items-center gap-2 bg-surface-container hover:bg-surface-container-high px-2.5 py-1.5 rounded-lg border border-white/10 transition-all">
+          <span class="material-symbols-outlined text-cyan-400 text-base">straighten</span>
+          <div class="flex flex-col text-left leading-none">
+            <span class="font-headline text-xs text-white">PENGGARIS BESI</span>
+            <span class="font-mono text-[9px] text-amber-300">+Jangkauan</span>
+          </div>
+          <span class="font-mono text-[9px] bg-black/60 text-primary px-1 rounded font-bold">[3]</span>
+        </button>
+      </div>
+
+      <!-- CENTER/RIGHT ACTION DECK: DELINQUENT MOVESET -->
+      <div class="w-full md:w-auto flex flex-wrap items-center justify-end gap-2 bg-surface/90 backdrop-blur-md p-2.5 rounded-2xl border border-white/10 shadow-2xl">
+        
+        <!-- Action 1: Pukulan Ringan (Light Attack) -->
+        <button onclick="executeAction('light')" type="button" 
+                class="flex-1 md:flex-none flex items-center gap-2 px-3.5 py-2 rounded-xl bg-surface-container hover:bg-white/10 border border-white/10 transition-all duration-150 active:scale-95 group">
+          <div class="w-6 h-6 rounded-md bg-black/70 flex items-center justify-center font-mono text-xs font-bold text-white group-hover:text-primary">
+            LMB
+          </div>
+          <div class="flex flex-col text-left leading-tight">
+            <span class="font-headline text-sm tracking-wide text-white">JAB CEPAT</span>
+            <span class="font-mono text-[9px] text-on-surface-variant">Serangan Ringan</span>
+          </div>
+        </button>
+
+        <!-- Action 2: Tendangan Berat (Heavy Break) -->
+        <button onclick="executeAction('heavy')" type="button" 
+                class="flex-1 md:flex-none flex items-center gap-2 px-3.5 py-2 rounded-xl bg-surface-container hover:bg-white/10 border border-white/10 transition-all duration-150 active:scale-95 group">
+          <div class="w-6 h-6 rounded-md bg-black/70 flex items-center justify-center font-mono text-xs font-bold text-white group-hover:text-secondary">
+            RMB
+          </div>
+          <div class="flex flex-col text-left leading-tight">
+            <span class="font-headline text-sm tracking-wide text-white">TENDANGAN GUDANG</span>
+            <span class="font-mono text-[9px] text-secondary">Hancurkan Guard</span>
+          </div>
+        </button>
+
+        <!-- Action 3: Menghindar / Dash (Dodge) -->
+        <button onclick="executeAction('dodge')" type="button" 
+                class="flex-1 md:flex-none flex items-center gap-2 px-3.5 py-2 rounded-xl bg-surface-container hover:bg-white/10 border border-white/10 transition-all duration-150 active:scale-95 group">
+          <div class="w-6 h-6 rounded-md bg-black/70 flex items-center justify-center font-mono text-xs font-bold text-white group-hover:text-amber-400">
+            SHIFT
+          </div>
+          <div class="flex flex-col text-left leading-tight">
+            <span class="font-headline text-sm tracking-wide text-white">ELAKAN SAMPING</span>
+            <span class="font-mono text-[9px] text-on-surface-variant">I-Frame Menghindar</span>
+          </div>
+        </button>
+
+        <!-- Action 4: Finisher / Jurus Khusus (Adrenaline Burst) -->
+        <button onclick="executeAction('ultimate')" type="button" 
+                class="flex-1 md:flex-none flex items-center gap-2 px-4 py-2 rounded-xl bg-gradient-to-r from-amber-500 to-primary-container hover:from-amber-400 hover:to-primary text-black font-bold shadow-[0_0_15px_rgba(245,158,11,0.5)] transition-all duration-150 active:scale-95 group">
+          <div class="w-6 h-6 rounded-md bg-black/90 flex items-center justify-center font-mono text-xs font-extrabold text-amber-300">
+            Q
+          </div>
+          <div class="flex flex-col text-left leading-tight">
+            <span class="font-headline text-sm tracking-wide uppercase">BANTINGAN PREMAN</span>
+            <span class="font-mono text-[9px] text-black/80 font-bold">FINISHER [PENUH]</span>
+          </div>
+        </button>
+
+      </div>
+
+    </div>
+
+    <!-- NOTIFICATION POPUP INTERACTION SCRIPT -->
+    <div id="combat-feedback" class="fixed top-24 left-1/2 -translate-x-1/2 z-50 pointer-events-none opacity-0 transition-opacity duration-200 bg-black/90 border border-primary text-primary px-4 py-1.5 rounded-full font-headline tracking-widest text-sm shadow-2xl uppercase">
+      Aksi Berhasil!
+    </div>
+
+  </div>
+
+  <!-- CLIENT-SIDE SCRIPT FOR INTERACTIVE DEMO HUD -->
+  <script>
+    let playerHp = 640;
+    let enemyHp = 1420;
+    let combo = 7;
+
+    function showFeedback(text, isDanger = false) {
+      const fb = document.getElementById('combat-feedback');
+      fb.innerText = text;
+      fb.className = `fixed top-24 left-1/2 -translate-x-1/2 z-50 pointer-events-none transition-opacity duration-200 px-5 py-2 rounded-full font-headline tracking-wider text-sm shadow-2xl uppercase ${isDanger ? 'bg-red-950/90 border border-red-500 text-red-300' : 'bg-black/90 border border-primary text-primary'}`;
+      fb.style.opacity = '1';
+      setTimeout(() => {
+        fb.style.opacity = '0';
+      }, 1200);
+    }
+
+    function executeAction(type) {
+      const enemyBar = document.getElementById('enemy-hp-bar');
+      const enemyText = document.getElementById('enemy-hp-text');
+      const comboElem = document.getElementById('combo-number');
+
+      if (type === 'light') {
+        enemyHp = Math.max(0, enemyHp - 75);
+        combo++;
+        showFeedback(`JAB CEPAT KENA! 0${combo} HITS`);
+      } else if (type === 'heavy') {
+        enemyHp = Math.max(0, enemyHp - 160);
+        combo++;
+        showFeedback('GUARD BIMO HANCUR! -160 DMG');
+      } else if (type === 'dodge') {
+        showFeedback('ELAKAN BERHASIL! (COUNTER TERBUKA)');
+      } else if (type === 'ultimate') {
+        enemyHp = Math.max(0, enemyHp - 380);
+        combo += 3;
+        showFeedback('BANTINGAN PREMAN CRITICAL! -380 DMG', true);
+      }
+
+      comboElem.innerText = combo < 10 ? `0${combo}` : combo;
+      enemyText.innerText = `${enemyHp.toLocaleString()} / 2,000`;
+      enemyBar.style.width = `${(enemyHp / 2000) * 100}%`;
+
+      // Shake screen slightly on heavy impact
+      if (type === 'heavy' || type === 'ultimate') {
+        document.body.classList.add('impact-shake');
+        setTimeout(() => document.body.classList.remove('impact-shake'), 300);
+      }
+    }
+
+    function useCombatItem(item) {
+      const pBar = document.getElementById('player-hp-bar');
+      const pText = document.getElementById('player-hp-text');
+
+      if (item === 'bekal') {
+        playerHp = Math.min(800, playerHp + 150);
+        showFeedback('KOTAK BEKAL DIMAKAN: +150 HP PULIH!');
+      } else if (item === 'plester') {
+        playerHp = Math.min(800, playerHp + 60);
+        showFeedback('PLESTER DIGUNAKAN: PEMULIHAN HP STABIL');
+      } else if (item === 'penggaris') {
+        showFeedback('PENGGARIS BESI DIGENGGAM: SERANGAN MENINGKAT!');
+      }
+
+      pText.innerText = `${playerHp} / 800`;
+      pBar.style.width = `${(playerHp / 800) * 100}%`;
+    }
+
+    // Keyboard Hotkey Support
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'q' || e.key === 'Q') executeAction('ultimate');
+      if (e.key === '1') useCombatItem('bekal');
+      if (e.key === '2') useCombatItem('plester');
+      if (e.key === '3') useCombatItem('penggaris');
+      if (e.key === ' ') executeAction('dodge');
+    });
+  </script>
+
+</body>
+</html>

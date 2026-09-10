@@ -1,0 +1,494 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head><meta charset="utf-8"/><meta content="width=device-width, initial-scale=1.0" name="viewport"/><link href="https://fonts.googleapis.com/css2?family=Anton&amp;family=JetBrains+Mono:wght@400;500;600;700&amp;family=Space+Grotesk:wght@400;600;700&amp;display=swap" rel="stylesheet"/><link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/><style>@layer base{html,body{margin:0;padding:0;}body{overscroll-behavior:none;}main>:first-child{margin-top:0!important;}main>:last-child{margin-bottom:0!important;}}::-webkit-scrollbar{display:none;}</style><script src="https://cdn.tailwindcss.com"></script><script id="tailwind-config">tailwind.config = {
+    darkMode: "class",
+    theme: {
+      extend: {
+        "colors": {
+          "secondary-fixed": "#ffdad7",
+          "on-surface-variant": "#d8c3ad",
+          "surface": "#111319",
+          "primary-container": "#f59e0b",
+          "on-error-container": "#ffdad6",
+          "background": "#111319",
+          "secondary": "#ffb3ad",
+          "on-secondary-fixed-variant": "#930013",
+          "on-tertiary-fixed-variant": "#004e5c",
+          "outline-variant": "#534434",
+          "tertiary-container": "#29c1df",
+          "inverse-on-surface": "#2e3037",
+          "primary": "#ffc174",
+          "surface-dim": "#111319",
+          "surface-bright": "#373940",
+          "surface-container": "#1e1f26",
+          "outline": "#a08e7a",
+          "surface-container-lowest": "#0c0e14",
+          "on-secondary": "#68000a",
+          "on-tertiary": "#003640",
+          "tertiary-fixed": "#acedff",
+          "primary-fixed-dim": "#ffb95f",
+          "inverse-surface": "#e2e2eb",
+          "on-tertiary-fixed": "#001f26",
+          "tertiary": "#54ddfc",
+          "on-surface": "#e2e2eb",
+          "on-primary-container": "#613b00",
+          "on-background": "#e2e2eb",
+          "surface-variant": "#33343b",
+          "secondary-container": "#a40217",
+          "surface-container-high": "#282a30",
+          "primary-fixed": "#ffddb8",
+          "on-primary-fixed": "#2a1700",
+          "surface-tint": "#ffb95f",
+          "on-tertiary-container": "#004b58",
+          "on-secondary-fixed": "#410004",
+          "surface-container-low": "#191b22",
+          "inverse-primary": "#855300",
+          "on-error": "#690005",
+          "on-secondary-container": "#ffaea8",
+          "error": "#ffb4ab",
+          "surface-container-highest": "#33343b",
+          "tertiary-fixed-dim": "#4cd7f6",
+          "on-primary": "#472a00",
+          "secondary-fixed-dim": "#ffb3ad",
+          "error-container": "#93000a",
+          "on-primary-fixed-variant": "#653e00"
+        },
+        "borderRadius": {
+          "DEFAULT": "0.25rem",
+          "lg": "0.5rem",
+          "xl": "0.75rem",
+          "full": "9999px"
+        },
+        "spacing": {
+          "space-lg": "1.5rem",
+          "margin-safe": "1.5rem",
+          "space-xl": "2rem",
+          "gutter-hud": "1.25rem",
+          "space-md": "1rem",
+          "space-2xs": "0.25rem",
+          "space-sm": "0.75rem",
+          "space-2xl": "3rem",
+          "space-xs": "0.5rem"
+        },
+        "fontFamily": {
+          "display-xl-mobile": ["Anton"],
+          "display-xl": ["Anton"],
+          "label-md": ["JetBrains Mono"],
+          "body-lg": ["Space Grotesk"],
+          "label-sm": ["JetBrains Mono"],
+          "headline-md": ["Anton"],
+          "title-md": ["Space Grotesk"],
+          "label-lg": ["JetBrains Mono"],
+          "body-md": ["Space Grotesk"],
+          "headline-lg": ["Anton"],
+          "title-lg": ["Space Grotesk"],
+          "headline-lg-mobile": ["Anton"]
+        },
+        "fontSize": {
+          "display-xl-mobile": ["38px", {"lineHeight": "42px", "letterSpacing": "0.04em", "fontWeight": "400"}],
+          "display-xl": ["56px", {"lineHeight": "60px", "letterSpacing": "0.04em", "fontWeight": "400"}],
+          "label-md": ["12px", {"lineHeight": "16px", "letterSpacing": "0.06em", "fontWeight": "500"}],
+          "body-lg": ["16px", {"lineHeight": "24px", "fontWeight": "400"}],
+          "label-sm": ["10px", {"lineHeight": "14px", "letterSpacing": "0.08em", "fontWeight": "500"}],
+          "headline-md": ["24px", {"lineHeight": "28px", "letterSpacing": "0.02em", "fontWeight": "400"}],
+          "title-md": ["16px", {"lineHeight": "22px", "fontWeight": "600"}],
+          "label-lg": ["14px", {"lineHeight": "18px", "letterSpacing": "0.05em", "fontWeight": "600"}],
+          "body-md": ["14px", {"lineHeight": "20px", "fontWeight": "400"}],
+          "headline-lg": ["36px", {"lineHeight": "40px", "letterSpacing": "0.03em", "fontWeight": "400"}],
+          "title-lg": ["20px", {"lineHeight": "26px", "letterSpacing": "0.01em", "fontWeight": "700"}],
+          "headline-lg-mobile": ["26px", {"lineHeight": "30px", "letterSpacing": "0.03em", "fontWeight": "400"}]
+        }
+      }
+    }
+  };</script></head><body class="bg-background font-body-md text-body-md text-on-surface select-none"><header class="fixed top-0 left-0 w-full z-50 pointer-events-none"><div class="h-16 w-full px-margin-safe flex items-center justify-between"><div class="flex items-center gap-space-sm pointer-events-auto"><div class="bg-primary-container px-space-xs py-space-2xs -skew-x-6 shadow-[2px_2px_0px_#000000]"><span class="font-headline-md text-headline-md text-on-primary-container tracking-wider uppercase">CHAOS // 01</span></div><div class="bg-surface-container-high/80 backdrop-blur-md px-space-xs py-space-2xs"><span class="font-label-sm text-label-sm text-tertiary">ACT.II: ROOFTOP TURF</span></div></div><nav class="pointer-events-auto flex items-center gap-space-xs bg-surface-container-lowest/85 backdrop-blur-xl px-space-xs py-space-2xs shadow-[0_1px_8px_rgba(0,0,0,0.04)]" data-active-classes="bg-primary text-on-primary shadow-[2px_2px_0px_#000000]"><a class="px-space-sm py-space-2xs font-label-md text-label-md text-on-surface-variant hover:text-on-surface transition-colors uppercase" data-path="campus-roam" href="#">Campus Roam</a><a aria-current="page" class="px-space-sm py-space-2xs font-label-md transition-colors uppercase bg-primary text-on-primary shadow-[2px_2px_0px_#000000]" data-path="delinquent-roster" href="#">Roster</a><a class="px-space-sm py-space-2xs font-label-md text-label-md text-on-surface-variant hover:text-on-surface transition-colors uppercase" data-path="detention-log" href="#">Detention Log</a><a class="px-space-sm py-space-2xs font-label-md text-label-md text-on-surface-variant hover:text-on-surface transition-colors uppercase" data-path="tactical-inventory" href="#">Locker Stash</a></nav><div class="flex items-center gap-space-sm pointer-events-auto"><div class="flex flex-col text-right"><span class="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-widest">BELL TIMETABLE</span><span class="font-label-md text-label-md text-primary font-bold">16:45 // AFTER SCHOOL</span></div><div class="w-8 h-8 rounded-full bg-primary flex items-center justify-center"><span class="material-symbols-outlined text-on-primary text-[18px]">person</span></div></div></div></header><main class="w-full pt-16 bg-surface"><div class="flex flex-col w-full">
+<div class="w-full px-margin-safe py-space-md flex flex-col gap-space-lg max-w-7xl mx-auto pb-space-2xl">
+<!-- LEVEL 1: DOMINANT TOP VISUAL ANCHOR (DOSSIER HEADER & HERO BADGE) -->
+<div class="relative w-full bg-surface-container-lowest p-space-md md:p-space-lg shadow-[4px_4px_0px_#000000]">
+<div class="absolute -top-3 left-4 bg-primary-container text-on-primary-container px-space-xs py-space-2xs -skew-x-6 shadow-[2px_2px_0px_#000000]">
+<span class="font-label-sm text-label-sm uppercase tracking-widest font-bold">DOSSIER // CONFIDENTIAL STUDENT FILE</span>
+</div>
+<div class="grid grid-cols-1 lg:grid-cols-12 gap-space-md items-stretch mt-space-xs">
+<!-- Protagonist Portrait & Stencil Stamp -->
+<div class="lg:col-span-4 relative flex flex-col bg-surface-container-high overflow-hidden shadow-[3px_3px_0px_#000000]">
+<div class="relative w-full h-72 md:h-80 bg-surface-container">
+<img class="w-full h-full object-cover object-top" data-alt="Anime style delinquent protagonist student named Ren in customized unbuttoned school uniform blazer over black graphic shirt, lean athletic stance with confident smirk, moody rain-slicked concrete rooftop school background, cinematic amber and cyan street lamp rim lighting, high-contrast expressive comic illustration" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAeu0OZqnCoxcrt3DOAubTT15dc81q-NVPyIR7hSs7PHJvhQVxnNSI5cro94is5UJ2qTpMKnaf4Cc7ssuP2X6vmt2uLDbOZ0Og_k8jC43H0retjwO438XAT20nHoAYLq59yCDdFqoMA4OJQ4B_wLZBntCWuIsWMWVJKCF6tia1cbb93wXPpRz27jUKYHncdmkkhnW417mloLg_eih47tYF184Xb73dVT82aoxL1GXJAIgGINVrxVHuK"/>
+<div class="absolute inset-0 bg-gradient-to-t from-surface-container-lowest via-transparent to-transparent opacity-90"></div>
+<div class="absolute top-2 left-2 bg-surface-container-lowest/90 px-space-xs py-space-2xs backdrop-blur-sm -skew-x-6">
+<span class="font-label-sm text-label-sm text-tertiary">ID #4092-XII</span>
+</div>
+<div class="absolute bottom-3 left-3 right-3 flex items-end justify-between">
+<div>
+<span class="font-label-sm text-label-sm text-primary uppercase block tracking-wider">TRANSFER PROFILE</span>
+<span class="font-headline-lg text-headline-lg text-on-surface uppercase leading-none">REN</span>
+</div>
+<div class="bg-primary text-on-primary px-space-xs py-space-2xs font-headline-md text-headline-md leading-none shadow-[2px_2px_0px_#000000]">
+                XII-B
+              </div>
+</div>
+</div>
+<div class="p-space-xs bg-surface-container-lowest flex items-center justify-between">
+<span class="font-label-sm text-label-sm text-outline uppercase tracking-wider">HOMEROOM: KARTIKA, S.PD</span>
+<span class="font-label-sm text-label-sm text-tertiary uppercase">LOCKED LOCKER: #082</span>
+</div>
+</div>
+<!-- Identification Matrix & Real-time Status -->
+<div class="lg:col-span-8 flex flex-col justify-between gap-space-md bg-surface-container-low p-space-md">
+<div class="flex flex-col gap-space-xs">
+<div class="flex flex-wrap items-center justify-between gap-space-xs pb-space-xs">
+<div class="flex items-center gap-space-xs">
+<span class="w-3 h-3 bg-tertiary animate-pulse inline-block"></span>
+<span class="font-headline-md text-headline-md text-on-surface tracking-wide uppercase">METRIC OVERVIEW</span>
+</div>
+<div class="flex items-center gap-space-xs">
+<div class="bg-surface-container-highest px-space-xs py-space-2xs">
+<span class="font-label-sm text-label-sm text-on-surface-variant uppercase">ATTENDANCE:</span>
+<span class="font-label-sm text-label-sm text-primary font-bold ml-1">DAY 01 // ENROLLED</span>
+</div>
+<div class="bg-secondary-container px-space-xs py-space-2xs -skew-x-3">
+<span class="font-label-sm text-label-sm text-on-secondary-container font-bold uppercase">PROBATION TIER 1</span>
+</div>
+</div>
+</div>
+<p class="font-body-md text-body-md text-on-surface-variant max-w-2xl leading-relaxed">
+              Newly transferred following disciplinary incidents at West District Vocational. Records indicate exceptional reactive reflexes, volatile interpersonal cohesion, and persistent resistance toward prefect surveillance.
+            </p>
+</div>
+<!-- Quick Vitals Snapshot Ribbons -->
+<div class="grid grid-cols-2 sm:grid-cols-4 gap-space-xs">
+<div class="bg-surface-container p-space-xs flex flex-col justify-center">
+<span class="font-label-sm text-label-sm text-outline uppercase">CONDITION</span>
+<span class="font-title-md text-title-md text-tertiary flex items-center gap-1">
+<span class="material-symbols-outlined text-[18px]">bolt</span> ACTIVE
+              </span>
+</div>
+<div class="bg-surface-container p-space-xs flex flex-col justify-center">
+<span class="font-label-sm text-label-sm text-outline uppercase">AWARENESS</span>
+<span class="font-title-md text-title-md text-primary flex items-center gap-1">
+<span class="material-symbols-outlined text-[18px]">visibility</span> SHARP / ALERT
+              </span>
+</div>
+<div class="bg-surface-container p-space-xs flex flex-col justify-center">
+<span class="font-label-sm text-label-sm text-outline uppercase">STREET NOTORIETY</span>
+<span class="font-title-md text-title-md text-secondary-fixed flex items-center gap-1">
+<span class="material-symbols-outlined text-[18px]">warning</span> LEVEL 02
+              </span>
+</div>
+<div class="bg-surface-container p-space-xs flex flex-col justify-center">
+<span class="font-label-sm text-label-sm text-outline uppercase">ACADEMIC STANDING</span>
+<span class="font-title-md text-title-md text-on-surface flex items-center gap-1">
+<span class="material-symbols-outlined text-[18px]">school</span> B+ (78%)
+              </span>
+</div>
+</div>
+<!-- Tactical Banner -->
+<div class="p-space-xs bg-surface-container-high flex flex-wrap items-center justify-between gap-space-xs">
+<div class="flex items-center gap-space-xs">
+<span class="material-symbols-outlined text-primary text-[20px]">flag</span>
+<span class="font-label-sm text-label-sm text-on-surface uppercase">PRIMARY ACT GOAL: ESTABLISH SANCTUARY IN REAR ROOFTOP TURF</span>
+</div>
+<span class="font-label-sm text-label-sm text-tertiary uppercase">PHASE: 01/04</span>
+</div>
+</div>
+</div>
+</div>
+<!-- LEVEL 2: PRIMARY STATS (HIGH-CONTRAST VISCERAL HUD BARS) -->
+<div class="w-full bg-surface-container-lowest p-space-md md:p-space-lg shadow-[4px_4px_0px_#000000] flex flex-col gap-space-md">
+<div class="flex items-center justify-between pb-space-2xs">
+<div class="flex items-center gap-space-xs">
+<div class="w-2 h-5 bg-primary"></div>
+<h2 class="font-headline-md text-headline-md text-on-surface uppercase tracking-wider">TACTICAL VITALS &amp; ATTRIBUTES</h2>
+</div>
+<span class="font-label-sm text-label-sm text-outline uppercase">TELEMETRY FREQ // 240Hz</span>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-3 gap-space-md">
+<!-- STAT 1: HP (Vitality) -->
+<div class="bg-surface-container p-space-sm flex flex-col justify-between gap-space-xs">
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-space-xs">
+<span class="material-symbols-outlined text-error text-[20px]" style="font-variation-settings: 'FILL' 1;">favorite</span>
+<span class="font-title-md text-title-md text-on-surface uppercase">VITALITY // HP</span>
+</div>
+<span class="font-headline-md text-headline-md text-error tracking-tight">85 <span class="font-label-md text-label-md text-outline">/ 100</span></span>
+</div>
+<div class="w-full h-4 bg-surface-container-lowest relative p-0.5">
+<div class="h-full bg-secondary-container transition-all duration-500" style="width: 85%;"></div>
+</div>
+<div class="flex justify-between items-center text-label-sm font-label-sm text-on-surface-variant">
+<span>COMBAT CAPACITY</span>
+<span class="text-error uppercase font-bold">PEAK THRESHOLD</span>
+</div>
+</div>
+<!-- STAT 2: FOCUS -->
+<div class="bg-surface-container p-space-sm flex flex-col justify-between gap-space-xs">
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-space-xs">
+<span class="material-symbols-outlined text-primary text-[20px]" style="font-variation-settings: 'FILL' 1;">psychology</span>
+<span class="font-title-md text-title-md text-on-surface uppercase">MENTAL // FOCUS</span>
+</div>
+<span class="font-headline-md text-headline-md text-primary tracking-tight">70 <span class="font-label-md text-label-md text-outline">/ 100</span></span>
+</div>
+<div class="w-full h-4 bg-surface-container-lowest relative p-0.5">
+<div class="h-full bg-primary-container transition-all duration-500" style="width: 70%;"></div>
+</div>
+<div class="flex justify-between items-center text-label-sm font-label-sm text-on-surface-variant">
+<span>DECISION MOMENTUM</span>
+<span class="text-primary uppercase font-bold">+1.2 PER REBUTTAL</span>
+</div>
+</div>
+<!-- STAT 3: ACADEMIC GRADE -->
+<div class="bg-surface-container p-space-sm flex flex-col justify-between gap-space-xs">
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-space-xs">
+<span class="material-symbols-outlined text-tertiary text-[20px]" style="font-variation-settings: 'FILL' 1;">auto_stories</span>
+<span class="font-title-md text-title-md text-on-surface uppercase">ACADEMICS // GPA</span>
+</div>
+<span class="font-headline-md text-headline-md text-tertiary tracking-tight">78 <span class="font-label-md text-label-md text-outline">/ 100</span></span>
+</div>
+<div class="w-full h-4 bg-surface-container-lowest relative p-0.5">
+<div class="h-full bg-surface-bright transition-all duration-500" style="width: 78%;"></div>
+</div>
+<div class="flex justify-between items-center text-label-sm font-label-sm text-on-surface-variant">
+<span>EVALUATION STATUS</span>
+<span class="text-on-surface font-bold uppercase">GRADE B+ (IN PROGRESS)</span>
+</div>
+</div>
+</div>
+<!-- MORALITY & RESOLVE ALIGNMENT METER -->
+<div class="bg-surface-container p-space-sm flex flex-col gap-space-xs mt-space-2xs">
+<div class="flex flex-wrap items-center justify-between gap-space-xs">
+<div class="flex items-center gap-space-xs">
+<span class="material-symbols-outlined text-outline text-[18px]">balance</span>
+<span class="font-title-md text-title-md text-on-surface uppercase">DOCTRINE BALANCE // TACTICAL RESOLVE</span>
+</div>
+<div class="flex items-center gap-space-md">
+<span class="font-label-sm text-label-sm text-secondary-fixed font-bold uppercase tracking-wider">DIRECT FORCE: 35%</span>
+<span class="font-label-sm text-label-sm text-outline">|</span>
+<span class="font-label-sm text-label-sm text-tertiary font-bold uppercase tracking-wider">NEGOTIATION: 65%</span>
+</div>
+</div>
+<!-- Bi-Directional High-Contrast Meter -->
+<div class="relative w-full h-8 bg-surface-container-lowest flex items-center p-1 overflow-hidden">
+<!-- Left Force (Crimson) -->
+<div class="h-full bg-secondary-container flex items-center justify-start px-2 transition-all duration-500" style="width: 35%;">
+<span class="font-label-sm text-label-sm text-on-secondary-container font-bold hidden sm:inline">AGGRESSION</span>
+</div>
+<!-- Center Divider Notch -->
+<div class="w-1.5 h-full bg-on-surface z-10 mx-0.5"></div>
+<!-- Right Diplomacy (Cyan) -->
+<div class="h-full bg-tertiary-container flex items-center justify-end px-2 transition-all duration-500" style="width: 65%;">
+<span class="font-label-sm text-label-sm text-on-tertiary-container font-bold hidden sm:inline">DIPLOMACY / RHETORIC</span>
+</div>
+<!-- Dynamic Pointer Wedge -->
+<div class="absolute top-0 bottom-0 w-2 bg-primary-container -skew-x-12 shadow-[0_0_10px_#f59e0b]" style="left: calc(35% - 2px);"></div>
+</div>
+<div class="flex justify-between items-center font-label-sm text-label-sm text-outline-variant pt-1">
+<span class="text-secondary flex items-center gap-1">
+<span class="material-symbols-outlined text-[14px]">sports_mma</span> Raw Intimidation / Physical Coercion
+          </span>
+<span class="text-tertiary flex items-center gap-1">
+            Persuasion / Institutional Leverage <span class="material-symbols-outlined text-[14px]">record_voice_over</span>
+</span>
+</div>
+</div>
+</div>
+<!-- LEVEL 3: SOCIAL STANDING & KEY RELATIONSHIPS (3-CHARACTER HORIZONTAL GRID) -->
+<div class="w-full bg-surface-container-lowest p-space-md md:p-space-lg shadow-[4px_4px_0px_#000000] flex flex-col gap-space-md">
+<div class="flex flex-wrap items-center justify-between gap-space-xs pb-space-2xs">
+<div class="flex items-center gap-space-xs">
+<div class="w-2 h-5 bg-tertiary"></div>
+<h2 class="font-headline-md text-headline-md text-on-surface uppercase tracking-wider">CAMPUS SYNDICATE &amp; RELATIONSHIP LOGS</h2>
+</div>
+<span class="font-label-sm text-label-sm text-outline uppercase">AFFINITY ENGINE ACTIVE // 03 MONITORED SUBJECTS</span>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-3 gap-space-md">
+<!-- CHARACTER 1: ARIS -->
+<div class="bg-surface-container p-space-md flex flex-col justify-between gap-space-sm shadow-[2px_2px_0px_#000000] hover:translate-x-0.5 hover:-translate-y-0.5 transition-transform duration-150">
+<div class="flex flex-col gap-space-xs">
+<div class="flex items-start justify-between">
+<div>
+<span class="font-label-sm text-label-sm text-primary uppercase tracking-widest block">SUBJECT 01 // CLASSMATE</span>
+<h3 class="font-headline-md text-headline-md text-on-surface uppercase">ARIS</h3>
+</div>
+<div class="bg-surface-container-high px-space-xs py-space-2xs text-right">
+<span class="font-label-md text-label-md text-primary font-bold">42 / 100</span>
+<span class="font-label-sm text-label-sm text-outline block">AFFINITY</span>
+</div>
+</div>
+<!-- Mini Visual Progress Gauge -->
+<div class="w-full h-2 bg-surface-container-lowest">
+<div class="h-full bg-primary transition-all duration-300" style="width: 42%;"></div>
+</div>
+<p class="font-body-md text-body-md text-on-surface-variant">
+              Desk neighbor in Section XII-B. Reluctant informant on school yard hierarchies; currently threatened by 3rd-year collection rackets.
+            </p>
+</div>
+<div class="flex flex-col gap-space-xs pt-space-xs bg-surface-container-low p-space-xs">
+<div class="flex items-center justify-between font-label-sm text-label-sm">
+<span class="text-outline uppercase">CURRENT STANCE</span>
+<span class="text-primary font-semibold uppercase flex items-center gap-1">
+<span class="material-symbols-outlined text-[14px]">handshake</span> FRIENDLY / ALLIED
+              </span>
+</div>
+<div class="flex items-center justify-between font-label-sm text-label-sm">
+<span class="text-outline uppercase">TACTICAL STATUS</span>
+<span class="text-tertiary uppercase">NEEDS INTERVENTION</span>
+</div>
+</div>
+</div>
+<!-- CHARACTER 2: SITI -->
+<div class="bg-surface-container p-space-md flex flex-col justify-between gap-space-sm shadow-[2px_2px_0px_#000000] hover:translate-x-0.5 hover:-translate-y-0.5 transition-transform duration-150">
+<div class="flex flex-col gap-space-xs">
+<div class="flex items-start justify-between">
+<div>
+<span class="font-label-sm text-label-sm text-tertiary uppercase tracking-widest block">SUBJECT 02 // STUDENT COUNCIL</span>
+<h3 class="font-headline-md text-headline-md text-on-surface uppercase">SITI</h3>
+</div>
+<div class="bg-surface-container-high px-space-xs py-space-2xs text-right">
+<span class="font-label-md text-label-md text-tertiary font-bold">31 / 100</span>
+<span class="font-label-sm text-label-sm text-outline block">AFFINITY</span>
+</div>
+</div>
+<!-- Mini Visual Progress Gauge -->
+<div class="w-full h-2 bg-surface-container-lowest">
+<div class="h-full bg-tertiary transition-all duration-300" style="width: 31%;"></div>
+</div>
+<p class="font-body-md text-body-md text-on-surface-variant">
+              Prefect head of Disciplinary Oversight. Tracks transfer infractions with surgical precision. Holds access to key hallway checkpoint passes.
+            </p>
+</div>
+<div class="flex flex-col gap-space-xs pt-space-xs bg-surface-container-low p-space-xs">
+<div class="flex items-center justify-between font-label-sm text-label-sm">
+<span class="text-outline uppercase">CURRENT STANCE</span>
+<span class="text-tertiary font-semibold uppercase flex items-center gap-1">
+<span class="material-symbols-outlined text-[14px]">remove_red_eye</span> CAUTIOUS OBSERVER
+              </span>
+</div>
+<div class="flex items-center justify-between font-label-sm text-label-sm">
+<span class="text-outline uppercase">TACTICAL STATUS</span>
+<span class="text-on-surface-variant uppercase">FILE UNDER SURVEILLANCE</span>
+</div>
+</div>
+</div>
+<!-- CHARACTER 3: BIMO -->
+<div class="bg-surface-container p-space-md flex flex-col justify-between gap-space-sm shadow-[2px_2px_0px_#000000] hover:translate-x-0.5 hover:-translate-y-0.5 transition-transform duration-150">
+<div class="flex flex-col gap-space-xs">
+<div class="flex items-start justify-between">
+<div>
+<span class="font-label-sm text-label-sm text-secondary uppercase tracking-widest block">SUBJECT 03 // SENIOR GANG LEADER</span>
+<h3 class="font-headline-md text-headline-md text-secondary uppercase">BIMO</h3>
+</div>
+<div class="bg-secondary-container px-space-xs py-space-2xs text-right">
+<span class="font-label-md text-label-md text-on-secondary-container font-bold">-15 / 100</span>
+<span class="font-label-sm text-label-sm text-on-secondary-container/80 block">HOSTILITY</span>
+</div>
+</div>
+<!-- Mini Visual Progress Gauge (Negative/Hostile) -->
+<div class="w-full h-2 bg-surface-container-lowest">
+<div class="h-full bg-secondary-container transition-all duration-300" style="width: 25%;"></div>
+</div>
+<p class="font-body-md text-body-md text-on-surface-variant">
+              Controls the North Bike Sheds and Rooftop perimeter. Considers new transfer students immediate targets for territorial dues.
+            </p>
+</div>
+<div class="flex flex-col gap-space-xs pt-space-xs bg-surface-container-low p-space-xs">
+<div class="flex items-center justify-between font-label-sm text-label-sm">
+<span class="text-outline uppercase">CURRENT STANCE</span>
+<span class="text-secondary font-semibold uppercase flex items-center gap-1">
+<span class="material-symbols-outlined text-[14px]">crisis_alert</span> HOSTILE RIVAL
+              </span>
+</div>
+<div class="flex items-center justify-between font-label-sm text-label-sm">
+<span class="text-outline uppercase">TACTICAL STATUS</span>
+<span class="text-error uppercase font-bold">CONFLICT IMMINENT (ACT.II)</span>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- LEVEL 4: SECONDARY DETAILS & ADMINISTRATIVE FOOTNOTES -->
+<div class="w-full grid grid-cols-1 lg:grid-cols-12 gap-space-md items-stretch">
+<!-- Passive Perks Deck -->
+<div class="lg:col-span-6 bg-surface-container-lowest p-space-md shadow-[4px_4px_0px_#000000] flex flex-col justify-between gap-space-sm">
+<div class="flex items-center justify-between pb-space-2xs">
+<span class="font-label-sm text-label-sm text-primary uppercase tracking-widest font-bold flex items-center gap-1">
+<span class="material-symbols-outlined text-[16px]">military_tech</span> ACTIVE PASSIVE TRAITS
+          </span>
+<span class="font-label-sm text-label-sm text-outline">SLOTS: 2/4 EQUIPPED</span>
+</div>
+<div class="grid grid-cols-1 sm:grid-cols-2 gap-space-sm">
+<div class="bg-surface-container p-space-xs flex flex-col gap-1 -skew-x-2 shadow-[2px_2px_0px_#000000]">
+<div class="flex items-center gap-space-2xs">
+<span class="material-symbols-outlined text-primary text-[18px]">near_me</span>
+<span class="font-title-md text-title-md text-on-surface uppercase">STREET INTUITION</span>
+</div>
+<span class="font-body-md text-body-md text-on-surface-variant">Reveals hidden confrontation escape paths and concealed corridor shortcuts.</span>
+<span class="font-label-sm text-label-sm text-primary uppercase font-bold pt-1">+15% ESCAPE CHANCE</span>
+</div>
+<div class="bg-surface-container p-space-xs flex flex-col gap-1 -skew-x-2 shadow-[2px_2px_0px_#000000]">
+<div class="flex items-center gap-space-2xs">
+<span class="material-symbols-outlined text-tertiary text-[18px]">self_improvement</span>
+<span class="font-title-md text-title-md text-on-surface uppercase">CALM COMPOSURE</span>
+</div>
+<span class="font-body-md text-body-md text-on-surface-variant">Focus degradation slows by 25% during disciplinary council questioning.</span>
+<span class="font-label-sm text-label-sm text-tertiary uppercase font-bold pt-1">-25% DIALOGUE PRESSURE</span>
+</div>
+</div>
+<div class="pt-space-2xs flex items-center justify-between font-label-sm text-label-sm text-outline">
+<span>NEW PERK UNLOCK AT: DAY 03</span>
+<span class="text-tertiary cursor-pointer hover:text-on-surface uppercase">[INSPECT SKILL TREE]</span>
+</div>
+</div>
+<!-- Counselor Administrative Notice -->
+<div class="lg:col-span-6 bg-surface-container-lowest p-space-md shadow-[4px_4px_0px_#000000] flex flex-col justify-between gap-space-xs">
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-space-xs">
+<span class="material-symbols-outlined text-outline text-[18px]">verified</span>
+<span class="font-label-sm text-label-sm text-outline uppercase tracking-widest font-bold">COUNSELOR RECORD // DEPT. STUDENT AFFAIRS</span>
+</div>
+<span class="font-label-sm text-label-sm bg-surface-container-high px-1 text-on-surface-variant">RECORD: STAMPED</span>
+</div>
+<div class="bg-surface-container-low p-space-sm flex flex-col gap-space-2xs">
+<div class="flex items-center gap-space-xs">
+<span class="material-symbols-outlined text-primary text-[20px]">assignment_turned_in</span>
+<span class="font-label-md text-label-md text-on-surface uppercase font-bold">OFFICIAL MEMORANDUM:</span>
+</div>
+<blockquote class="font-body-lg text-body-lg text-primary italic pl-space-xs">
+            “Clean record on file. Transfer paperwork pending final principal approval. Advised to maintain low profile until mid-term review.”
+          </blockquote>
+<div class="flex justify-between items-center pt-space-xs font-label-sm text-label-sm text-on-surface-variant">
+<span>OFFICER: MRS. DEWI // ROOM 104</span>
+<span class="text-tertiary">STATUS: VALIDATED</span>
+</div>
+</div>
+<!-- System Hotkeys Navigation Footer Bar -->
+<div class="flex flex-wrap items-center justify-between gap-space-xs pt-space-2xs bg-surface-container px-space-xs py-space-2xs">
+<div class="flex items-center gap-space-sm">
+<span class="font-label-sm text-label-sm text-primary uppercase font-bold">[TAB] RETURN TO ROAM</span>
+<span class="font-label-sm text-label-sm text-outline">•</span>
+<span class="font-label-sm text-label-sm text-on-surface uppercase font-bold">[Q / E] PREV / NEXT DOSSIER</span>
+</div>
+<span class="font-label-sm text-label-sm text-tertiary uppercase">[F1] PRINT REPORT</span>
+</div>
+</div>
+</div>
+</div>
+</div>
+<script>
+  // Dossier keyboard navigation micro-interaction
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'q' || e.key === 'Q') {
+      const activeHeader = document.querySelector('h2');
+      if (activeHeader) {
+        activeHeader.classList.add('text-primary');
+        setTimeout(() => activeHeader.classList.remove('text-primary'), 200);
+      }
+    } else if (e.key === 'e' || e.key === 'E') {
+      const activeHeader = document.querySelector('h2');
+      if (activeHeader) {
+        activeHeader.classList.add('text-tertiary');
+        setTimeout(() => activeHeader.classList.remove('text-tertiary'), 200);
+      }
+    }
+  });
+</script></main><footer class="fixed bottom-0 left-0 w-full z-40 pointer-events-none"><div class="w-full px-margin-safe py-space-xs flex items-center justify-between"><div class="pointer-events-auto flex items-center gap-space-xs bg-surface-container-lowest/80 backdrop-blur-md px-space-sm py-space-2xs"><span class="font-label-sm text-label-sm text-outline uppercase">SYS_CLIENT // R3F_CANVAS_ACTIVE</span><span class="font-label-sm text-label-sm text-tertiary">60 FPS</span></div><div class="pointer-events-auto flex items-center gap-space-md bg-surface-container-lowest/80 backdrop-blur-md px-space-sm py-space-2xs"><span class="font-label-sm text-label-sm text-on-surface-variant uppercase">[WASD] MOVE</span><span class="font-label-sm text-label-sm text-on-surface-variant uppercase">[SPACE] VAULT</span><span class="font-label-sm text-label-sm text-primary-fixed-dim uppercase">[TAB] HUD TOGGLE</span></div><div class="pointer-events-auto bg-surface-container-lowest/80 backdrop-blur-md px-space-sm py-space-2xs"><span class="font-label-sm text-label-sm text-on-surface-variant">CHAOS SCHOOL LIFE © 2025</span></div></div></footer></body></html>
