@@ -105,7 +105,7 @@ function ScheduledNpc({ id }: { id: string }) {
 
   const start = def.schedule.arrive ?? [0, 0];
   return (
-    <group ref={group} position={[start[0], 0, start[1]]} data-npc={id}>
+    <group ref={group} position={[start[0], 0, start[1]]} userData={{ npcId: id }}>
       <Figure anim={anim} color={def.color} accent={def.accent} scale={def.height / 1.65} nameTag={def.name} tag={def.role} />
     </group>
   );
