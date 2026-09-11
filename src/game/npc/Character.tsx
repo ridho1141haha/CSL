@@ -88,7 +88,10 @@ export function Figure({ anim, color, accent, scale = 1, nameTag, tag }: Props) 
       torso.current.rotation.y = moving ? Math.sin(phase.current) * 0.12 : Math.sin(phase.current * 0.6) * 0.03;
       torso.current.rotation.x = a.attackT >= 0 ? -atk * 0.35 : moving ? 0.08 + (a.run ? 0.1 : 0) : 0;
       const bob = moving ? Math.abs(Math.sin(phase.current)) * (a.run ? 0.05 : 0.03) : 0;
-      torso.current.position.y = bob;
+      // CRITICAL FIX: must add to base position (0.92), not overwrite it.
+      // Previously `torso.current.position.y = bob` overwrote y=0.92 with y=0.05,
+      // causing torso + head to drop below the legs — character appeared upside down.
+      torso.current.position.y = 0.92 + bob;
     }
   });
 
