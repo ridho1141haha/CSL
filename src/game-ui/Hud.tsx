@@ -3,12 +3,13 @@ import { useGame } from '../stores/gameStore';
 import { usePlayer } from '../stores/playerStore';
 import { useCombat } from '../stores/combatStore';
 import { useQuests } from '../stores/questStore';
+import { useStory } from '../stores/storyStore';
 import { QUESTS } from '../data/quests';
-import { clockLabel } from '../game/systems/time';
+import { DAYS, formatHhmm, periodFor } from '../game/systems/time';
 import { ZONE_BY_ID } from '../data/world';
 import { notifySound } from '../game/audio';
 
-function Meter({ label, value, color, width }: { label: string; value: string; color: 'red' | 'cyan'; width: string }) {
+function Meter({ label, value, color, width }: { label: string; value: string; color: 'red' | 'amber' | 'cyan' | 'green'; width: string }) {
   return (
     <div className="meter">
       <div><span>{label}</span><b>{value}</b></div>
@@ -17,6 +18,9 @@ function Meter({ label, value, color, width }: { label: string; value: string; c
   );
 }
 
+// HUD eksplorasi — implementasi mockup Stitch "03-exploration":
+// top bar (brand + jam), kartu vitals, kartu misi, tag zona,
+// prompt interaksi ber-bracket, dan chip kontrol bawah.
 export function Hud() {
   const hp = usePlayer((s) => s.hp);
   const maxHp = usePlayer((s) => s.maxHp);
@@ -24,6 +28,7 @@ export function Hud() {
   const clock = useGame((s) => s.clock);
   const zone = useGame((s) => s.currentZone);
   const interactTarget = useGame((s) => s.interactTarget);
+  const chapter = useStory((s) => s.chapter);
   const quests = useQuests((s) => s.quests);
   const activeQuest = QUESTS.find((q) => q.type === 'main' && quests[q.id] === 'active');
   const lastHit = useCombat((s) => s.lastPlayerHitAt);
@@ -31,19 +36,56 @@ export function Hud() {
 
   return (
     <div className={`minimal-hud ${hurtFlash ? 'hurt' : ''}`}>
-      <div className="minimal-vitals">
-        <b>REN</b>
+      <header className="hud-top">
+        <span className="hud-brand">CHAOS <i>//</i> 01</span>
+        <span className="hud-act">ACT I <i>//</i> {`BAB ${chapter}`}</span>
+        <span className="spacer" />
+        <div className="hud-clock">
+          <b>{DAYS[clock.day]}</b> {formatHhmm(clock.minutes)} WIB
+          <i>//</i>
+          <span className="period">{periodFor(clock.minutes).label}</span>
+        </div>
+        <div className="hud-avatar">R</div>
+      </header>
+
+      <div className="vitals">
+        <div className="vitals-head">
+          <b>REN</b>
+          <span>LVL 01 // KELAS X-C</span>
+        </div>
         <Meter label="HP" value={`${Math.round(hp)} / ${maxHp}`} color="red" width={`${(hp / maxHp) * 100}%`} />
-        <Meter label="FOCUS" value={`${Math.round(focus)} / 100`} color="cyan" width={`${focus}%`} />
+        <Meter label="FOKUS" value={`${Math.round(focus)} / 100`} color="amber" width={`${focus}%`} />
       </div>
-      <div className="objective">
-        <b>{clockLabel(clock)}</b>
-        {zone && <span>{ZONE_BY_ID[zone]?.label ?? ''}</span>}
-        <span>CURRENT OBJECTIVE</span>
-        <strong>{activeQuest ? activeQuest.objective : 'Ikuti cerita'}</strong>
+
+      <div className="obj-card">
+        <div className="obj-marker">M</div>
+        <div className="obj-body">
+          <b>MISI UTAMA</b>
+          <strong>{activeQuest ? activeQuest.objective : 'Ikuti alur cerita'}</strong>
+          <span>{activeQuest ? activeQuest.title : 'PROLOG SMA YUSON'}</span>
+        </div>
       </div>
-      {interactTarget && <div className="interact">[E] <span>BICARA DENGAN {interactTarget.toUpperCase()}</span></div>}
-      <div className="controls">WASD MOVE · SHIFT RUN · SPACE JUMP · HOLD LMB + MOUSE = CAMERA · LMB ATTACK · Q HEAVY · RMB BLOCK · E INTERACT · ESC PAUSE</div>
+
+      {zone && (
+        <div className="zone-tag">
+          LOKASI <b>//</b> {ZONE_BY_ID[zone]?.label ?? ''}
+        </div>
+      )}
+
+      {interactTarget && (
+        <div className="interact brackets">
+          <kbd>E</kbd> BICARA <i>//</i> <span>{interactTarget.toUpperCase()}</span>
+        </div>
+      )}
+
+      <footer className="hud-controls">
+        <span><kbd>WASD</kbd> GERAK</span>
+        <span><kbd>SHIFT</kbd> LARI</span>
+        <span><kbd>SPACE</kbd> LOMPAT</span>
+        <span><kbd>LMB</kbd> SERANG</span>
+        <span><kbd>E</kbd> INTERAKSI</span>
+        <span><kbd>ESC</kbd> JEDA</span>
+      </footer>
     </div>
   );
 }
@@ -69,6 +111,9 @@ export function Notifications() {
   );
 }
 
+// Combat HUD — implementasi mockup Stitch "08-combat":
+// panel pemain kiri-atas, panel musuh kanan-atas, chip mode tengah,
+// bar aksi kanan-bawah.
 export function CombatHud() {
   const enemies = useCombat((s) => s.enemies);
   const index = useCombat((s) => s.index);
@@ -79,12 +124,29 @@ export function CombatHud() {
 
   return (
     <div className="combat-ui">
-      <div className="combat-title">DUEL{cur ? ` // ${cur.name.toUpperCase()}` : ''}{enemies.length > 1 ? ` (${index + 1}/${enemies.length})` : ''}</div>
-      {cur && <Meter label={cur.name.toUpperCase()} value={`${cur.hp} / ${cur.maxHp}`} color="red" width={`${(cur.hp / cur.maxHp) * 100}%`} />}
-      <Meter label="REN HP" value={`${Math.round(hp)} / ${maxHp}`} color="cyan" width={`${(hp / maxHp) * 100}%`} />
-      <Meter label="FOCUS" value={`${Math.round(focus)} / 100`} color="cyan" width={`${focus}%`} />
-      <div className="combat-actions">
-        <span>LMB STRIKE</span><span>Q HEAVY (−10 FOCUS)</span><span>RMB BLOCK</span><span>SHIFT DODGE (−6 FOCUS)</span>
+      <div className="cb-top">
+        <div className="cb-panel player">
+          <div className="cb-head"><b>REN PRATAMA</b><span>X-C</span></div>
+          <Meter label="HP" value={`${Math.round(hp)} / ${maxHp}`} color="red" width={`${(hp / maxHp) * 100}%`} />
+          <Meter label="FOKUS" value={`${Math.round(focus)} / 100`} color="amber" width={`${focus}%`} />
+          <span className="chip chip-amber">STREET BRAWLER</span>
+        </div>
+        <div className="cb-mid">
+          <span className="cb-mode">MODE SKIRMISH <i>//</i> DUEL</span>
+          <span className="cb-round">REN {Math.round(hp)} HP <i>·</i> {enemies.length} LAWAN</span>
+        </div>
+        {cur && (
+          <div className="cb-panel enemy">
+            <div className="cb-head"><span>{enemies.length > 1 ? `TARGET ${index + 1}/${enemies.length}` : 'TARGET'}</span><b>{cur.name.toUpperCase()}</b></div>
+            <Meter label={cur.name.toUpperCase()} value={`${cur.hp} / ${cur.maxHp}`} color="red" width={`${(cur.hp / cur.maxHp) * 100}%`} />
+          </div>
+        )}
+      </div>
+      <div className="cb-actions">
+        <span><kbd>LMB</kbd> PUKUL</span>
+        <span><kbd>Q</kbd> HEAVY <i>−10</i></span>
+        <span><kbd>RMB</kbd> TANGKIS</span>
+        <span><kbd>SHIFT</kbd> MENGELAK <i>−6</i></span>
       </div>
     </div>
   );

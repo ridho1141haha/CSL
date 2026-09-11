@@ -9,6 +9,7 @@ import { useStats } from '../stores/statsStore';
 import { usePlayer } from '../stores/playerStore';
 import { getDialogue } from '../data/dialogue';
 import { NPC_BY_ID } from '../data/npcs';
+import { ZONE_BY_ID } from '../data/world';
 import { evalCondition, type ConditionContext } from '../game/systems/conditions';
 import { NODE_FX } from '../data/chapters';
 import { requestShake } from '../game/runtime';
@@ -27,6 +28,9 @@ export function DialogueUI({ cinematic }: { cinematic: boolean }) {
   const awaitingChoice = useDialogue((s) => s.awaitingChoice);
   const advance = useDialogue((s) => s.advance);
   const choose = useDialogue((s) => s.choose);
+  const zone = useGame((s) => s.currentZone);
+  const hp = usePlayer((s) => s.hp);
+  const maxHp = usePlayer((s) => s.maxHp);
   const node = nodeId ? getDialogue(nodeId) : undefined;
   const [shown, setShown] = useState(0);
   const cps = useSettings((s) => s.typewriterCps);
@@ -104,15 +108,27 @@ export function DialogueUI({ cinematic }: { cinematic: boolean }) {
   const speaker = node.speaker;
   const portraitKey = node.portrait ?? 'generic';
   const color = PORTRAIT_COLORS[portraitKey] ?? NPC_BY_ID[portraitKey]?.color ?? '#94a3b8';
+  const role = NPC_BY_ID[portraitKey]?.role ?? (speaker === 'NARATOR' ? 'NARASI' : 'SMA YUSON');
   const initial = speaker === 'NARATOR' ? '◆' : speaker[0];
 
   return (
     <div className={`cinematic ${cinematic ? 'is-cinematic' : ''}`} onClick={() => (shown < text.length ? setShown(text.length) : !awaitingChoice && advance())}>
       {!cinematic && <div className="camera-tag">REN</div>}
-      <div className="dialogue-box">
-        <div className="speaker-row">
+      {!cinematic && (
+        <div className="dlg-vitals">
+          <div className="vitals-head"><b>REN</b><span>KELAS X-C</span></div>
+          <div className="meter">
+            <div><span>HP</span><b>{Math.round(hp)} / {maxHp}</b></div>
+            <i><b className="red" style={{ width: `${(hp / maxHp) * 100}%` }} /></i>
+          </div>
+        </div>
+      )}
+      {zone && <div className="dlg-loc">{ZONE_BY_ID[zone]?.label ?? ''}</div>}
+      <div className="dialogue-box brackets">
+        <div className="dlg-head">
           <span className="portrait" style={{ background: color }}>{initial}</span>
           <span className="speaker">{speaker}</span>
+          <span className="chip dlg-tag">{role.toUpperCase()}</span>
         </div>
         <p>{text.slice(0, shown)}{shown < text.length ? '▌' : ''}</p>
         {!awaitingChoice ? (
@@ -126,6 +142,10 @@ export function DialogueUI({ cinematic }: { cinematic: boolean }) {
             ))}
           </div>
         )}
+        <div className="dlg-hints">
+          <span><kbd>SPASI</kbd> LANJUT</span>
+          {awaitingChoice && <span><kbd>1-{visibleChoices.length}</kbd> PILIH JAWABAN</span>}
+        </div>
       </div>
       {cinematic && <div className="skip-hint">KLIK / SPASI UNTUK LANJUT</div>}
     </div>

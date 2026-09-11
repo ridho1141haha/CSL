@@ -14,13 +14,14 @@ import { SCENES } from '../../data/world';
 import { STUDY_QUESTIONS } from '../../data/chapters';
 import { relLabel } from '../../game/systems/relationship';
 import { repLabel } from '../../game/systems/reputation';
-import { clockLabel, DAYS } from '../../game/systems/time';
+import { clockLabel, DAYS, formatHhmm } from '../../game/systems/time';
 import { saveGame, loadGame, deleteSave, hasSave, slotInfo, SAVE_SLOTS, type SlotId } from '../../game/save';
 import { applyEffects } from '../../game/systems/effects';
 import { audio } from '../../game/audio';
 
 // Shared full-screen menu shell with keyboard navigation (arrows/WASD, Esc).
-export function FullMenu({ title, onClose, children, eyebrow = 'DOSSIER // YUSON_SYS_V1.04' }: { title: string; onClose: () => void; children: ReactNode; eyebrow?: string }) {
+// Shell mengikuti bahas desain Stitch: eyebrow mono + judul display + footer hint.
+export function FullMenu({ title, onClose, children, eyebrow = 'DOSSIER // YUSON_SYS_V1.04' }: { title: ReactNode; onClose: () => void; children: ReactNode; eyebrow?: string }) {
   const ref = useRef<HTMLDivElement>(null);
   useEffect(() => {
     const el = ref.current;
@@ -49,71 +50,182 @@ export function FullMenu({ title, onClose, children, eyebrow = 'DOSSIER // YUSON
   return (
     <div className="full-menu" ref={ref}>
       <header>
-        <span className="eyebrow">{eyebrow}</span>
+        <span className="fm-eyebrow">
+          <span className="eyebrow">CHAOS // 01</span>
+          <span className="eyebrow" style={{ color: 'var(--faint)' }}>{eyebrow}</span>
+        </span>
         <h1>{title}</h1>
-        <button onClick={() => { audio.click(); onClose(); }}>CLOSE [ESC]</button>
+        <button onClick={() => { audio.click(); onClose(); }}>TUTUP [ESC]</button>
       </header>
       <main>{children}</main>
+      <footer className="fm-foot">
+        <span><kbd>ESC</kbd> KEMBALI</span>
+        <span><kbd>↑↓←→</kbd> NAVIGASI</span>
+        <span className="right">CHAOS SCHOOL LIFE // UI STITCH</span>
+      </footer>
     </div>
   );
 }
 
+// Status — implementasi mockup Stitch "04-status" (TACTICAL DOSSIER):
+// kartu identitas kiri, deretan vitals 3 kolom kanan, chip metrik, catatan.
 export function StatusPanel() {
   const { hp, maxHp, focus } = usePlayer();
   const { academic, violence, diplomacy, reputation } = useStats();
   const flags = useStory((s) => s.flags.length);
+  const clock = useGame((s) => s.clock);
+  const rel = useSocial((s) => s.relationships);
+  const relAvg = Math.round(((rel.aris ?? 0) + (rel.siti ?? 0) + (rel.bimo ?? 0)) / 3);
+  const violenceTag = violence < 30 ? 'TERKENDALI' : violence < 60 ? 'MEMPRIHATINKAN' : 'TIDAK STABIL';
+  const meter = (v: number, max: number, color: string) => (
+    <div className="meter">
+      <i><b className={color} style={{ width: `${Math.max(0, Math.min(100, (v / max) * 100))}%` }} /></i>
+    </div>
+  );
   return (
-    <section className="status-panel panel-cut">
-      <h2>REN</h2>
-      <div className="stat-grid">
-        <span>HEALTH<b>{Math.round(hp)} / {maxHp}</b></span>
-        <span>FOCUS<b>{Math.round(focus)} / 100</b></span>
-        <span>ACADEMIC<b>{academic}</b></span>
-        <span>VIOLENCE<b>{violence}</b></span>
-        <span>DIPLOMACY<b>{diplomacy}</b></span>
-        <span>REPUTATION<b>{repLabel(reputation, { violence, diplomacy })}</b></span>
-        <span>STORY FLAGS<b>{flags}</b></span>
-        <span>CLASS<b>Siswa Pindahan</b></span>
+    <section className="dossier">
+      <div className="sec-head">PERSONNEL ACADEMIC RECORD <span className="right">DIPERBARUI // {DAYS[clock.day]} {formatHhmm(clock.minutes)} WIB</span></div>
+      <div className="dossier-grid">
+        <aside className="dossier-aside panel-cut">
+          <div className="dossier-frame"><span className="dossier-initial">R</span></div>
+          <div className="dossier-id">
+            <h3>REN PRATAMA</h3>
+            <span className="sub">NIS 23090188 // KELAS X-C</span>
+            <div className="tag-row">
+              <span className="chip chip-amber">MURID PINDAHAN</span>
+              <span className="chip">KELAS X-C</span>
+              <span className="chip chip-cyan">{repLabel(reputation, { violence, diplomacy })}</span>
+            </div>
+            <div className="dossier-mini">
+              <span>HARI SEKOLAH <b>{clock.day + 1} / {DAYS.length}</b></span>
+              <span>STORY FLAGS <b>{flags}</b></span>
+              <span>REPUTASI <b>{repLabel(reputation, { violence, diplomacy })}</b></span>
+              <span>SINERGI SOSIAL <b>{relAvg >= 0 ? `+${relAvg}` : relAvg}</b></span>
+            </div>
+          </div>
+        </aside>
+        <div className="dossier-main">
+          <div className="vitals3">
+            <div className="v3-card c-red">
+              <div className="v3-head"><span>VITALITY // HP</span><b>{Math.round(hp)}<em> / {maxHp}</em></b></div>
+              {meter(hp, maxHp, 'red')}
+              <span className="v3-sub">COMBAT ENDURANCE // DAYA TAHAN FISIK</span>
+            </div>
+            <div className="v3-card c-amber">
+              <div className="v3-head"><span>MENTAL // FOKUS</span><b>{Math.round(focus)}<em> / 100</em></b></div>
+              {meter(focus, 100, 'amber')}
+              <span className="v3-sub">DECISION INTUITION // KEJERNIHAN KEPUTUSAN</span>
+            </div>
+            <div className="v3-card c-cyan">
+              <div className="v3-head"><span>AKADEMIK // GPA</span><b>{academic}<em> / 100</em></b></div>
+              {meter(academic, 100, 'cyan')}
+              <span className="v3-sub">SCHOLASTIC STATUS // STATUS KELULUSAN</span>
+            </div>
+          </div>
+          <div className="vitals3">
+            <div className="v3-card c-red">
+              <div className="v3-head"><span>KEKERASAN // VIOLENCE</span><b>{violence}<em>%</em></b></div>
+              {meter(violence, 100, 'red')}
+              <span className="v3-sub">INSTINK BERTAHAN // {violenceTag}</span>
+            </div>
+            <div className="v3-card c-green">
+              <div className="v3-head"><span>DIPLOMASI // DIPL</span><b>{diplomacy}<em> / 100</em></b></div>
+              {meter(diplomacy, 100, 'green')}
+              <span className="v3-sub">NEGOSIASI & BICARA // JALAN DAMAI</span>
+            </div>
+            <div className="v3-card">
+              <div className="v3-head"><span>PROFIL SIKAP</span></div>
+              <div className="metric-row">
+                <span className="chip">SIKAP: <b>AKTIF</b></span>
+                <span className="chip">AMBISI: <b>{academic >= 70 ? 'TINGGI' : academic >= 40 ? 'SEDANG' : 'RENDAH'}</b></span>
+                <span className="chip">TAHAP: <b>LEVEL 01</b></span>
+              </div>
+              <span className="v3-sub">KESIMPULAN WALI KELAS // OBSERVASI</span>
+            </div>
+          </div>
+          <div className="dossier-note">
+            <b>Catatan observasi:</b> murid pindahan dengan profil psikologis stabil —
+            terpantau mampu menjaga ketenangan di bawah tekanan sosial sekolah baru.
+            Perkembangan relasi dengan elemen kelas X-C perlu dipantau pekan ini.
+          </div>
+        </div>
       </div>
     </section>
   );
 }
 
+// Relationships — implementasi bagian "CAMPUS SYNDICATE & RELATIONSHIP LOG"
+// dari mockup Stitch "04-status": kartu per karakter + kutipan + meter relasi.
+const REL_QUOTES: Record<string, string> = {
+  aris: '“Ren, buku catatan aku titipin ya kalau ada kuis.”',
+  siti: '“Jangan lupa formulir OSIS kalau kamu yang bawa.”',
+  bimo: '“Kami melihatmu di gerbang. Hati-hati di jalan pulang.”',
+  budi: '“Kelas X-C? Jaga perilaku, aku mengamati dari ruang guru.”',
+};
+const REL_TAGS: Record<string, { text: string; cls: string }> = {
+  aris: { text: 'SEBANGKU', cls: 'chip-cyan' },
+  siti: { text: 'OSIS', cls: 'chip-green' },
+  bimo: { text: 'ANCAMAN', cls: 'chip-red' },
+  budi: { text: 'GURU', cls: '' },
+};
+
 export function RelationshipsPanel() {
   const relationships = useSocial((s) => s.relationships);
   return (
     <div className="relationship-list">
-      <div className="eyebrow">SOCIAL NETWORK // PERSISTENT DATA</div>
-      {NPCS.map((n) => (
-        <div className="relationship-row" key={n.id}>
-          <span className="portrait" style={{ background: n.color }}>{n.name[0]}</span>
-          <div className="rel-info">
-            <strong>{n.name}</strong>
-            <span>{n.role}</span>
+      <div className="sec-head">CAMPUS SYNDICATE & RELATIONSHIP LOG <span className="right">DATA RELASI // PERSISTEN</span></div>
+      {NPCS.map((n) => {
+        const v = relationships[n.id] ?? 0;
+        const pct = Math.max(0, Math.min(100, ((v + 100) / 200) * 100));
+        const tone = v < -10 ? 'hostile' : v >= 40 ? 'warm' : '';
+        const tag = REL_TAGS[n.id] ?? { text: 'SISWA', cls: '' };
+        return (
+          <div className="relationship-row" key={n.id}>
+            <div className="rel-top">
+              <span className="portrait" style={{ background: n.color }}>{n.name[0]}</span>
+              <div className="rel-info">
+                <strong>{n.name}</strong>
+                <span>{n.role} // SMA YUSON</span>
+              </div>
+            </div>
+            <p className="rel-quote">{REL_QUOTES[n.id] ?? '“…….”'}</p>
+            <div className="rel-meter">
+              <div className="track"><b className={tone} style={{ width: `${pct}%` }} /></div>
+              <span className="rel-val">{v > 0 ? '+' : ''}{v}</span>
+            </div>
+            <div className="rel-tag">
+              <span className={`chip ${tag.cls}`}>{tag.text}</span>
+              <span className="chip">{relLabel(v)}</span>
+            </div>
           </div>
-          <b>{relLabel(relationships[n.id] ?? 0)}</b>
-          <span className="rel-val">{(relationships[n.id] ?? 0) > 0 ? '+' : ''}{relationships[n.id] ?? 0}</span>
-        </div>
-      ))}
+        );
+      })}
     </div>
   );
 }
 
 export function QuestsPanel() {
   const quests = useQuests((s) => s.quests);
-  const groups: [string, string][] = [['main', 'MAIN QUEST'], ['side', 'SIDE QUEST']];
+  const groups: [string, string][] = [['main', 'MAIN QUEST // MISI UTAMA'], ['side', 'SIDE QUEST // MISI SAMPINGAN']];
+  const statusChip = (st: string) =>
+    st === 'completed' ? <span className="chip chip-green q-status">SELESAI</span>
+    : st === 'failed' ? <span className="chip chip-red q-status">GAGAL</span>
+    : <span className="chip chip-amber q-status">AKTIF</span>;
   return (
     <div className="quest-list">
       {groups.map(([type, label]) => (
         <div key={type}>
-          <div className="eyebrow">{label}</div>
+          <div className="sec-head" style={{ marginBottom: 10 }}>{label}</div>
           {QUESTS.filter((q) => q.type === type).map((q) => {
             const st = quests[q.id] ?? 'locked';
             if (st === 'locked') return null;
             return (
               <div className={`quest-row st-${st}`} key={q.id}>
-                <strong>{q.title}</strong>
-                <span>{st === 'completed' ? '✔ SELESAI' : st === 'failed' ? '✖ GAGAL' : q.objective}</span>
+                <div className="q-top">
+                  <strong>{q.title}</strong>
+                  {statusChip(st)}
+                </div>
+                <span>{st === 'completed' ? 'Tujuan tercapai. Catatan arsip ditutup.' : st === 'failed' ? 'Peluang hilang. Arsip ditandai merah.' : q.objective}</span>
               </div>
             );
           })}
@@ -155,6 +267,8 @@ export function InventoryPanel() {
   );
 }
 
+// Map — implementasi mockup Stitch "07-map" (SCHEMATIC CAMPUS OVERVIEW):
+// header dengan tag MAP // GND, grid node, panel samping target & statistik.
 export function MapPanel() {
   const player = usePlayer((s) => ({ x: s.x, z: s.z }));
   const sceneId = useGame((s) => s.scene);
@@ -169,19 +283,47 @@ export function MapPanel() {
     `${50 + ((z - (b.minZ + b.maxZ) / 2) / (b.maxZ - b.minZ)) * 44}%`,
   ];
   return (
-    <section className="map-panel panel-cut">
-      <div className="eyebrow">SCHEMATIC NODE MAP // {def.label.toUpperCase()}</div>
-      <h2>{sceneId === 'campus' ? 'BLUEPRINT LINGKUNGAN SEKOLAH' : def.label.toUpperCase()}</h2>
-      <div className="map-grid">
-        {activeQuest && <div className="map-objective">OBJEKTIF: {activeQuest.objective}</div>}
-        {def.zones.map((zone) => {
-          const [left, top] = toMap(zone.center[0], zone.center[1]);
-          return <span key={zone.id} className={`node ${visited.includes(zone.id) ? '' : 'unvisited'}`} style={{ left, top }}>{zone.id.replace(/_/g, ' ').toUpperCase()}</span>;
-        })}
-        <div className="map-player" style={{ left: toMap(player.x, player.z)[0], top: toMap(player.x, player.z)[1] }} />
-      </div>
-      {sceneId !== 'campus' && <p className="hint">Kembali ke kampus lewat pintu bertanda di scene ini.</p>}
-    </section>
+    <div className="map-wrap">
+      <section className="map-panel panel-cut">
+        <div className="map-head">
+          <span className="mh-tag">MAP // GND</span>
+          <b>{sceneId === 'campus' ? 'BLUEPRINT LINGKUNGAN SEKOLAH' : def.label.toUpperCase()}</b>
+          <span className="right">
+            <span className="chip">ZONA: {def.zones.length}</span>
+            <span className="chip chip-cyan">DIKUNJUNGI: {visited.length}</span>
+          </span>
+        </div>
+        <div className="map-grid">
+          {activeQuest && <div className="map-objective">OBJEKTIF: {activeQuest.objective}</div>}
+          {def.zones.map((zone) => {
+            const [left, top] = toMap(zone.center[0], zone.center[1]);
+            return <span key={zone.id} className={`node ${visited.includes(zone.id) ? '' : 'unvisited'}`} style={{ left, top }}>{zone.id.replace(/_/g, ' ').toUpperCase()}</span>;
+          })}
+          <div className="map-player" style={{ left: toMap(player.x, player.z)[0], top: toMap(player.x, player.z)[1] }} />
+        </div>
+      </section>
+      <aside className="map-side">
+        <div className="panel-cut">
+          <span className="ms-title">// TARGET AKTIF</span>
+          <div className="ms-target">{activeQuest ? activeQuest.title : 'JELAJAHI SEKOLAH'}</div>
+        </div>
+        <div className="panel-cut">
+          <span className="ms-title">// VEKTOR NAVIGASI</span>
+          <div className="ms-row"><span>SCENE</span><b>{def.label.toUpperCase()}</b></div>
+          <div className="ms-row"><span>POSISI REN</span><b>X {Math.round(player.x)} · Z {Math.round(player.z)}</b></div>
+          <div className="ms-row"><span>ZONA DIKUNJUNGI</span><b>{visited.length} / {def.zones.length}</b></div>
+        </div>
+        <div className="panel-cut">
+          <span className="ms-title">// LEGENDA</span>
+          <div className="map-legend">
+            <span className="chip chip-amber">POSISI REN</span>
+            <span className="chip chip-cyan">ZONA DIKUNJUNGI</span>
+            <span className="chip">BELUM DIJELAJAH</span>
+          </div>
+        </div>
+        {sceneId !== 'campus' && <p className="hint">Kembali ke kampus lewat pintu bertanda di scene ini.</p>}
+      </aside>
+    </div>
   );
 }
 

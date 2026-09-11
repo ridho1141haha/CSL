@@ -11,10 +11,15 @@ import { loadGame, hasSave } from '../game/save';
 export function LoadingScreen() {
   return (
     <div className="loading-screen">
-      <div className="boot-logo">
+      <div className="boot-logo brackets">
         <h1>CHAOS SCHOOL <em>LIFE</em></h1>
         <p>MEMUAT ASET SEKOLAH…</p>
         <div className="boot-bar"><i /></div>
+        <div className="boot-meta">
+          <span className="chip">BUILD 0.4.0</span>
+          <span className="chip">TEAM CHAOS</span>
+          <span className="chip chip-amber">SMA YUSON</span>
+        </div>
       </div>
     </div>
   );
@@ -44,7 +49,8 @@ export function ChapterTransition() {
       <div>
         <span className="chapter-kicker">{title}</span>
         <h1>{subtitle}</h1>
-        <p>— klik untuk lanjut —</p>
+        <div className="chapter-rule" />
+        <p>— KLIK UNTUK LANJUT —</p>
       </div>
     </div>
   );
@@ -62,7 +68,7 @@ export function GameOverScreen({ onRestart }: { onRestart: () => void }) {
   };
   return (
     <div className="ending-screen dark">
-      <span className="eyebrow">YUSON // SIGNAL LOST</span>
+      <span className="chip chip-red">YUSON // SIGNAL LOST</span>
       <h1>GAME OVER</h1>
       <p>Ren jatuh. Lorong itu gelap, dan tidak ada yang datang.</p>
       <div className="ending-actions">
@@ -83,15 +89,15 @@ export function EndingScreen({ onRestart, onMenu }: { onRestart: () => void; onM
   const chapter = CHAPTERS[4];
   return (
     <div className={`ending-screen ending-${ending.id}`}>
-      <span className="eyebrow">ENDING UNLOCKED // {chapter.title}</span>
+      <span className="chip chip-amber">ENDING UNLOCKED // {chapter.title}</span>
       <h1>{ending.title.toUpperCase()}</h1>
       <p className="ending-summary">{ending.summary}</p>
       <div className="ending-lesson">“{ending.lesson}”</div>
       <div className="ending-stats">
-        <span>ACADEMIC<b>{stats.academic}</b></span>
-        <span>FOCUS<b>{Math.round(focus)}</b></span>
-        <span>VIOLENCE<b>{stats.violence}</b></span>
-        <span>DIPLOMACY<b>{stats.diplomacy}</b></span>
+        <span>AKADEMIK<b>{stats.academic}</b></span>
+        <span>FOKUS<b>{Math.round(focus)}</b></span>
+        <span>KEKERASAN<b>{stats.violence}</b></span>
+        <span>DIPLOMASI<b>{stats.diplomacy}</b></span>
         <span>ARIS<b>{rel.aris}</b></span>
         <span>SITI<b>{rel.siti}</b></span>
         <span>BIMO<b>{rel.bimo}</b></span>

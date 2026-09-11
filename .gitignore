@@ -11,3 +11,6 @@ stitch/MB-Lab-master/
 stitch/sf_*.json
 stitch/ref*.jpg
 .vercel
+
+# QA screenshots
+qa-*.png

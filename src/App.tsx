@@ -209,7 +209,7 @@ export default function App() {
       {sceneLoading && <SceneLoadingOverlay />}
       {fade !== 'none' && <div className={`fade-overlay fade-${fade}`} />}
       {phase === 'menu' && (mode === 'SAVELOAD_MENU' || mode === 'SETTINGS') && (
-        <FullMenu title={mode === 'SETTINGS' ? 'SETTINGS' : 'LOAD GAME'} onClose={() => useGame.getState().setMode('MAIN_MENU')}>
+        <FullMenu title={mode === 'SETTINGS' ? <>PENGATURAN <em>//</em> SISTEM</> : <>MUAT <em>//</em> PERMAINAN</>} onClose={() => useGame.getState().setMode('MAIN_MENU')}>
           {mode === 'SETTINGS' ? <SettingsPanel /> : <SaveLoadPanel />}
         </FullMenu>
       )}
@@ -224,30 +224,30 @@ export default function App() {
       <Notifications />
 
       {phase === 'play' && mode === 'PAUSE' && (
-        <FullMenu title="PAUSED" onClose={() => useGame.getState().setMode('GAMEPLAY')}>
+        <FullMenu title={<>JEDA <em>//</em> SISTEM</>} onClose={() => useGame.getState().setMode('GAMEPLAY')} eyebrow="SISTEM // MENU JEDA">
           <div className="pause-options">
-            <button onClick={() => useGame.getState().setMode('STATUS_MENU')}>CHARACTER / STATUS <kbd>TAB</kbd></button>
-            <button onClick={() => useGame.getState().setMode('RELATIONSHIP_MENU')}>RELATIONSHIPS <kbd>R</kbd></button>
-            <button onClick={() => useGame.getState().setMode('QUEST_MENU')}>QUESTS <kbd>J</kbd></button>
-            <button onClick={() => useGame.getState().setMode('INVENTORY_MENU')}>INVENTORY <kbd>I</kbd></button>
-            <button onClick={() => useGame.getState().setMode('MAP_MENU')}>SCHOOL MAP <kbd>M</kbd></button>
-            <button onClick={() => useGame.getState().setMode('PHONE_MENU')}>PHONE <kbd>P</kbd></button>
-            <button onClick={() => useGame.getState().setMode('SAVELOAD_MENU')}>SAVE / LOAD <kbd>O</kbd></button>
-            <button onClick={() => useGame.getState().setMode('SETTINGS')}>SETTINGS</button>
-            <button onClick={() => { saveGame('auto'); useGame.getState().setMode('GAMEPLAY'); }}>RESUME <kbd>ESC</kbd></button>
+            <button onClick={() => useGame.getState().setMode('STATUS_MENU')}>STATUS REN <kbd>TAB</kbd></button>
+            <button onClick={() => useGame.getState().setMode('RELATIONSHIP_MENU')}>JARINGAN SOSIAL <kbd>R</kbd></button>
+            <button onClick={() => useGame.getState().setMode('QUEST_MENU')}>JURNAL AGENDA <kbd>J</kbd></button>
+            <button onClick={() => useGame.getState().setMode('INVENTORY_MENU')}>TAS <kbd>I</kbd></button>
+            <button onClick={() => useGame.getState().setMode('MAP_MENU')}>PETA SEKOLAH <kbd>M</kbd></button>
+            <button onClick={() => useGame.getState().setMode('PHONE_MENU')}>PONSEL <kbd>P</kbd></button>
+            <button onClick={() => useGame.getState().setMode('SAVELOAD_MENU')}>SIMPAN / MUAT <kbd>O</kbd></button>
+            <button onClick={() => useGame.getState().setMode('SETTINGS')}>PENGATURAN</button>
+            <button onClick={() => { saveGame('auto'); useGame.getState().setMode('GAMEPLAY'); }}>LANJUTKAN <kbd>ESC</kbd></button>
           </div>
         </FullMenu>
       )}
-      {phase === 'play' && mode === 'STATUS_MENU' && <FullMenu title="CHARACTER / STATUS" onClose={() => useGame.getState().setMode('GAMEPLAY')}><StatusPanel /></FullMenu>}
-      {phase === 'play' && mode === 'RELATIONSHIP_MENU' && <FullMenu title="RELATIONSHIPS" onClose={() => useGame.getState().setMode('GAMEPLAY')}><RelationshipsPanel /></FullMenu>}
-      {phase === 'play' && mode === 'QUEST_MENU' && <FullMenu title="QUESTS" onClose={() => useGame.getState().setMode('GAMEPLAY')}><QuestsPanel /></FullMenu>}
-      {phase === 'play' && mode === 'INVENTORY_MENU' && <FullMenu title="INVENTORY" onClose={() => useGame.getState().setMode('GAMEPLAY')}><InventoryPanel /></FullMenu>}
-      {phase === 'play' && mode === 'MAP_MENU' && <FullMenu title="SCHOOL MAP" onClose={() => useGame.getState().setMode('GAMEPLAY')}><MapPanel /></FullMenu>}
-      {phase === 'play' && mode === 'PHONE_MENU' && <FullMenu title="PHONE" onClose={() => useGame.getState().setMode('GAMEPLAY')} eyebrow="DIEGETIC UI // YUSON_PHONE"><PhonePanel /></FullMenu>}
-      {phase === 'play' && mode === 'SAVELOAD_MENU' && <FullMenu title="SAVE / LOAD" onClose={() => useGame.getState().setMode('GAMEPLAY')}><SaveLoadPanel /></FullMenu>}
-      {phase === 'play' && mode === 'SETTINGS' && <FullMenu title="SETTINGS" onClose={() => useGame.getState().setMode('GAMEPLAY')}><SettingsPanel /></FullMenu>}
+      {phase === 'play' && mode === 'STATUS_MENU' && <FullMenu title={<>STATUS <em>//</em> REN</>} onClose={() => useGame.getState().setMode('GAMEPLAY')} eyebrow="PERSONNEL // ACADEMIC RECORD"><StatusPanel /></FullMenu>}
+      {phase === 'play' && mode === 'RELATIONSHIP_MENU' && <FullMenu title={<>JARINGAN <em>//</em> SOSIAL</>} onClose={() => useGame.getState().setMode('GAMEPLAY')} eyebrow="CAMPUS // SYNDICATE LOG"><RelationshipsPanel /></FullMenu>}
+      {phase === 'play' && mode === 'QUEST_MENU' && <FullMenu title={<>JURNAL <em>//</em> AGENDA</>} onClose={() => useGame.getState().setMode('GAMEPLAY')} eyebrow="MISSION // TASK LOG"><QuestsPanel /></FullMenu>}
+      {phase === 'play' && mode === 'INVENTORY_MENU' && <FullMenu title={<>TAS <em>//</em> REN</>} onClose={() => useGame.getState().setMode('GAMEPLAY')} eyebrow="STORAGE // ITEM LOG"><InventoryPanel /></FullMenu>}
+      {phase === 'play' && mode === 'MAP_MENU' && <FullMenu title={<>PETA <em>//</em> SEKOLAH</>} onClose={() => useGame.getState().setMode('GAMEPLAY')} eyebrow="SCHEMATIC // CAMPUS MAP"><MapPanel /></FullMenu>}
+      {phase === 'play' && mode === 'PHONE_MENU' && <FullMenu title={<>PONSEL <em>//</em> REN</>} onClose={() => useGame.getState().setMode('GAMEPLAY')} eyebrow="DIEGETIC UI // YUSON_PHONE"><PhonePanel /></FullMenu>}
+      {phase === 'play' && mode === 'SAVELOAD_MENU' && <FullMenu title={<>SIMPAN <em>//</em> MUAT</>} onClose={() => useGame.getState().setMode('GAMEPLAY')} eyebrow="MEMORY // SLOT LOG"><SaveLoadPanel /></FullMenu>}
+      {phase === 'play' && mode === 'SETTINGS' && <FullMenu title={<>PENGATURAN <em>//</em> SISTEM</>} onClose={() => useGame.getState().setMode('GAMEPLAY')}><SettingsPanel /></FullMenu>}
       {phase === 'play' && mode === 'STUDY' && (
-        <FullMenu title="BELAJAR" onClose={() => useGame.getState().setMode('GAMEPLAY')} eyebrow="SCHOOL LIFE // STUDY SESSION">
+        <FullMenu title={<>BELAJAR <em>//</em> SESI</>} onClose={() => useGame.getState().setMode('GAMEPLAY')} eyebrow="SCHOOL LIFE // STUDY SESSION">
           <StudyPanel />
         </FullMenu>
       )}
@@ -281,11 +281,11 @@ function PointerLockHint() {
   if (dismissed) return null;
   return (
     <div className="pointer-lock-hint">
-      <div className="plh-inner">
-        <div className="plh-icon">🖱</div>
+      <div className="plh-inner brackets">
+        <span className="chip chip-amber">KONTROL KAMERA</span>
         <strong>TAHAN KLIK KIRI + GERAKKAN MOUSE</strong>
         <span>untuk menggerakkan kamera</span>
-        <span className="plh-alt">WASD bergerak · SHIFT run · SPACE jump · ESC pause</span>
+        <span className="plh-alt">WASD bergerak · SHIFT lari · SPACE lompat · ESC jeda</span>
       </div>
     </div>
   );
