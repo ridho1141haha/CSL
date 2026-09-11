@@ -53,12 +53,12 @@ export const CAM_BY_NODE: Record<string, string> = {
   ch4_bad_2: 'alley_wide',
   ch4_bad_3: 'warehouse_close',
   ch4_bad_4: 'warehouse_close',
-  ch4_bad_warehouse: 'warehouse',
-  ch4_bad_raid: 'warehouse',
-  ch4_bad_raid_2: 'warehouse_close',
-  ch4_bad_raid_3: 'warehouse_close',
-  ch4_bad_raid_4: 'warehouse_close',
-  ch4_bad_raid_5: 'warehouse',
+  ch4_bad_warehouse: 'whin',
+  ch4_bad_raid: 'whin',
+  ch4_bad_raid_2: 'whin_close',
+  ch4_bad_raid_3: 'whin_close',
+  ch4_bad_raid_4: 'whin_close',
+  ch4_bad_raid_5: 'whin',
   ch4_res_1: 'alley_wide',
   ch4_res_2: 'courtyard_view',
   ch4_res_3: 'courtyard_view',
@@ -87,10 +87,10 @@ export const NODE_FX: Record<string, { fx: 'fp-to-tp' | 'fade-out' | 'fade-in' |
 // Opening actor placement: during specific node ranges, story actors appear.
 // Format: nodeId -> actors to show at position (bullies etc.)
 export const OPENING_ACTORS: Record<string, { bullies: [number, number]; aris: [number, number]; siti: [number, number]; bimo: [number, number] }> = (() => {
-  const bullyScene: [number, number] = [-12.2, 16.5];
-  const arisScene: [number, number] = [-12.6, 15.4];
-  const sitiScene: [number, number] = [-13.2, 14.6];
-  const bimoScene: [number, number] = [27.5, 8.6];
+  const bullyScene: [number, number] = [-7.6, 29.6];
+  const arisScene: [number, number] = [-7, 31.2];
+  const sitiScene: [number, number] = [-9.6, 30.2];
+  const bimoScene: [number, number] = [21, 10.5];
   const none = { bullies: [0, 0] as [number, number], aris: [0, 0] as [number, number], siti: [0, 0] as [number, number], bimo: [0, 0] as [number, number] };
   const place = (o: Partial<typeof none>) => ({ ...none, ...o });
   return {

@@ -92,6 +92,10 @@ export function applyEffect(e: Effect) {
     case 'visit-zone':
       game.visitZone(e.zone);
       break;
+    case 'scene':
+      // Multi-scene transition (rooftop / warehouse / back to campus).
+      game.requestScene(e.id, e.spawn);
+      break;
     case 'teleport':
       usePlayer.getState().setPos(e.x, e.z);
       break;

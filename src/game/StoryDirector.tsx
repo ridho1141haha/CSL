@@ -7,7 +7,7 @@ import { useSocial } from '../stores/socialStore';
 import { useDialogue } from '../stores/dialogueStore';
 import { input } from './input';
 import { playerPos, npcPositions, enemyPos } from './runtime';
-import { zoneAt } from '../data/world';
+import { zoneAt, SCENES } from '../data/world';
 import { NPC_BY_ID } from '../data/npcs';
 import { ZONE_FLAVOR } from '../data/dialogue';
 import { saveGame } from './save';
@@ -15,7 +15,8 @@ import { saveGame } from './save';
 const EXPLORE_TARGETS = ['courtyard', 'canteen', 'field', 'back_alley'] as const;
 
 // Per-frame world↔story glue: zone discovery, quest progression triggers,
-// NPC interaction. All state changes go through stores/effects.
+// NPC interaction, multi-scene transitions (rooftop / warehouse). All state
+// changes go through stores/effects.
 export function StoryDirector() {
   const zoneTimer = useRef(0);
 
@@ -26,9 +27,13 @@ export function StoryDirector() {
     const quests = useQuests.getState();
     const dialogue = useDialogue.getState();
 
-    // ---------- interaction (E) ----------
-    // BUG-3.5: skip NPC interaction while combat encounter is active
-    if (input.justPressed('interact') && game.mode === 'GAMEPLAY' && !enemyPos.active) {
+    // ---------- interaction (E) — campus NPCs only ----------
+    if (
+      input.justPressed('interact') &&
+      game.mode === 'GAMEPLAY' &&
+      !enemyPos.active &&
+      game.scene === 'campus'
+    ) {
       let best: { id: string; d: number } | null = null;
       for (const [id, p] of Object.entries(npcPositions)) {
         const d = Math.hypot(playerPos.x - p.x, playerPos.z - p.z);
@@ -49,9 +54,9 @@ export function StoryDirector() {
     if (zoneTimer.current < 0.2) return;
     zoneTimer.current = 0;
 
-    // prompt: nearest NPC (BUG-3.5: hide prompt during combat)
+    // prompt: nearest NPC (campus only; hidden during combat)
     let near: string | null = null;
-    if (!enemyPos.active) {
+    if (!enemyPos.active && game.scene === 'campus') {
       for (const [id, p] of Object.entries(npcPositions)) {
         const d = Math.hypot(playerPos.x - p.x, playerPos.z - p.z);
         if (d < 2.3) {
@@ -62,8 +67,14 @@ export function StoryDirector() {
     }
     game.setInteractTarget(near);
 
-    // ---------- route montages (may start while still in CINEMATIC) ----------
-    const montageReady = (game.mode === 'GAMEPLAY' || game.mode === 'CINEMATIC') && !dialogue.nodeId;
+    // ---------- route montages (campus only, may start during CINEMATIC) ----------
+    // Scene guard matters right after chapter 3: the accept/reject nodes send
+    // the player back from the rooftop via requestScene (async swap) — the
+    // montage must not open while still standing on the old scene.
+    const montageReady =
+      game.scene === 'campus' &&
+      (game.mode === 'GAMEPLAY' || game.mode === 'CINEMATIC') &&
+      !dialogue.nodeId;
 
     // ---------- bad route: montage after accepting ----------
     if (montageReady && story.beat === 'ch4_bad_warehouse' && story.route === 'bad' && !story.flags.includes('bad_montage_done')) {
@@ -80,7 +91,28 @@ export function StoryDirector() {
     }
 
     if (game.mode !== 'GAMEPLAY') return;
-    const zone = zoneAt(playerPos.x, playerPos.z);
+
+    // ---------- rooftop: start the chapter 3 proposition ----------
+    if (game.scene === 'rooftop' && story.chapter === 3 && story.beat === 'ch3_rooftop' && !story.flags.includes('ch3_rooftop_started')) {
+      story.setFlag('ch3_rooftop_started');
+      dialogue.open('ch3_intro_1', true);
+      return;
+    }
+
+    // ---------- rooftop: exit back to campus ----------
+    if (game.scene === 'rooftop' && game.currentZone === 'rooftop_door' && story.chapter >= 3) {
+      game.requestScene('campus', [0, -5]);
+      return;
+    }
+
+    // ---------- warehouse: exit back to campus ----------
+    if (game.scene === 'warehouse' && game.currentZone === 'warehouse_door') {
+      game.requestScene('campus', [-23.5, -26]);
+      return;
+    }
+
+    // ---------- zone discovery + flavor (scene-aware) ----------
+    const zone = zoneAt(playerPos.x, playerPos.z, game.scene);
     if (zone) {
       if (game.currentZone !== zone.id) {
         game.setCurrentZone(zone.id);
@@ -93,6 +125,8 @@ export function StoryDirector() {
         return;
       }
     }
+
+    if (game.scene !== 'campus') return;
 
     // ---------- chapter 1: explore objective ----------
     if (quests.quests.explore_school === 'active' && story.beat === 'ch1_explore') {
@@ -119,11 +153,13 @@ export function StoryDirector() {
       return;
     }
 
-    // ---------- chapter 3: rooftop meeting ----------
+    // ---------- chapter 3: climb the back stairs → rooftop scene ----------
     if (quests.quests.rooftop_meeting === 'active' && game.currentZone === 'back_stairs' && story.chapter === 3) {
       quests.setState('rooftop_meeting', 'completed');
       story.setBeat('ch3_rooftop');
-      dialogue.open('ch3_intro_1', true);
+      story.setFlag('rooftop_arrived');
+      game.notify('Tujuan: Naik ke atap', 'quest');
+      game.requestScene('rooftop');
       return;
     }
 
@@ -138,3 +174,8 @@ export function StoryDirector() {
 
   return null;
 }
+
+// SCENES import is used implicitly through requestScene defaults; keep a
+// type-level reference so bundlers don't tree-shake scene definitions that
+// tests and the map panel rely on.
+void SCENES;

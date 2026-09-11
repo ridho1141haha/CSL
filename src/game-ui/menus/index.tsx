@@ -10,6 +10,7 @@ import { useSettings } from '../../stores/settingsStore';
 import { QUESTS } from '../../data/quests';
 import { ITEM_BY_ID } from '../../data/items';
 import { NPCS } from '../../data/npcs';
+import { SCENES } from '../../data/world';
 import { STUDY_QUESTIONS } from '../../data/chapters';
 import { relLabel } from '../../game/systems/relationship';
 import { repLabel } from '../../game/systems/reputation';
@@ -156,39 +157,33 @@ export function InventoryPanel() {
 
 export function MapPanel() {
   const player = usePlayer((s) => ({ x: s.x, z: s.z }));
+  const sceneId = useGame((s) => s.scene);
   const visited = useGame((s) => s.visitedZones);
   const quests = useQuests((s) => s.quests);
   const activeQuest = QUESTS.find((q) => quests[q.id] === 'active');
-  // world → map coords
-  const toMap = (x: number, z: number): [string, string] => [`${50 + (x / 42) * 46}%`, `${50 + ((z - 6) / 40) * 44}%`];
+  const def = SCENES[sceneId] ?? SCENES.campus;
+  const b = def.bounds;
+  // scene-local coords → map panel coords (top = minZ / north)
+  const toMap = (x: number, z: number): [string, string] => [
+    `${50 + ((x - (b.minX + b.maxX) / 2) / (b.maxX - b.minX)) * 46}%`,
+    `${50 + ((z - (b.minZ + b.maxZ) / 2) / (b.maxZ - b.minZ)) * 44}%`,
+  ];
   return (
     <section className="map-panel panel-cut">
-      <div className="eyebrow">SCHEMATIC NODE MAP // SMA YUSON</div>
-      <h2>BLUEPRINT LINGKUNGAN SEKOLAH</h2>
+      <div className="eyebrow">SCHEMATIC NODE MAP // {def.label.toUpperCase()}</div>
+      <h2>{sceneId === 'campus' ? 'BLUEPRINT LINGKUNGAN SEKOLAH' : def.label.toUpperCase()}</h2>
       <div className="map-grid">
         {activeQuest && <div className="map-objective">OBJEKTIF: {activeQuest.objective}</div>}
-        {Object.entries(ZONE_COORDS).map(([id, zone]) => {
-          const [left, top] = toMap(zone[0], zone[1]);
-          return <span key={id} className={`node ${visited.includes(id as never) ? '' : 'unvisited'}`} style={{ left, top }}>{id.replace('_', ' ').toUpperCase()}</span>;
+        {def.zones.map((zone) => {
+          const [left, top] = toMap(zone.center[0], zone.center[1]);
+          return <span key={zone.id} className={`node ${visited.includes(zone.id) ? '' : 'unvisited'}`} style={{ left, top }}>{zone.id.replace(/_/g, ' ').toUpperCase()}</span>;
         })}
         <div className="map-player" style={{ left: toMap(player.x, player.z)[0], top: toMap(player.x, player.z)[1] }} />
       </div>
+      {sceneId !== 'campus' && <p className="hint">Kembali ke kampus lewat pintu bertanda di scene ini.</p>}
     </section>
   );
 }
-
-const ZONE_COORDS: Record<string, [number, number]> = {
-  street: [7, 42.5],
-  gate: [7, 38],
-  courtyard: [7, 28.5],
-  class_door: [16.5, 24.5],
-  parking: [30, 31],
-  canteen: [27, 8],
-  field: [-24, 8],
-  back_stairs: [1.5, -12],
-  back_alley: [7, -24],
-  warehouse: [-32, -27],
-};
 
 export function PhonePanel() {
   const [tab, setTab] = useState<'messages' | 'contacts' | 'schedule' | 'notes'>('messages');

@@ -4,6 +4,16 @@ Working checklist (phase model per master directive). ✅ done · 🚧 in progre
 
 > **Final status 2026-09-11** — all phases complete. Repo is shippable.
 
+## Phase 20 — World v2: Multi-Scene Rebuild ✅
+- ✅ Multi-scene architecture (`SceneId`: campus / rooftop / warehouse) + `requestScene()` fade transitions + `sceneLoading` overlay
+- ✅ School GLB removed; campus rebuilt from scratch (visual + collider wall-segment system in `props.tsx`)
+- ✅ Accessible interior: hall, corridor, classroom 1-X, teacher room, canteen (furniture + colliders)
+- ✅ Rooftop scene: parapet, bulkhead exit, AC/water tank/antenna/city skyline — Bab III plays here
+- ✅ Warehouse scene: containers, crates, forklift, catwalk, skylights — Bab IV bad-route duel plays here
+- ✅ Stylized-realistic character upgrade (capsule limbs, hair styles, faces, tie/skirt)
+- ✅ Scene-aware zones, NPC schedules, minimap, camera poses, cinematic actors; scene persisted in saves
+- ✅ `world.test.ts` — 52/52 specs pass; build clean; deployed via Vercel
+
 ## Phase 0 — Audit + Planning ✅
 - ✅ Workspace audit, env audit (Node 22, npm 10.9), GLB inspection
 - ✅ PROJECT_OVERVIEW / PRD / GDD / ARCHITECTURE / DECISIONS / PROJECT_STATE / TODO / CHANGELOG

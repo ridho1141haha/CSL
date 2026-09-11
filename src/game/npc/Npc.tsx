@@ -106,7 +106,18 @@ function ScheduledNpc({ id }: { id: string }) {
   const start = def.schedule.arrive ?? [0, 0];
   return (
     <group ref={group} position={[start[0], 0.03, start[1]]} userData={{ npcId: id }}>
-      <Figure anim={anim} color={def.color} accent={def.accent} scale={def.height / 1.65} nameTag={def.name} tag={def.role} />
+      <Figure
+        anim={anim}
+        color={def.color}
+        accent={def.accent}
+        scale={def.height / 1.65}
+        nameTag={def.name}
+        tag={def.role}
+        skin={def.skin}
+        pants={def.pants}
+        skirt={def.skirt}
+        hair={def.hair}
+      />
     </group>
   );
 }

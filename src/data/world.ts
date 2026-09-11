@@ -1,32 +1,105 @@
-import type { ZoneDef, CameraPose } from '../types';
+import type { ZoneDef, CameraPose, SceneId } from '../types';
 
-// SMA Yuson grounds. The school GLB (scaled 2.5) occupies roughly
-// x[-3.5,17.5] z[-6.25,22.5]; its facade faces +Z toward the gate.
-export const WORLD_BOUNDS = { minX: -42, maxX: 42, minZ: -34, maxZ: 46 };
+// ============================================================================
+// WORLD v2 — multi-scene layout (rebuilt from scratch, no school GLB).
+// 'campus' is the main grounds; 'rooftop' & 'warehouse' are separate scenes
+// mounted on demand by SceneRoot (game/world/World.tsx).
+//
+// Campus layout (top-down, +Z = south/toward the street):
+//   street      z 46..54   (outside the fence)
+//   gate        z ~45      (opening x 4..10)
+//   courtyard   z 28..44   (paved plaza)
+//   main bldg   x -16..16, z 4..28  (accessible interior: hall, corridor,
+//               classroom, teacher room; stair shaft on the north side)
+//   canteen     x 22..34, z 2..14   (accessible interior)
+//   parking     x 26..42, z 26..42
+//   field       x -46..-20, z 0..30
+//   stair shaft x -4..4, z -2..4   (rooftop access → rooftop scene)
+//   rear yard   z -8..4
+//   back alley  x -6..18, z -30..-12
+//   warehouse   x -46..-26, z -36..-18 (exterior; interior is its own scene)
+// ============================================================================
 
-export const BUILDING_BOX = { x: 7, z: 8.1, w: 21.5, d: 29.2 }; // collider footprint
+export type Bounds = { minX: number; maxX: number; minZ: number; maxZ: number };
 
-export const PLAYER_SPAWN: [number, number] = [7, 29];
+export type SceneDef = {
+  id: SceneId;
+  label: string;
+  bounds: Bounds;
+  spawn: [number, number]; // where the player appears on scene enter
+  zones: ZoneDef[];
+};
 
-export const ZONES: ZoneDef[] = [
-  { id: 'street', label: 'Jalan Depan Sekolah', center: [7, 42.5], radius: 5.5, map: [0.5, 0.97] },
-  { id: 'gate', label: 'Gerbang SMA Yuson', center: [7, 38], radius: 5.5, map: [0.5, 0.9] },
-  { id: 'courtyard', label: 'Halaman Utama', center: [7, 28.5], radius: 9, map: [0.5, 0.78] },
-  { id: 'class_door', label: 'Pintu Kelas', center: [16.5, 24.5], radius: 3.5, map: [0.66, 0.72] },
-  { id: 'parking', label: 'Area Parkir', center: [30, 31], radius: 7, map: [0.83, 0.82] },
-  { id: 'canteen', label: 'Kantin Belakang', center: [27, 8], radius: 7.5, map: [0.8, 0.5] },
-  { id: 'field', label: 'Lapangan', center: [-24, 8], radius: 12, map: [0.14, 0.5] },
-  { id: 'back_stairs', label: 'Tangga Belakang', center: [1.5, -12], radius: 4.5, map: [0.45, 0.27] },
-  { id: 'back_alley', label: 'Gang Belakang', center: [7, -24], radius: 8, map: [0.5, 0.12] },
-  { id: 'warehouse', label: 'Gudang Tua', center: [-32, -27], radius: 8.5, map: [0.1, 0.1] },
+// ---------------------------------------------------------------------------
+// Campus
+// ---------------------------------------------------------------------------
+export const CAMPUS_BOUNDS: Bounds = { minX: -48, maxX: 48, minZ: -38, maxZ: 54 };
+
+export const CAMPUS_ZONES: ZoneDef[] = [
+  { id: 'street', label: 'Jalan Depan Sekolah', center: [7, 50], radius: 6 },
+  { id: 'gate', label: 'Gerbang SMA Yuson', center: [7, 44.5], radius: 5 },
+  { id: 'courtyard', label: 'Halaman Utama', center: [7, 36], radius: 10 },
+  { id: 'hall', label: 'Lobi & Lorong', center: [0, 24.5], radius: 6.5 },
+  { id: 'class_door', label: 'Pintu Kelas', center: [-8.5, 15.5], radius: 2.5 },
+  { id: 'classroom', label: 'Kelas 1-X', center: [-9, 9], radius: 5.5 },
+  { id: 'teacher_room', label: 'Ruang Guru', center: [9, 9], radius: 5.5 },
+  { id: 'canteen', label: 'Kantin', center: [28, 8], radius: 5.5 },
+  { id: 'parking', label: 'Area Parkir', center: [34, 34], radius: 7 },
+  { id: 'field', label: 'Lapangan', center: [-33, 15], radius: 12 },
+  { id: 'back_stairs', label: 'Tangga Belakang', center: [0, 1], radius: 4.5 },
+  { id: 'back_alley', label: 'Gang Belakang', center: [6, -21], radius: 8 },
+  { id: 'warehouse', label: 'Gudang Tua', center: [-36, -27], radius: 8 },
 ];
 
-export const ZONE_BY_ID: Record<string, ZoneDef> = Object.fromEntries(ZONES.map((z) => [z.id, z]));
+// ---------------------------------------------------------------------------
+// Rooftop (scene-local coordinates, origin at the stair bulkhead door)
+// ---------------------------------------------------------------------------
+export const ROOFTOP_BOUNDS: Bounds = { minX: -14, maxX: 14, minZ: -11, maxZ: 11 };
 
-export function zoneAt(x: number, z: number): ZoneDef | null {
+export const ROOFTOP_ZONES: ZoneDef[] = [
+  { id: 'rooftop', label: 'Atap Gedung Utama', center: [0, -1], radius: 10 },
+  // exit trigger sits behind the bulkhead door — NOT overlapping the spawn
+  // point, so arriving players are not bounced straight back to campus
+  { id: 'rooftop_door', label: 'Tangga Turun', center: [0, 9.6], radius: 2.2 },
+];
+
+// ---------------------------------------------------------------------------
+// Warehouse interior (scene-local coordinates)
+// ---------------------------------------------------------------------------
+export const WAREHOUSE_BOUNDS: Bounds = { minX: -15, maxX: 15, minZ: -12, maxZ: 12 };
+
+export const WAREHOUSE_ZONES: ZoneDef[] = [
+  { id: 'warehouse_in', label: 'Dalam Gudang Tua', center: [0, -1], radius: 9.5 },
+  // exit trigger at the door threshold, clear of the spawn point (0, 7)
+  { id: 'warehouse_door', label: 'Pintu Keluar', center: [0, 10.4], radius: 2.2 },
+];
+
+// ---------------------------------------------------------------------------
+// Scene registry
+// ---------------------------------------------------------------------------
+export const SCENES: Record<SceneId, SceneDef> = {
+  campus: { id: 'campus', label: 'SMA Yuson — Kampus', bounds: CAMPUS_BOUNDS, spawn: [7, 36], zones: CAMPUS_ZONES },
+  rooftop: { id: 'rooftop', label: 'Atap Gedung Utama', bounds: ROOFTOP_BOUNDS, spawn: [0, 6], zones: ROOFTOP_ZONES },
+  warehouse: { id: 'warehouse', label: 'Gudang Tua — Dalam', bounds: WAREHOUSE_BOUNDS, spawn: [0, 7], zones: WAREHOUSE_ZONES },
+};
+
+// Legacy flat campus list (HUD labels, tests). Kept for compatibility.
+export const WORLD_BOUNDS: Bounds = CAMPUS_BOUNDS;
+
+export const PLAYER_SPAWN: [number, number] = SCENES.campus.spawn;
+
+export const ZONES: ZoneDef[] = CAMPUS_ZONES;
+
+export const ZONE_BY_ID: Record<string, ZoneDef> = Object.fromEntries(
+  [...CAMPUS_ZONES, ...ROOFTOP_ZONES, ...WAREHOUSE_ZONES].map((z) => [z.id, z]),
+);
+
+// Zone lookup is scene-aware: each scene has its own local coordinates.
+export function zoneAt(x: number, z: number, scene: SceneId = 'campus'): ZoneDef | null {
+  const zones = SCENES[scene]?.zones ?? CAMPUS_ZONES;
   let best: ZoneDef | null = null;
   let bestD = Infinity;
-  for (const zn of ZONES) {
+  for (const zn of zones) {
     const d = Math.hypot(x - zn.center[0], z - zn.center[1]);
     if (d <= zn.radius && d < bestD) {
       best = zn;
@@ -36,28 +109,36 @@ export function zoneAt(x: number, z: number): ZoneDef | null {
   return best;
 }
 
-// Cinematic camera poses (first-person opening + story beats)
+// ---------------------------------------------------------------------------
+// Cinematic camera poses. Campus poses are world coordinates; rooftop &
+// warehouse poses are scene-local (their scenes render at the origin).
+// ---------------------------------------------------------------------------
 export const CAMERA_POSES: Record<string, CameraPose> = {
-  fp_gate: { pos: [7, 1.62, 44], look: [7, 2.4, 20] },
-  fp_gate_side: { pos: [10.5, 1.62, 42.5], look: [4, 2.6, 24] },
-  fp_enter: { pos: [7, 1.62, 36], look: [7, 2.2, 18] },
-  fp_courtyard: { pos: [5, 1.62, 31], look: [9, 1.8, 20] },
-  fp_students: { pos: [12, 1.62, 29], look: [24, 1.6, 14] },
-  fp_bully: { pos: [-6, 1.62, 24], look: [-12, 1.4, 17] },
-  fp_bully_close: { pos: [-8.5, 1.62, 20], look: [-12, 1.3, 16.5] },
-  fp_siti: { pos: [-9.5, 1.62, 21.5], look: [-12.5, 1.4, 15.5] },
-  fp_meet: { pos: [-10.5, 1.62, 19], look: [-13, 1.3, 15] },
-  fp_bimo: { pos: [22, 1.62, 12], look: [27.5, 1.5, 9] },
-  fp_bimo_close: { pos: [24.5, 1.62, 10.5], look: [27.5, 1.45, 8.5] },
-  fp_end: { pos: [7, 1.62, 26], look: [7, 2.2, 12] },
-  // third-person story beats
-  tp_gate: { pos: [12, 4.2, 45], look: [7, 1.4, 38] },
-  tp_bimo_watch: { pos: [23, 3, 13.5], look: [27, 1.3, 9] },
-  rooftop: { pos: [7, 12.5, -2], look: [7, 1.5, -12] },
-  rooftop_close: { pos: [3.5, 2.6, -13.5], look: [7, 1.5, -12] },
-  alley_wide: { pos: [7, 6, -14], look: [7, 1.2, -24] },
-  alley_close: { pos: [4.5, 2.2, -21], look: [7, 1.3, -24] },
-  warehouse: { pos: [-32, 5, -18], look: [-32, 1.2, -27] },
-  warehouse_close: { pos: [-29.5, 2.2, -24.5], look: [-32, 1.3, -27] },
-  courtyard_view: { pos: [7, 5.5, 18], look: [7, 1.4, 26] },
+  // ---- opening: first person (campus) ----
+  fp_gate: { pos: [7, 1.62, 52], look: [7, 2.3, 34] },
+  fp_gate_side: { pos: [11.5, 1.62, 50], look: [3, 2.5, 36] },
+  fp_enter: { pos: [7, 1.62, 44], look: [7, 2.2, 28] },
+  fp_courtyard: { pos: [2, 1.62, 39], look: [11, 1.8, 30] },
+  fp_students: { pos: [16, 1.62, 27], look: [27, 1.6, 11] },
+  fp_bully: { pos: [-1.5, 1.62, 34], look: [-7.5, 1.4, 30] },
+  fp_bully_close: { pos: [-4.6, 1.62, 31.6], look: [-7.2, 1.3, 29.8] },
+  fp_siti: { pos: [-4.8, 1.62, 30.6], look: [-9, 1.4, 29.6] },
+  fp_meet: { pos: [-5.6, 1.62, 30], look: [-8.6, 1.3, 29.8] },
+  fp_bimo: { pos: [17, 1.62, 14.5], look: [21, 1.5, 10] },
+  fp_bimo_close: { pos: [19.6, 1.62, 12], look: [21.4, 1.45, 10.2] },
+  fp_end: { pos: [7, 1.62, 33], look: [7, 2.2, 20] },
+  // ---- third person story beats (campus) ----
+  tp_gate: { pos: [13, 4.4, 53], look: [7, 1.4, 45] },
+  tp_bimo_watch: { pos: [18, 3, 14.5], look: [21.5, 1.3, 10.2] },
+  courtyard_view: { pos: [7, 5.5, 23], look: [7, 1.4, 36] },
+  alley_wide: { pos: [6, 6.5, -9], look: [6, 1.2, -22] },
+  alley_close: { pos: [3.4, 2.2, -19], look: [6, 1.3, -22] },
+  warehouse: { pos: [-36, 5, -14], look: [-36, 1.6, -27] },
+  warehouse_close: { pos: [-30.5, 2.2, -21.5], look: [-35, 1.6, -25.5] },
+  // ---- rooftop scene (local) ----
+  rooftop: { pos: [0, 7.5, 10], look: [0, 1.6, -6] },
+  rooftop_close: { pos: [2.8, 2.5, -3.4], look: [0.2, 1.5, -5.6] },
+  // ---- warehouse scene interior (local) ----
+  whin: { pos: [0, 6.5, 9], look: [0, 1.5, -4] },
+  whin_close: { pos: [2.8, 2.3, -1.2], look: [0, 1.4, -4] },
 };

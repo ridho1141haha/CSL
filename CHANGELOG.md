@@ -1,5 +1,22 @@
 # Changelog
 
+## 0.3.0 — 2026-09-11 (world v2: multi-scene rebuild, no school GLB)
+
+### Added
+- **Multi-scene world architecture** (`SceneId`: campus / rooftop / warehouse) with `gameStore.requestScene()` — fade-out → scene swap → teleport → fade-in transitions, `sceneLoading` overlay, stale-zone reset between scenes.
+- **Campus rebuilt from scratch** (`CampusWorld` + `CampusInterior` + shared `props.tsx` wall-segment system that generates visuals and Rapier colliders from one data array). The 7.3MB `jamalpur_zilla_school_2022.glb` is removed from `public/`; the whole world is now procedural geometry.
+- **Accessible school interior:** entrance hall, lockers, bulletin boards, corridor with storage core, classroom 1-X (desks/chairs/blackboard/clock), teacher room (meeting table/cabinets), canteen building with serving counter, display case, tables and stools — all with furniture colliders.
+- **Rooftop scene (Bab III):** parapets, stair bulkhead with exit trigger, AC units, water tank, antenna, clotheslines, distant city skyline; Bimo stands at the north parapet for the proposition cinematic.
+- **Warehouse scene (Bab IV bad route):** container stacks, crates, shelving, forklift, oil drums, catwalk, hanging lamps + skylight shafts, dim hangar fog; the warehouse duel now happens inside the scene via `{ k: 'scene' }` effect.
+- **Scene-aware story wiring:** `back_stairs` zone now transitions into the rooftop scene when `rooftop_meeting` is active (chapter 3 cinematic starts on arrival); accept/reject checkpoints return the player to campus before route montages; rooftop/warehouse exit triggers return to campus; scene field persisted in save v2 snapshots.
+- `world.test.ts` (11 specs): scene registry, scene-aware `zoneAt`, zone/bounds integrity, NPC waypoints inside campus bounds, camera-pose coverage, scene-transition effects on story nodes. Suite is now **52/52**.
+
+### Changed
+- Stylized-realistic character upgrade (`Figure`): capsule limbs, shaped hair styles (short/wave/ponytail/buzz), facial features (eyes/brows/jaw), collar + tie, optional skirt, per-NPC skin/pants/hair data — animation interface unchanged.
+- `zoneAt()` is scene-aware; zones split into per-scene registries (`SCENES`); MapPanel renders the current scene's schematic; NPC schedules repositioned to the new campus layout; opening/cinematic actor coordinates remapped; new `whin`/`whin_close` camera poses for the warehouse interior; new zone-flavor nodes (classroom, warehouse exterior).
+- Campus layout plan: street/gate/courtyard south, main building center (x −16..16, z 4..28), canteen east, parking east, field west, rear yard + stair shaft north, back alley north-east, warehouse exterior north-west.
+- Fade CSS reworked: `fade-in` now reveals (opacity 1→0) instead of re-darkening; scene transition overlay with spinner added.
+
 ## 0.2.1 — 2026-09-11 (story-flow bugfix pass)
 
 ### Fixed

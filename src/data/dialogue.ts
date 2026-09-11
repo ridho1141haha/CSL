@@ -212,14 +212,14 @@ export const DIALOGUE: Record<string, DialogueNode> = Object.fromEntries(
     // CHAPTER 4 — BAD ROUTE
     // ============================================================
     N({ id: 'ch3_accept_1', speaker: 'BIMO', portrait: 'bimo', emotion: 'dark', text: 'Pilihan yang benar. Kamu tidak akan menyesal. Semua yang butuh dilindungi — akan terlindungi.', next: 'ch3_accept_2' }),
-    N({ id: 'ch3_accept_2', speaker: 'REN', portrait: 'ren', emotion: 'dark', text: 'Hanya sampai lulus. Hanya sampai aku punya jalan keluar. Begitu kataku, waktu itu.', effects: [{ k: 'stat', stat: 'violence', delta: 5 }, { k: 'chapter', id: 4 }, { k: 'beat', id: 'ch4_bad_warehouse' }, { k: 'save' }], end: true }),
+    N({ id: 'ch3_accept_2', speaker: 'REN', portrait: 'ren', emotion: 'dark', text: 'Hanya sampai lulus. Hanya sampai aku punya jalan keluar. Begitu kataku, waktu itu.', effects: [{ k: 'stat', stat: 'violence', delta: 5 }, { k: 'chapter', id: 4 }, { k: 'beat', id: 'ch4_bad_warehouse' }, { k: 'scene', id: 'campus' }, { k: 'save' }], end: true }),
 
     N({ id: 'ch4_bad_1', speaker: 'NARATOR', portrait: 'narrator', text: 'Minggu berjalan. Tugas terkumpul terlambat. Nilai turun pelan — seperti kabut naik, tidak terasa sampai menutupi.', effects: [{ k: 'time', minutes: 2600 }, { k: 'stat', stat: 'academic', delta: -8 }], next: 'ch4_bad_2' }),
     N({ id: 'ch4_bad_2', speaker: 'NARATOR', portrait: 'narrator', text: 'Aris mulai duduk lebih jauh di kelas. Siti berhenti mengirim pesan. Jalur-jalur sekolah terasa lebih luas dari biasanya.', next: 'ch4_bad_3' }),
     N({ id: 'ch4_bad_3', speaker: 'BIMO', portrait: 'bimo', emotion: 'dark', text: 'Malam ini ada urusan di gudang tua. Geng dari luar mencoba masuk wilayah kita. Kau ikut. Bukan permintaan.', effects: [{ k: 'quest', id: 'warehouse_call', state: 'active' }], next: 'ch4_bad_4' }),
     N({ id: 'ch4_bad_4', speaker: 'REN', portrait: 'ren', emotion: 'dark', text: 'Aku bilang pada diriku: ini yang terakhir. Kata yang sama, minggu lalu. Dan minggu sebelumnya.', next: 'ch4_bad_warehouse' }),
 
-    N({ id: 'ch4_bad_warehouse', speaker: 'NARATOR', portrait: 'narrator', text: 'Gudang tua. Bau karat dan asap rokok. Penghuninya tidak datang untuk berbicara.', effects: [{ k: 'teleport', x: -32, z: -25 }, { k: 'visit-zone', zone: 'warehouse' }], next: '__combat__' }),
+    N({ id: 'ch4_bad_warehouse', speaker: 'NARATOR', portrait: 'narrator', text: 'Gudang tua. Bau karat dan asap rokok. Penghuninya tidak datang untuk berbicara.', effects: [{ k: 'scene', id: 'warehouse', spawn: [0, 7] }, { k: 'visit-zone', zone: 'warehouse_in' }], next: '__combat__' }),
 
     N({ id: 'ch4_bad_raid', speaker: 'NARATOR', portrait: 'narrator', text: 'Lampu sorot membelah atap gudang. Polisi. Teriakan. Langkah berat di semua arah.', next: 'ch4_bad_raid_2' }),
     N({ id: 'ch4_bad_raid_2', speaker: 'NARATOR', portrait: 'narrator', text: 'Bimo sudah tidak ada — keluar lewat pintu samping, entah sejak kapan. Yang tertinggal: Ren, di tengah ruangan, dengan tangan yang masih hangat.', next: 'ch4_bad_raid_3' }),
@@ -231,7 +231,7 @@ export const DIALOGUE: Record<string, DialogueNode> = Object.fromEntries(
     // CHAPTER 4 — RESISTANCE ROUTE
     // ============================================================
     N({ id: 'ch3_reject_1', speaker: 'BIMO', portrait: 'bimo', emotion: 'dark', text: '...Kau tahu, orang yang menolakku jarang bilang dua kali. Tapi baiklah. Kupikir kau beda. Kusalah, mungkin.', next: 'ch3_reject_2' }),
-    N({ id: 'ch3_reject_2', speaker: 'REN', portrait: 'ren', emotion: 'calm', text: 'Aku hanya mau lulus. Kalau itu jadi masalah bagimu — itu masalahmu.', effects: [{ k: 'chapter', id: 4 }, { k: 'beat', id: 'ch4_res_search' }, { k: 'time', minutes: 1500 }, { k: 'notify', text: 'Kamu menolak Bimo. Dia tidak akan lupa.' }, { k: 'save' }], end: true }),
+    N({ id: 'ch3_reject_2', speaker: 'REN', portrait: 'ren', emotion: 'calm', text: 'Aku hanya mau lulus. Kalau itu jadi masalah bagimu — itu masalahmu.', effects: [{ k: 'chapter', id: 4 }, { k: 'beat', id: 'ch4_res_search' }, { k: 'scene', id: 'campus' }, { k: 'time', minutes: 1500 }, { k: 'notify', text: 'Kamu menolak Bimo. Dia tidak akan lupa.' }, { k: 'save' }], end: true }),
 
     N({ id: 'ch4_res_1', speaker: 'NARATOR', portrait: 'narrator', text: 'Dua hari kemudian, hukuman mulai. Bukan untuk Ren — untuk orang-orang di sekitarnya. Anak-anak yang pernah bicara pada Ren dihadang.', next: 'ch4_res_2' }),
     N({ id: 'ch4_res_2', speaker: 'ARIS', portrait: 'aris', emotion: 'worried', text: 'Ren... kalau mereka datang lagi ke aku, kamu tidak perlu ikut campur. Serius. Kamu sudah terlalu terlihat.', next: 'ch4_res_3' }),
@@ -285,10 +285,12 @@ export const DIALOGUE: Record<string, DialogueNode> = Object.fromEntries(
     // Zone flavor (short one-shots when exploring, once per zone)
     // ============================================================
     N({ id: 'zone_field', speaker: 'REN', portrait: 'ren', text: 'Lapangan. Sunyi di jam pelajaran. Di sinilah masalah biasanya "diselesaikan" setelah pulang.', end: true }),
-    N({ id: 'zone_canteen', speaker: 'REN', portrait: 'ren', text: 'Kantin belakang. Menu: roti, teh, dan aturan tidak tertulis tentang siapa duduk di mana.', end: true }),
+    N({ id: 'zone_canteen', speaker: 'REN', portrait: 'ren', text: 'Kantin. Menu: roti, teh, dan aturan tidak tertulis tentang siapa duduk di mana.', end: true }),
     N({ id: 'zone_alley', speaker: 'REN', portrait: 'ren', emotion: 'tense', text: 'Gang belakang. Siti bilang jangan lewat sini sendirian. Dia benar, seperti biasa.', end: true }),
     N({ id: 'zone_parking', speaker: 'REN', portrait: 'ren', text: 'Parkir. Motor-motor geng selalu berderet di sudut yang sama.', end: true }),
     N({ id: 'zone_street', speaker: 'REN', portrait: 'ren', text: 'Jalan depan. Seharusnya tempat paling aman di Yuson. "Seharusnya" sedang melakukan kerja berat.', end: true }),
+    N({ id: 'zone_classroom', speaker: 'REN', portrait: 'ren', text: 'Kelas 1-X. Bangkuku di dekat jendela. Dari sini, halaman terlihat damai — dari jarak yang tepat.', end: true }),
+    N({ id: 'zone_warehouse', speaker: 'REN', portrait: 'ren', emotion: 'tense', text: 'Gudang tua. Pintu besinya tertutup rapat. Suara di dalamnya tidak diundang.', end: true }),
   ].map((n) => [n.id, n]),
 );
 
@@ -307,6 +309,8 @@ export const ZONE_FLAVOR: Record<string, string> = {
   back_alley: 'zone_alley',
   parking: 'zone_parking',
   street: 'zone_street',
+  classroom: 'zone_classroom',
+  warehouse: 'zone_warehouse',
 };
 export const CHECKPOINT_NODES = ['ch2_close', 'ch3_accept_2', 'ch3_reject_2', 'ch4_res_3'] as const;
 

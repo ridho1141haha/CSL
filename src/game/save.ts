@@ -9,7 +9,7 @@ import { useCombat } from '../stores/combatStore';
 import { resetCombatRuntime } from './combat/combat';
 import { enemyPos } from './runtime';
 import { STARTING_INVENTORY } from '../data/items';
-import type { ChapterId, Clock, NpcId, QuestState, Route, StoryBeat, ZoneId } from '../types';
+import type { ChapterId, Clock, NpcId, QuestState, Route, SceneId, StoryBeat, ZoneId } from '../types';
 
 export const SAVE_VERSION = 2;
 const KEY_PREFIX = 'csl-save-v2';
@@ -28,6 +28,7 @@ type SaveV2 = {
   visitedNpc: Record<NpcId, boolean>;
   quests: Record<string, QuestState>;
   inventory: string[];
+  scene?: SceneId;
 };
 
 const num = (v: unknown, d: number) => (typeof v === 'number' && Number.isFinite(v) ? v : d);
@@ -52,6 +53,7 @@ function snapshot(): SaveV2 {
     visitedNpc: { ...so.visitedNpc },
     quests: { ...q.quests },
     inventory: [...inv.items],
+    scene: g.scene,
   };
 }
 
@@ -60,6 +62,7 @@ function applySave(d: SaveV2) {
     phase: 'play',
     clock: { day: num(d.clock?.day, 0), minutes: num(d.clock?.minutes, 7 * 60 + 12) },
     visitedZones: Array.isArray(d.visitedZones) ? d.visitedZones : [],
+    scene: d.scene ?? 'campus',
     ending: null,
     notifications: [],
     pendingChapter: null,

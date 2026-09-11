@@ -25,6 +25,7 @@ import { Npcs, StoryActors } from './game/npc/Npc';
 import { CombatScene } from './game/combat/CombatScene';
 import { StoryDirector } from './game/StoryDirector';
 import { resetCombatRuntime } from './game/combat/combat';
+import { SCENES } from './data/world';
 
 import { MainMenu } from './game-ui/MainMenu';
 import { Hud, Notifications, CombatHud } from './game-ui/Hud';
@@ -46,6 +47,8 @@ import {
 export default function App() {
   const phase = useGame((s) => s.phase);
   const mode = useGame((s) => s.mode);
+  const scene = useGame((s) => s.scene);
+  const sceneLoading = useGame((s) => s.sceneLoading);
   const boot = useGame((s) => s.boot);
   const pointerLocked = useGame((s) => s.pointerLocked);
   const fade = useGame((s) => s.fade);
@@ -118,6 +121,7 @@ export default function App() {
     // Reset combat runtime anim state — ensures playerAnim.current.down = false
     // so the player character starts upright, not crouched/lying from a previous session
     resetCombatRuntime();
+    useGame.getState().setScene('campus');
     usePlayer.getState().spawn(PLAYER_SPAWN[0], PLAYER_SPAWN[1]);
     const g = useGame.getState();
     g.setPhase('play');
@@ -180,13 +184,12 @@ export default function App() {
           shadow-camera-top={70}
           shadow-camera-bottom={-70}
         />
-        <Environment preset="city" environmentIntensity={0.45} />
         <Physics gravity={[0, -9.81, 0]} timeStep="vary">
           {phase === 'play' && (
             <>
               <World />
               <Player />
-              <Npcs hideMain={mode === 'CINEMATIC'} />
+              {scene === 'campus' && <Npcs hideMain={mode === 'CINEMATIC'} />}
               <StoryDirector />
               {mode === 'COMBAT' && <CombatScene />}
               {mode === 'CINEMATIC' && <CinematicActors />}
@@ -197,6 +200,7 @@ export default function App() {
       </Canvas>
 
       {phase === 'boot' && <LoadingScreen />}
+      {sceneLoading && <SceneLoadingOverlay />}
       {fade !== 'none' && <div className={`fade-overlay fade-${fade}`} />}
       {phase === 'menu' && (mode === 'SAVELOAD_MENU' || mode === 'SETTINGS') && (
         <FullMenu title={mode === 'SETTINGS' ? 'SETTINGS' : 'LOAD GAME'} onClose={() => useGame.getState().setMode('MAIN_MENU')}>
@@ -281,7 +285,8 @@ function PointerLockHint() {
   );
 }
 
-// Cinematic actor placement (opening bullies, rooftop Bimo, alley gang…)
+// Cinematic actor placement (opening bullies, rooftop Bimo, alley gang…).
+// Coordinates follow each scene's local layout (see data/world.ts).
 function CinematicActors() {
   const nodeId = useDialogue((s) => s.nodeId);
   const placements = useMemo(() => {
@@ -290,36 +295,53 @@ function CinematicActors() {
     const open = OPENING_ACTORS[nodeId];
     if (open) {
       if (open.bullies[0]) {
-        list.push({ id: 'bully1', x: open.bullies[0] - 0.8, z: open.bullies[1] + 0.4, color: '#57534e', faceTo: [-12.6, 15.4] });
-        list.push({ id: 'bully2', x: open.bullies[0] + 0.9, z: open.bullies[1] - 0.3, color: '#44403c', faceTo: [-12.6, 15.4] });
+        list.push({ id: 'bully1', x: open.bullies[0] - 0.8, z: open.bullies[1] + 0.4, color: '#57534e', faceTo: [-7, 31.2] });
+        list.push({ id: 'bully2', x: open.bullies[0] + 0.9, z: open.bullies[1] - 0.3, color: '#44403c', faceTo: [-7, 31.2] });
       }
-      if (open.aris[0]) list.push({ id: 'aris', x: open.aris[0], z: open.aris[1], color: '#3b82f6', faceTo: [-8, 22] });
-      if (open.siti[0]) list.push({ id: 'siti', x: open.siti[0], z: open.siti[1], color: '#10b981', faceTo: [-12.2, 16.5] });
-      if (open.bimo[0]) list.push({ id: 'bimo', x: open.bimo[0], z: open.bimo[1], color: '#ef4444', faceTo: [22, 12] });
+      if (open.aris[0]) list.push({ id: 'aris', x: open.aris[0], z: open.aris[1], color: '#3b82f6', faceTo: [-7.6, 29.6] });
+      if (open.siti[0]) list.push({ id: 'siti', x: open.siti[0], z: open.siti[1], color: '#10b981', faceTo: [-7.6, 29.6] });
+      if (open.bimo[0]) list.push({ id: 'bimo', x: open.bimo[0], z: open.bimo[1], color: '#ef4444', faceTo: [24, 4] });
       return list;
     }
     if (nodeId.startsWith('ch3_')) {
-      list.push({ id: 'bimo', x: 4.5, z: -13.5, color: '#ef4444', faceTo: [1.5, -12] });
+      // rooftop scene (local coords): Bimo at the north parapet
+      list.push({ id: 'bimo', x: 0.3, z: -5.6, color: '#ef4444', faceTo: [0, -10] });
       return list;
     }
     if (['ch4_res_alley', 'ch4_res_choice', 'ch4_res_help_1', 'ch4_res_help_2', 'ch4_res_win', 'ch4_res_win_2'].includes(nodeId)) {
-      list.push({ id: 'aris', x: 8.6, z: -24.6, color: '#3b82f6', faceTo: [7, -21] });
-      list.push({ id: 'gang1', x: 6.2, z: -23.2, color: '#7f1d1d', faceTo: [8.6, -24.6] });
-      list.push({ id: 'gang2', x: 9.4, z: -22.8, color: '#991b1b', faceTo: [8.6, -24.6] });
-      if (['ch4_res_win_2'].includes(nodeId)) list.push({ id: 'siti', x: 10.6, z: -26, color: '#10b981', faceTo: [7, -24] });
+      list.push({ id: 'aris', x: 8, z: -20.5, color: '#3b82f6', faceTo: [6, -22] });
+      list.push({ id: 'gang1', x: 5.5, z: -19.5, color: '#7f1d1d', faceTo: [8, -20.5] });
+      list.push({ id: 'gang2', x: 10, z: -19, color: '#991b1b', faceTo: [8, -20.5] });
+      if (['ch4_res_win_2'].includes(nodeId)) list.push({ id: 'siti', x: 12.5, z: -22, color: '#10b981', faceTo: [6, -22] });
       return list;
     }
     if (nodeId.startsWith('ch4_bad_raid')) {
-      list.push({ id: 'gang1', x: -30, z: -25, color: '#7f1d1d' });
+      // warehouse scene (local coords)
+      list.push({ id: 'gang1', x: -2.5, z: -2.5, color: '#7f1d1d', faceTo: [0, 7] });
       return list;
     }
     if (['ch4_res_1', 'ch4_res_2', 'ch4_res_3', 'ch4_res_4'].includes(nodeId)) {
-      list.push({ id: 'aris', x: 12, z: 24, color: '#3b82f6' });
-      list.push({ id: 'siti', x: 10, z: 25, color: '#10b981' });
+      list.push({ id: 'aris', x: 6, z: 33, color: '#3b82f6' });
+      list.push({ id: 'siti', x: 4.5, z: 34.5, color: '#10b981' });
       return list;
     }
     return list;
   }, [nodeId]);
 
   return <StoryActors placements={placements} />;
+}
+
+// Dark overlay shown while a scene transition (requestScene) is in flight.
+function SceneLoadingOverlay() {
+  const scene = useGame((s) => s.scene);
+  const label = SCENES[scene]?.label ?? '';
+  return (
+    <div className="scene-loading">
+      <div className="sl-inner">
+        <div className="sl-spinner" />
+        <strong>Berpindah lokasi…</strong>
+        <span>{label}</span>
+      </div>
+    </div>
+  );
 }

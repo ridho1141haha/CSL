@@ -1,6 +1,10 @@
 // Shared game types. Data lives in src/data; logic in stores/systems.
 
 export type Phase = 'boot' | 'menu' | 'play';
+
+// Multi-scene world. 'campus' is the main grounds; rooftop & warehouse are
+// smaller scenes mounted on demand (see data/world.ts SCENES + SceneRoot).
+export type SceneId = 'campus' | 'rooftop' | 'warehouse';
 export type GameMode =
   | 'LOADING'
   | 'MAIN_MENU'
@@ -54,7 +58,17 @@ export type ZoneId =
   | 'back_alley'
   | 'back_stairs'
   | 'street'
-  | 'warehouse';
+  | 'warehouse'
+  // interior zones (campus scene)
+  | 'hall'
+  | 'classroom'
+  | 'teacher_room'
+  // rooftop scene
+  | 'rooftop'
+  | 'rooftop_door'
+  // warehouse scene (interior)
+  | 'warehouse_in'
+  | 'warehouse_door';
 
 export type Stats = {
   academic: number;
@@ -85,6 +99,7 @@ export type Effect =
   | { k: 'combat'; encounter: string }
   | { k: 'notify'; text: string }
   | { k: 'visit-zone'; zone: ZoneId }
+  | { k: 'scene'; id: SceneId; spawn?: [number, number] }
   | { k: 'teleport'; x: number; z: number }
   | { k: 'study' }
   | { k: 'save' };
@@ -156,7 +171,7 @@ export type EncounterEnemy = {
 
 export type EncounterDef = {
   id: string;
-  arena: Exclude<ZoneId, 'class_door'>;
+  arena: Exclude<ZoneId, 'class_door'>; // flavor only — fights happen in place
   enemies: EncounterEnemy[];
   onWin: string;   // dialogue node
   onLose?: string;
@@ -189,6 +204,11 @@ export type NpcDef = {
   height: number;
   schedule: Partial<Record<string, [number, number]>>; // period -> [x, z]
   dialogueRoot: string; // dialogue node id used when interacted
+  // stylized-realistic look overrides (see game/npc/Character.tsx Figure)
+  skin?: string;
+  pants?: string;
+  skirt?: string; // color — presence enables skirt mesh
+  hair?: { color: string; style: 'short' | 'wave' | 'ponytail' | 'buzz' };
 };
 
 export type ZoneDef = {
@@ -196,5 +216,5 @@ export type ZoneDef = {
   label: string;
   center: [number, number];
   radius: number;
-  map: [number, number]; // 0..1 map coords
+  map?: [number, number]; // optional legacy minimap coords (MapPanel derives from bounds)
 };

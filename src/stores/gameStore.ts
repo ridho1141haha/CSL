@@ -1,7 +1,9 @@
 import { create } from 'zustand';
-import type { Clock, GameMode, Phase, ZoneId } from '../types';
+import type { Clock, GameMode, Phase, SceneId, ZoneId } from '../types';
 import { advance } from '../game/systems/time';
 import type { Ending } from '../game/systems/endingResolver';
+import { SCENES } from '../data/world';
+import { usePlayer } from './playerStore';
 
 export type NotificationKind = 'info' | 'quest' | 'social' | 'warn';
 export type Notification = { id: number; text: string; kind: NotificationKind };
@@ -12,6 +14,8 @@ type Store = {
   phase: Phase;
   mode: GameMode;
   clock: Clock;
+  scene: SceneId;
+  sceneLoading: boolean;
   visitedZones: ZoneId[];
   currentZone: ZoneId | null;
   notifications: Notification[];
@@ -37,6 +41,8 @@ type Store = {
   setError: (e: string) => void;
   setInteractTarget: (name: string | null) => void;
   setPointerLocked: (v: boolean) => void;
+  setScene: (s: SceneId) => void;
+  requestScene: (id: SceneId, spawn?: [number, number]) => void;
   resetAll: () => void;
 };
 
@@ -44,6 +50,8 @@ export const useGame = create<Store>((set, get) => ({
   phase: 'boot',
   mode: 'LOADING',
   clock: { day: 0, minutes: 7 * 60 + 12 },
+  scene: 'campus',
+  sceneLoading: false,
   visitedZones: [],
   currentZone: null,
   notifications: [],
@@ -71,11 +79,40 @@ export const useGame = create<Store>((set, get) => ({
   setError: (error) => set({ error }),
   setInteractTarget: (interactTarget) => set((s) => (s.interactTarget === interactTarget ? s : { interactTarget })),
   setPointerLocked: (pointerLocked) => set({ pointerLocked }),
+  setScene: (scene) => set({ scene }),
+  // Multi-scene transition: fade out → swap scene bundle → teleport player →
+  // fade in. If already in the target scene, just reposition the player.
+  requestScene: (id, spawn) => {
+    const g = get();
+    if (g.scene === id) {
+      if (spawn) usePlayer.getState().setPos(spawn[0], spawn[1]);
+      return;
+    }
+    if (g.sceneLoading) return; // a transition is already running
+    g.setFade('out');
+    set({ sceneLoading: true });
+    window.setTimeout(() => {
+      const st = get();
+      st.setScene(id);
+      // stale zone ids from the previous scene must not leak into the new one
+      st.setCurrentZone(null);
+      const sp = spawn ?? SCENES[id].spawn;
+      usePlayer.getState().setPos(sp[0], sp[1]);
+      st.notify(`Memasuki: ${SCENES[id].label}`, 'info');
+      st.setFade('in');
+      window.setTimeout(() => {
+        get().setFade('none');
+        set({ sceneLoading: false });
+      }, 700);
+    }, 480);
+  },
   resetAll: () =>
     set({
       phase: 'menu',
       mode: 'MAIN_MENU',
       clock: { day: 0, minutes: 7 * 60 + 12 },
+      scene: 'campus',
+      sceneLoading: false,
       visitedZones: [],
       currentZone: null,
       notifications: [],

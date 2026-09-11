@@ -285,14 +285,30 @@ canvas { display: block; }
 .study-options button.good { border-color: var(--green); background: #10b98122; }
 .study-options button.bad { border-color: var(--crimson); background: #ef444422; }
 
-/* ============ fade overlay (NODE_FX) ============ */
+/* ============ fade overlay (NODE_FX + scene transitions) ============ */
 .fade-overlay {
   position: absolute; inset: 0; z-index: 70; pointer-events: none;
   background: #05080c;
 }
 .fade-overlay.fade-out { animation: fade-out 0.6s ease forwards; }
-.fade-overlay.fade-in { animation: fade-in 0.6s ease forwards; }
+.fade-overlay.fade-in { animation: fade-reveal 0.65s ease forwards; }
 @keyframes fade-out { from { opacity: 0; } to { opacity: 1; } }
+@keyframes fade-reveal { from { opacity: 1; } to { opacity: 0; } }
+
+/* ============ scene transition overlay ============ */
+.scene-loading {
+  position: absolute; inset: 0; z-index: 85; display: grid; place-items: center;
+  background: rgba(4, 7, 11, 0.86); animation: fade-in 0.25s ease;
+}
+.scene-loading .sl-inner { display: flex; flex-direction: column; align-items: center; gap: 10px; color: #dfe7f0; font-family: var(--mono); }
+.scene-loading strong { letter-spacing: 0.35em; font-size: 14px; color: var(--amber); }
+.scene-loading span { letter-spacing: 0.2em; font-size: 12px; opacity: 0.75; }
+.scene-loading .sl-spinner {
+  width: 34px; height: 34px; border-radius: 50%;
+  border: 3px solid #2a3542; border-top-color: var(--amber);
+  animation: sl-spin 0.9s linear infinite;
+}
+@keyframes sl-spin { to { transform: rotate(360deg); } }
 
 /* ============ transitions & endings ============ */
 .chapter-transition { position: absolute; inset: 0; z-index: 80; background: #05080c; display: grid; place-items: center; text-align: center; cursor: pointer; animation: fade-in 0.5s; }

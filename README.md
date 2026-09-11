@@ -108,6 +108,7 @@ CSL/
 - **Combat:** Real-time manual — light/heavy/block/dodge; player FSM + enemy FSM (idle/approach/windup/strike/recover/hurt/stagger/ko); hit pause ~60ms; camera shake; Focus-gated heavy/dodge
 - **School life:** Day/hour/minute clock with 6 periods (arrival/class/break/lunch/after); NPC schedules per period
 - **Quests:** MAIN/SIDE/EVENT with states LOCKED→AVAILABLE→ACTIVE→COMPLETED/FAILED
+- **World:** fully procedural, multi-scene map (no school GLB) — campus with accessible interior (hall, classroom, teacher room, canteen), plus rooftop & warehouse as on-demand scenes with fade transitions and save-aware positioning
 - **Inventory:** 7 categories (ALL/CONSUMABLE/QUEST/KEY/MISC) with usable consumables
 - **Save:** Versioned localStorage (`csl-save-v2`), v1→v2 migration, 4 slots (auto/1/2/3), per-field validation
 - **Audio:** WebAudio procedural synth (MASTER/MUSIC/SFX/UI/AMBIENT buses), graceful no-op fallback
@@ -117,17 +118,18 @@ CSL/
 
 ## ⚙️ Performance
 
-- **Bundle:** app code 33KB gzip · React vendor 76KB · Three.js engine3d 1.05MB · CSS 4.5KB
-- **GLB compression:** NPC models 158MB → 21.5MB (86.4% reduction via Draco + textureCompress)
+- **Bundle:** app code 34KB gzip · React vendor 76KB · Three.js engine3d 1.03MB · CSS 5KB
+- **Zero world GLB payload:** the entire school, rooftop and warehouse are procedural geometry (world was rebuilt from scratch in 0.3.0; the 7.3MB school GLB was removed from `public/`)
 - **Render guards:** DPR clamp [1,2], shadow map 2048, throttled store writes (@12 frames), few physics bodies (player + walls + ground; NPCs kinematic)
 - **Code-splitting:** Three.js + R3F isolated in `engine3d` chunk for better caching
 
 ---
 
-## ✅ Quality Status (Phase 19)
+## ✅ Quality Status (Phase 20)
 
-- **Build:** `npm run build` PASS (0 TS errors, 661 modules)
-- **Tests:** 41/41 vitest specs PASS (`systems.test.ts` + `dialogue.test.ts` + `storyFlow.test.ts`)
+- **Build:** `npm run build` PASS (0 TS errors)
+- **Tests:** 52/52 vitest specs PASS (`systems` + `dialogue` + `storyFlow` + `world`)
+- **World v2 (0.3.0):** multi-scene rebuild — campus interior accessible, rooftop & warehouse scenes on demand, scene-aware zones/NPC schedules/minimap, scene persisted in saves
 - **Story-flow audit (0.2.1):** resistance-route soft-lock fixed, death recovery via auto-save checkpoints, save integrity on endings
 - **Smoke test (Playwright):** 9/9 steps PASS against https://csl-henna.vercel.app/
   - Boot → main menu
@@ -141,7 +143,7 @@ CSL/
 
 ### ⚠️ Known Limitations
 
-- **Headless WebGL:** Full 3D scene rendering crashes in Playwright headless with software WebGL (SwiftShader cannot reliably run R3F + Rapier + 7.3MB school GLB). This is a headless-only limitation — real browsers (Chrome/Edge/Firefox desktop) handle the scene fine. The smoke test verifies all critical paths up to and including canvas mount.
+- **Headless WebGL:** Full 3D scene rendering crashes in Playwright headless with software WebGL (SwiftShader cannot reliably run R3F + Rapier). This is a headless-only limitation — real browsers (Chrome/Edge/Firefox desktop) handle the scene fine. The smoke test verifies all critical paths up to and including canvas mount.
 - **No animated character models:** `char.glb` has no skeleton (DECISIONS.md #13). Runtime characters use procedural `Figure` with limb-swing animation. Compressed NPC GLBs (`public/npc/compressed/`) are ready for future swap-in when animated models become available.
 - **No mobile support:** Deferred per PRD §5 (non-goals). Architecture supports later addition.
 
