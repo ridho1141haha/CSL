@@ -68,7 +68,7 @@ export function CombatScene() {
   return (
     <>
       {enemy && (
-        <group ref={group} position={[enemyPos.x, 0, enemyPos.z]}>
+        <group ref={group} position={[enemyPos.x, 0.75, enemyPos.z]}>
           <Figure anim={enemyAnim} color={enemy.color} accent="#111827" scale={enemy.scale ?? 1.05} nameTag={enemy.name} />
         </group>
       )}
