@@ -30,25 +30,51 @@ export function CameraRig() {
   const lookAt = useRef(new THREE.Vector3(0, 1.5, 20));
   const targetDist = useRef(4.6);
 
-  // pointer lock orbit
+  // pointer lock orbit + drag-look fallback (BUG-3.1 robustness)
+  // Primary: pointer lock (mouse movement → camera orbit, cursor hidden)
+  // Fallback: if pointer lock not engaged, hold LMB or RMB to drag-look
+  // Auto-request: when entering GAMEPLAY mode, try to engage pointer lock
   useEffect(() => {
+    let dragging = false;
     const onMove = (e: MouseEvent) => {
-      if (document.pointerLockElement == null) return;
       const game = useGame.getState();
       if (game.mode !== 'GAMEPLAY' && game.mode !== 'COMBAT' && game.mode !== 'PAUSE') return;
-      yaw.current -= e.movementX * 0.0026;
-      pitch.current = THREE.MathUtils.clamp(pitch.current + e.movementY * 0.0018, 0.06, 0.85);
+      // Pointer-lock mode: direct mouse movement
+      if (document.pointerLockElement != null) {
+        yaw.current -= e.movementX * 0.0026;
+        pitch.current = THREE.MathUtils.clamp(pitch.current + e.movementY * 0.0018, 0.06, 0.85);
+        return;
+      }
+      // Drag-look fallback: camera orbit while mouse button held
+      if (dragging && (e.buttons & 1 || e.buttons & 2)) {
+        yaw.current -= e.movementX * 0.006;
+        pitch.current = THREE.MathUtils.clamp(pitch.current + e.movementY * 0.004, 0.06, 0.85);
+      }
     };
-    const onClick = () => {
+    const onDown = (e: MouseEvent) => {
       const game = useGame.getState();
       if (game.phase !== 'play') return;
-      if (game.mode === 'GAMEPLAY' || game.mode === 'COMBAT') input.requestLock();
+      if (game.mode === 'GAMEPLAY' || game.mode === 'COMBAT') {
+        // Try pointer lock first; if it fails or already locked, enable drag
+        if (document.pointerLockElement == null) {
+          input.requestLock();
+        }
+        dragging = true;
+      }
+    };
+    const onUp = () => { dragging = false; };
+    const onLockChange = () => {
+      useGame.getState().setPointerLocked(document.pointerLockElement != null);
     };
     window.addEventListener('mousemove', onMove);
-    window.addEventListener('click', onClick);
+    window.addEventListener('mousedown', onDown);
+    window.addEventListener('mouseup', onUp);
+    document.addEventListener('pointerlockchange', onLockChange);
     return () => {
       window.removeEventListener('mousemove', onMove);
-      window.removeEventListener('click', onClick);
+      window.removeEventListener('mousedown', onDown);
+      window.removeEventListener('mouseup', onUp);
+      document.removeEventListener('pointerlockchange', onLockChange);
     };
   }, []);
 

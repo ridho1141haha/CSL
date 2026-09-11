@@ -146,6 +146,10 @@ canvas { display: block; }
   color: var(--dim); font-size: 11px; letter-spacing: 0.18em;
   font-family: var(--mono);
 }
+.plh-inner .plh-alt {
+  color: #64748b; font-size: 10px; margin-top: 4px;
+  border-top: 1px solid var(--line); padding-top: 10px;
+}
 
 /* ============ dialogue ============ */
 .cinematic { position: absolute; inset: 0; z-index: 30; cursor: pointer; }

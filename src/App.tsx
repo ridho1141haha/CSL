@@ -252,8 +252,9 @@ function PointerLockHint() {
     >
       <div className="plh-inner">
         <div className="plh-icon">🖱</div>
-        <strong>KLIK UNTUK MENGAKTIFKAN KONTROL</strong>
-        <span>WASD bergerak · mouse menggerakkan kamera · ESC untuk pause</span>
+        <strong>KLIK UNTUK MENGAKTIFKAN KAMERA</strong>
+        <span>WASD bergerak · MOUSE menggerakkan kamera · ESC pause</span>
+        <span className="plh-alt">atau tahan KLIK KIRI untuk drag-look</span>
       </div>
     </div>
   );
