@@ -86,7 +86,8 @@ export type Effect =
   | { k: 'notify'; text: string }
   | { k: 'visit-zone'; zone: ZoneId }
   | { k: 'teleport'; x: number; z: number }
-  | { k: 'study' };
+  | { k: 'study' }
+  | { k: 'save' };
 
 export type Condition =
   | { k: 'flag'; id: string; not?: boolean }

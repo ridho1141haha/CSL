@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useGame } from '../stores/gameStore';
 import { usePlayer } from '../stores/playerStore';
 import { useStats } from '../stores/statsStore';
@@ -6,6 +6,7 @@ import { useSocial } from '../stores/socialStore';
 import { chapterCardText } from '../game/systems/effects';
 import { CHAPTERS } from '../data/chapters';
 import { audio } from '../game/audio';
+import { loadGame, hasSave } from '../game/save';
 
 export function LoadingScreen() {
   return (
@@ -50,12 +51,25 @@ export function ChapterTransition() {
 }
 
 export function GameOverScreen({ onRestart }: { onRestart: () => void }) {
+  // BUG-FIX: dying used to force a full restart (COBA LAGI = new game), wiping
+  // hours of story progress even though auto-save checkpoints exist. Offer the
+  // last auto-save first; restart stays as the fallback.
+  const canLoad = hasSave('auto');
+  const [loadError, setLoadError] = useState('');
+  const onLoad = () => {
+    const err = loadGame('auto');
+    if (err) setLoadError(err);
+  };
   return (
     <div className="ending-screen dark">
       <span className="eyebrow">YUSON // SIGNAL LOST</span>
       <h1>GAME OVER</h1>
       <p>Ren jatuh. Lorong itu gelap, dan tidak ada yang datang.</p>
-      <button onClick={onRestart}>COBA LAGI</button>
+      <div className="ending-actions">
+        {canLoad && <button onClick={onLoad}>MUAT SAVE TERAKHIR</button>}
+        <button onClick={onRestart}>COBA LAGI</button>
+      </div>
+      {loadError && <p className="load-error">{loadError}</p>}
     </div>
   );
 }

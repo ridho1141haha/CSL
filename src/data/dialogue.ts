@@ -164,7 +164,7 @@ export const DIALOGUE: Record<string, DialogueNode> = Object.fromEntries(
     N({ id: 'ch2_win', speaker: 'NARATOR', portrait: 'narrator', text: 'Anak geng itu jatuh, menepi, dan pergi sambil menjerawut. Halaman depan menutup riwayatnya cepat — seolah tidak terjadi apa-apa.', next: 'ch2_win_2' }),
     N({ id: 'ch2_win_2', speaker: 'NARATOR', portrait: 'narrator', text: 'Tapi ada satu pasang mata yang tidak pura-pura sibuk. Di dekat kantin, Bimo melipat tangannya.', next: 'ch2_win_3' }),
     N({ id: 'ch2_win_3', speaker: 'BIMO', portrait: 'bimo', emotion: 'dark', text: '...Tidak buruk.', effects: [{ k: 'flag', id: 'bimo_impressed' }], next: 'ch2_close' }),
-    N({ id: 'ch2_close', speaker: 'REN', portrait: 'ren', emotion: 'tense', text: 'Aku tidak mencari ini. Masalah yang mencariku. Sejak kapan aku bisa seperti ini...?', effects: [{ k: 'stat', stat: 'violence', delta: 3 }, { k: 'stat', stat: 'reputation', delta: 6 }, { k: 'chapter', id: 3 }, { k: 'time', minutes: 245 }, { k: 'quest', id: 'rooftop_meeting', state: 'active' }, { k: 'notify', text: 'Kabar menyebar cepat. (Reputasi meningkat)' }], end: true }),
+    N({ id: 'ch2_close', speaker: 'REN', portrait: 'ren', emotion: 'tense', text: 'Aku tidak mencari ini. Masalah yang mencariku. Sejak kapan aku bisa seperti ini...?', effects: [{ k: 'stat', stat: 'violence', delta: 3 }, { k: 'stat', stat: 'reputation', delta: 6 }, { k: 'chapter', id: 3 }, { k: 'time', minutes: 245 }, { k: 'quest', id: 'rooftop_meeting', state: 'active' }, { k: 'notify', text: 'Kabar menyebar cepat. (Reputasi meningkat)' }, { k: 'save' }], end: true }),
 
     // ============================================================
     // CHAPTER 3 — Momen Kunci (rooftop proposition)
@@ -212,7 +212,7 @@ export const DIALOGUE: Record<string, DialogueNode> = Object.fromEntries(
     // CHAPTER 4 — BAD ROUTE
     // ============================================================
     N({ id: 'ch3_accept_1', speaker: 'BIMO', portrait: 'bimo', emotion: 'dark', text: 'Pilihan yang benar. Kamu tidak akan menyesal. Semua yang butuh dilindungi — akan terlindungi.', next: 'ch3_accept_2' }),
-    N({ id: 'ch3_accept_2', speaker: 'REN', portrait: 'ren', emotion: 'dark', text: 'Hanya sampai lulus. Hanya sampai aku punya jalan keluar. Begitu kataku, waktu itu.', effects: [{ k: 'stat', stat: 'violence', delta: 5 }, { k: 'chapter', id: 4 }, { k: 'beat', id: 'ch4_bad_warehouse' }], end: true }),
+    N({ id: 'ch3_accept_2', speaker: 'REN', portrait: 'ren', emotion: 'dark', text: 'Hanya sampai lulus. Hanya sampai aku punya jalan keluar. Begitu kataku, waktu itu.', effects: [{ k: 'stat', stat: 'violence', delta: 5 }, { k: 'chapter', id: 4 }, { k: 'beat', id: 'ch4_bad_warehouse' }, { k: 'save' }], end: true }),
 
     N({ id: 'ch4_bad_1', speaker: 'NARATOR', portrait: 'narrator', text: 'Minggu berjalan. Tugas terkumpul terlambat. Nilai turun pelan — seperti kabut naik, tidak terasa sampai menutupi.', effects: [{ k: 'time', minutes: 2600 }, { k: 'stat', stat: 'academic', delta: -8 }], next: 'ch4_bad_2' }),
     N({ id: 'ch4_bad_2', speaker: 'NARATOR', portrait: 'narrator', text: 'Aris mulai duduk lebih jauh di kelas. Siti berhenti mengirim pesan. Jalur-jalur sekolah terasa lebih luas dari biasanya.', next: 'ch4_bad_3' }),
@@ -231,11 +231,11 @@ export const DIALOGUE: Record<string, DialogueNode> = Object.fromEntries(
     // CHAPTER 4 — RESISTANCE ROUTE
     // ============================================================
     N({ id: 'ch3_reject_1', speaker: 'BIMO', portrait: 'bimo', emotion: 'dark', text: '...Kau tahu, orang yang menolakku jarang bilang dua kali. Tapi baiklah. Kupikir kau beda. Kusalah, mungkin.', next: 'ch3_reject_2' }),
-    N({ id: 'ch3_reject_2', speaker: 'REN', portrait: 'ren', emotion: 'calm', text: 'Aku hanya mau lulus. Kalau itu jadi masalah bagimu — itu masalahmu.', effects: [{ k: 'chapter', id: 4 }, { k: 'beat', id: 'ch4_res_search' }, { k: 'time', minutes: 1500 }, { k: 'notify', text: 'Kamu menolak Bimo. Dia tidak akan lupa.' }], end: true }),
+    N({ id: 'ch3_reject_2', speaker: 'REN', portrait: 'ren', emotion: 'calm', text: 'Aku hanya mau lulus. Kalau itu jadi masalah bagimu — itu masalahmu.', effects: [{ k: 'chapter', id: 4 }, { k: 'beat', id: 'ch4_res_search' }, { k: 'time', minutes: 1500 }, { k: 'notify', text: 'Kamu menolak Bimo. Dia tidak akan lupa.' }, { k: 'save' }], end: true }),
 
     N({ id: 'ch4_res_1', speaker: 'NARATOR', portrait: 'narrator', text: 'Dua hari kemudian, hukuman mulai. Bukan untuk Ren — untuk orang-orang di sekitarnya. Anak-anak yang pernah bicara pada Ren dihadang.', next: 'ch4_res_2' }),
     N({ id: 'ch4_res_2', speaker: 'ARIS', portrait: 'aris', emotion: 'worried', text: 'Ren... kalau mereka datang lagi ke aku, kamu tidak perlu ikut campur. Serius. Kamu sudah terlalu terlihat.', next: 'ch4_res_3' }),
-    N({ id: 'ch4_res_3', speaker: 'SITI', portrait: 'siti', emotion: 'firm', text: 'Bimo sedang menguji kamu, Ren. Dia tahu cara menang dari orang yang tidak mau bertarung: dia menyerang apa yang tidak bisa membela diri.', effects: [{ k: 'quest', id: 'find_aris', state: 'active' }, { k: 'notify', text: 'Quest baru: Aris Tidak Pulang' }], next: 'ch4_res_4' }),
+    N({ id: 'ch4_res_3', speaker: 'SITI', portrait: 'siti', emotion: 'firm', text: 'Bimo sedang menguji kamu, Ren. Dia tahu cara menang dari orang yang tidak mau bertarung: dia menyerang apa yang tidak bisa membela diri.', effects: [{ k: 'quest', id: 'find_aris', state: 'active' }, { k: 'notify', text: 'Quest baru: Aris Tidak Pulang' }, { k: 'save' }], next: 'ch4_res_4' }),
     N({ id: 'ch4_res_4', speaker: 'NARATOR', portrait: 'narrator', text: 'Keesokan harinya, Aris tidak masuk. Pesan terakhirnya, jam tiga pagi: "maaf ya".', end: true }),
 
     N({ id: 'ch4_res_alley', speaker: 'NARATOR', portrait: 'narrator', text: 'Gang belakang. Dua anak geng membentuk lingkaran. Di tengahnya, Aris — tasnya robek, tangan gemetar melindungi kepala.', next: 'ch4_res_choice' }),
@@ -294,5 +294,20 @@ export const DIALOGUE: Record<string, DialogueNode> = Object.fromEntries(
 
 // Special node ids consumed by the dialogue runner (not real nodes)
 export const SPECIAL_NODES = { combat: '__combat__', study: '__study__' };
+
+// Runtime wiring tables — single source of truth for how the story graph is
+// entered from the world. StoryDirector consumes ZONE_FLAVOR; the montage
+// roots + trigger nodes + checkpoints are asserted by test/storyFlow.test.ts
+// so a broken link fails CI instead of dead-ending a playthrough.
+export const MONTAGE_ROOTS = ['ch4_bad_1', 'ch4_res_1'] as const;
+export const STORY_TRIGGER_NODES = ['ch2_intro_1', 'ch3_intro_1', 'ch4_res_alley'] as const;
+export const ZONE_FLAVOR: Record<string, string> = {
+  field: 'zone_field',
+  canteen: 'zone_canteen',
+  back_alley: 'zone_alley',
+  parking: 'zone_parking',
+  street: 'zone_street',
+};
+export const CHECKPOINT_NODES = ['ch2_close', 'ch3_accept_2', 'ch3_reject_2', 'ch4_res_3'] as const;
 
 export const getDialogue = (id: string): DialogueNode | undefined => DIALOGUE[id];

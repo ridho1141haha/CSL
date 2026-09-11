@@ -33,7 +33,7 @@ npm install
 npm run dev       # → http://localhost:5173
 npm run build     # production build → dist/
 npm run preview   # preview production build
-npm test          # 30 vitest unit tests
+npm test          # 41 vitest unit tests
 ```
 
 Requires Node 18+ (tested on Node 22).
@@ -68,7 +68,7 @@ CSL/
 │   │   ├── world/World.tsx   # SMA Yuson grounds (zones, colliders, props)
 │   │   └── StoryDirector.tsx # story/zone/quest glue per frame
 │   ├── game-ui/              # MainMenu, Hud, DialogueUI, Screens, menus/
-│   └── test/                 # 30 vitest specs
+│   └── test/                 # 41 vitest specs
 ├── ARCHITECTURE.md           # strict layering rules
 ├── PRD.md / GDD.md           # canon product/game design docs
 ├── DECISIONS.md              # 14 architectural decisions logged
@@ -124,10 +124,11 @@ CSL/
 
 ---
 
-## ✅ Quality Status (Phase 17)
+## ✅ Quality Status (Phase 19)
 
-- **Build:** `npm run build` PASS (0 TS errors, 661 modules, 6.4s)
-- **Tests:** 30/30 vitest specs PASS (`src/test/systems.test.ts` + `src/test/dialogue.test.ts`)
+- **Build:** `npm run build` PASS (0 TS errors, 661 modules)
+- **Tests:** 41/41 vitest specs PASS (`systems.test.ts` + `dialogue.test.ts` + `storyFlow.test.ts`)
+- **Story-flow audit (0.2.1):** resistance-route soft-lock fixed, death recovery via auto-save checkpoints, save integrity on endings
 - **Smoke test (Playwright):** 9/9 steps PASS against https://csl-henna.vercel.app/
   - Boot → main menu
   - NEW GAME → opening cinematic (REN speaking)

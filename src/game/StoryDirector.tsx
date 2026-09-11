@@ -9,16 +9,10 @@ import { input } from './input';
 import { playerPos, npcPositions, enemyPos } from './runtime';
 import { zoneAt } from '../data/world';
 import { NPC_BY_ID } from '../data/npcs';
+import { ZONE_FLAVOR } from '../data/dialogue';
 import { saveGame } from './save';
 
 const EXPLORE_TARGETS = ['courtyard', 'canteen', 'field', 'back_alley'] as const;
-const FLAVOR_NODES: Record<string, string> = {
-  field: 'zone_field',
-  canteen: 'zone_canteen',
-  back_alley: 'zone_alley',
-  parking: 'zone_parking',
-  street: 'zone_street',
-};
 
 // Per-frame world↔story glue: zone discovery, quest progression triggers,
 // NPC interaction. All state changes go through stores/effects.
@@ -92,7 +86,7 @@ export function StoryDirector() {
         game.setCurrentZone(zone.id);
         game.visitZone(zone.id);
       }
-      const flavor = FLAVOR_NODES[zone.id];
+      const flavor = ZONE_FLAVOR[zone.id];
       if (flavor && !story.flags.includes(`zone_seen_${zone.id}`)) {
         story.setFlag(`zone_seen_${zone.id}`);
         dialogue.open(flavor);
@@ -122,19 +116,6 @@ export function StoryDirector() {
       story.setBeat('ch2_gate');
       quests.setState('gate_trouble', 'completed');
       dialogue.open('ch2_intro_1');
-      return;
-    }
-
-    // ---------- bad route: montage after accepting ----------
-    if (story.beat === 'ch4_bad_warehouse' && story.route === 'bad') {
-      dialogue.open('ch4_bad_1', true);
-      return;
-    }
-
-    // ---------- resistance route: montage after rejecting ----------
-    if (story.beat === 'ch4_res_search' && story.route === 'resistance' && !story.flags.includes('res_montage_done')) {
-      story.setFlag('res_montage_done');
-      dialogue.open('ch4_res_1', true);
       return;
     }
 

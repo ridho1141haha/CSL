@@ -98,6 +98,12 @@ export function applyEffect(e: Effect) {
     case 'study':
       game.setMode('STUDY');
       break;
+    case 'save':
+      // Story checkpoint: persist to the auto slot (see dialogue.ts usages).
+      // Dynamic import on purpose: save.ts pulls in combat/combat.ts which
+      // imports dialogueStore → this module; a static edge would be circular.
+      void import('../save').then(({ saveGame }) => saveGame('auto'));
+      break;
   }
 }
 

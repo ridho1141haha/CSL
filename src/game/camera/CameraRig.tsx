@@ -144,7 +144,24 @@ export function CameraRig() {
           }
         }
       } else {
-        // third-person cinematic (rooftop / warehouse beats)
+        // third-person cinematic (rooftop / montage beats)
+        // BUG-FIX (soft-lock): late-game cinematic chains that end with
+        // `end: true` (e.g. the resistance montage ch4_res_1..4) close the
+        // dialogue while still in CINEMATIC mode. close() deliberately only
+        // restores DIALOGUE→GAMEPLAY, and the FP→TP transition is a one-shot
+        // opening-only exit — so nothing ever returned control here. The
+        // player was left on a frozen camera with no UI and no input.
+        // Camera owns CINEMATIC exit (see dialogueStore.close), so when the
+        // graph has no node left to show past the opening, hand back control.
+        if (
+          !dialogue.nodeId &&
+          !fp.current &&
+          story.flags.includes('opening_complete') &&
+          game.pendingChapter == null
+        ) {
+          game.setMode('GAMEPLAY');
+          return;
+        }
         const k = reduced ? 1 : 1 - Math.exp(-2.6 * dt);
         camera.position.lerp(lerpV.set(pose.pos[0], pose.pos[1], pose.pos[2]), k);
         lookAt.current.lerp(lookV.set(pose.look[0], pose.look[1], pose.look[2]), k);

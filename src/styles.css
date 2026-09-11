@@ -312,6 +312,7 @@ canvas { display: block; }
 .ending-actions { display: flex; gap: 12px; margin-top: 10px; }
 .ending-actions button { background: none; border: 1px solid var(--line); color: var(--off); padding: 12px 26px; letter-spacing: 0.2em; font-size: 12px; }
 .ending-actions button:hover { border-color: var(--amber); color: var(--amber); }
+.load-error { color: #f87171; font-size: 12px; letter-spacing: 0.08em; margin-top: 8px; }
 @keyframes fade-in { from { opacity: 0; } }
 
 /* ============ responsive ============ */

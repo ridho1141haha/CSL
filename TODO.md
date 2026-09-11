@@ -138,17 +138,28 @@ Working checklist (phase model per master directive). ✅ done · 🚧 in progre
 - ✅ Final report (this TODO.md reflects final state)
 - ✅ Live deployment: https://csl-henna.vercel.app/
 
+## Phase 19 — Story-flow bugfix pass ✅ (0.2.1, 2026-09-11)
+- ✅ CRITICAL: resistance-route montage soft-lock (CINEMATIC never exited after `ch4_res_4`) — CameraRig hands control back when a post-opening cinematic has no node left
+- ✅ Game over now offers "MUAT SAVE TERAKHIR" (auto slot) instead of forced full restart
+- ✅ `loadGame` resets combat store / anim `down` / `enemyPos.active` (no lying-down character after load)
+- ✅ Ending screen no longer overwrites the auto checkpoint with a post-ending snapshot
+- ✅ Removed duplicate unguarded bad-route montage trigger in StoryDirector
+- ✅ New `{ k: 'save' }` effect → auto-save checkpoints at ch2_close / ch3_accept_2 / ch3_reject_2 / ch4_res_3
+- ✅ `test/storyFlow.test.ts`: 11 specs (reachability, route/ending wiring, beat↔encounter map, checkpoints) — 41/41 total
+- ✅ Build passes (0 TS errors); deployed via push to main
+
 ---
 
 ## 🎯 Project Complete
 
-All 18 phases (0–18) complete. The game is shippable:
+All 18 phases (0–18) complete + Phase 19 story-flow pass. The game is shippable:
 - ✅ Build passes
-- ✅ 30/30 unit tests pass
+- ✅ 41/41 unit tests pass
 - ✅ 9/9 smoke test steps pass
 - ✅ Deployed to Vercel
 - ✅ README + all planning docs in place
 - ✅ All bugs from Phase 3 & 8 audit fixed
+- ✅ Story-flow audit (Phase 19): resistance route completable, death recovery, save integrity
 
 **Live:** https://csl-henna.vercel.app/  
 **Repo:** https://github.com/ridho1141haha/CSL

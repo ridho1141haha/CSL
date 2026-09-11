@@ -5,6 +5,9 @@ import { useStory } from '../stores/storyStore';
 import { useSocial } from '../stores/socialStore';
 import { useQuests } from '../stores/questStore';
 import { useInventory } from '../stores/inventoryStore';
+import { useCombat } from '../stores/combatStore';
+import { resetCombatRuntime } from './combat/combat';
+import { enemyPos } from './runtime';
 import { STARTING_INVENTORY } from '../data/items';
 import type { ChapterId, Clock, NpcId, QuestState, Route, StoryBeat, ZoneId } from '../types';
 
@@ -111,6 +114,12 @@ export function loadGame(slot: SlotId): string {
     const parsed = JSON.parse(raw);
     const data = parseSave(parsed);
     if (!data) return 'Data save tidak valid.';
+    // Reset combat visuals/state before restoring gameplay: after a KO the
+    // player anim (down) and enemyPos.active persist in module state and would
+    // otherwise render the character lying down + suppress NPC interaction.
+    useCombat.getState().reset();
+    resetCombatRuntime();
+    enemyPos.active = false;
     applySave(data);
     useGame.getState().setMode('GAMEPLAY');
     return '';

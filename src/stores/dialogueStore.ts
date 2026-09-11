@@ -7,7 +7,8 @@ import { useCombat } from './combatStore';
 import type { Choice } from '../types';
 
 // Encounter selection by story beat when a dialogue reaches __combat__
-const BEAT_ENCOUNTER: Record<string, string> = {
+// (exported: asserted by test/storyFlow.test.ts)
+export const BEAT_ENCOUNTER: Record<string, string> = {
   ch2_gate: 'gate_fight',
   ch4_bad_warehouse: 'warehouse_fight',
   ch4_res_alley: 'alley_fight',

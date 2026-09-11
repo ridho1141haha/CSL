@@ -1,5 +1,21 @@
 # Changelog
 
+## 0.2.1 — 2026-09-11 (story-flow bugfix pass)
+
+### Fixed
+- **CRITICAL soft-lock (Resistance route):** the Chapter 4 resistance montage (`ch4_res_1..4`) ended with `end: true` while still in CINEMATIC mode; `close()` only restores `DIALOGUE→GAMEPLAY` and the FP→TP transition is a one-shot opening-only exit, so the game froze on a camera pose with no UI and no input — chapter 4 was unfinishable on this route. CameraRig now returns control when a post-opening cinematic has no dialogue node left to show.
+- **Game over wiped the run:** dying in any fight offered only "COBA LAGI" (= full restart to the opening). GameOverScreen now offers "MUAT SAVE TERAKHIR" (load auto slot) next to restart.
+- **Ghost combat state after load:** `loadGame` now resets the combat store, procedural anim state (`down`) and `enemyPos.active`, so loading after a KO no longer renders the character lying down or suppresses NPC interaction prompts.
+- **Post-ending auto-save corruption:** "MENU UTAMA" from the ending screen overwrote the auto slot with a non-playable post-ending snapshot; it no longer saves once an ending is set.
+- **Duplicate unguarded montage trigger:** StoryDirector had a second bad-route montage block without the `bad_montage_done` guard (would replay the montage from a mid-montage save); removed (the guarded block handles entry).
+
+### Added
+- `{ k: 'save' }` effect type routed through the central effects pipeline; story checkpoints now auto-save to the auto slot at: start of Chapter 3 (`ch2_close`), start of Chapter 4 bad route (`ch3_accept_2`), start of Chapter 4 resistance route (`ch3_reject_2`), and before the alley search (`ch4_res_3`).
+- Story-flow regression suite (`src/test/storyFlow.test.ts`, 11 specs): full node reachability from every runtime entry point (no dead content), canon route/ending effect wiring, montage beat ↔ encounter mapping, checkpoint presence.
+
+### Changed
+- Zone-flavor node map moved to `src/data/dialogue.ts` (`ZONE_FLAVOR`) as the single source of truth shared by StoryDirector and tests.
+
 ## 0.2.0 — 2026-09-10 (Phase 0–18 full development pass)
 
 ### Added

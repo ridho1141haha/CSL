@@ -146,7 +146,10 @@ export default function App() {
   }, [startGame]);
 
   const toMenu = useCallback(() => {
-    saveGame('auto');
+    // BUG-FIX: don't overwrite the auto checkpoint after an ending — the
+    // post-ending snapshot (route resolved, finale flags set) is not a
+    // playable state and would poison CONTINUE on the main menu.
+    if (!useGame.getState().ending) saveGame('auto');
     useGame.getState().resetAll();
     useStory.getState().resetAll();
     audio.stopAmbient();
