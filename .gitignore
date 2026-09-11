@@ -5,3 +5,8 @@ vite.config.js
 vite.config.d.ts
 .env*
 !.env.example
+# heavy 3D tooling assets (regenerable, over GitHub limits)
+stitch/mblab.zip
+stitch/MB-Lab-master/
+stitch/sf_*.json
+stitch/ref*.jpg

@@ -1,0 +1,91 @@
+import { useEffect } from 'react';
+import { useGame } from '../stores/gameStore';
+import { usePlayer } from '../stores/playerStore';
+import { useStats } from '../stores/statsStore';
+import { useSocial } from '../stores/socialStore';
+import { chapterCardText } from '../game/systems/effects';
+import { CHAPTERS } from '../data/chapters';
+import { audio } from '../game/audio';
+
+export function LoadingScreen() {
+  return (
+    <div className="loading-screen">
+      <div className="boot-logo">
+        <h1>CHAOS SCHOOL <em>LIFE</em></h1>
+        <p>MEMUAT ASET SEKOLAH…</p>
+        <div className="boot-bar"><i /></div>
+      </div>
+    </div>
+  );
+}
+
+export function ChapterTransition() {
+  const pending = useGame((s) => s.pendingChapter);
+  const clear = useGame((s) => s.clearChapterCard);
+  useEffect(() => {
+    if (pending == null) return;
+    audio.sting(pending >= 4);
+    const onKey = () => closeCard();
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [pending]);
+
+  const closeCard = () => {
+    const g = useGame.getState();
+    clear();
+    if (g.mode === 'TRANSITION') g.setMode('GAMEPLAY');
+  };
+
+  if (pending == null) return null;
+  const { title, subtitle } = chapterCardText(pending);
+  return (
+    <div className="chapter-transition" onClick={closeCard}>
+      <div>
+        <span className="chapter-kicker">{title}</span>
+        <h1>{subtitle}</h1>
+        <p>— klik untuk lanjut —</p>
+      </div>
+    </div>
+  );
+}
+
+export function GameOverScreen({ onRestart }: { onRestart: () => void }) {
+  return (
+    <div className="ending-screen dark">
+      <span className="eyebrow">YUSON // SIGNAL LOST</span>
+      <h1>GAME OVER</h1>
+      <p>Ren jatuh. Lorong itu gelap, dan tidak ada yang datang.</p>
+      <button onClick={onRestart}>COBA LAGI</button>
+    </div>
+  );
+}
+
+export function EndingScreen({ onRestart, onMenu }: { onRestart: () => void; onMenu: () => void }) {
+  const ending = useGame((s) => s.ending);
+  const stats = useStats();
+  const rel = useSocial((s) => s.relationships);
+  const focus = usePlayer((s) => s.focus);
+  if (!ending) return null;
+  const chapter = CHAPTERS[4];
+  return (
+    <div className={`ending-screen ending-${ending.id}`}>
+      <span className="eyebrow">ENDING UNLOCKED // {chapter.title}</span>
+      <h1>{ending.title.toUpperCase()}</h1>
+      <p className="ending-summary">{ending.summary}</p>
+      <div className="ending-lesson">“{ending.lesson}”</div>
+      <div className="ending-stats">
+        <span>ACADEMIC<b>{stats.academic}</b></span>
+        <span>FOCUS<b>{Math.round(focus)}</b></span>
+        <span>VIOLENCE<b>{stats.violence}</b></span>
+        <span>DIPLOMACY<b>{stats.diplomacy}</b></span>
+        <span>ARIS<b>{rel.aris}</b></span>
+        <span>SITI<b>{rel.siti}</b></span>
+        <span>BIMO<b>{rel.bimo}</b></span>
+      </div>
+      <div className="ending-actions">
+        <button onClick={onRestart}>MULAI ULANG</button>
+        <button onClick={onMenu}>MENU UTAMA</button>
+      </div>
+    </div>
+  );
+}

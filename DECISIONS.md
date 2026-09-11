@@ -37,3 +37,9 @@ No continuous real-time pressure: time advances on activities, dialogue completi
 
 ## #12 Pak Budi NPC — PROPOSED (from PRD)
 Teacher NPC near faculty area enabling study/class activities and academic consequences.
+
+## #13 char.glb is a static mesh (no skeleton) — IMPLEMENTED
+Inspection: `skins: 0`, `animations: []` — a 58 MB model that cannot be animated. Decision: runtime characters (Ren + NPCs) use a stylized procedural figure with limb-swing animation; `Character` accepts an optional GLB override for when final animated models arrive. char.glb is no longer loaded at boot (cuts ~58 MB from initial load); school GLB remains.
+
+## #14 Cinematic camera via node→pose map — IMPLEMENTED
+Cutscenes map each dialogue node id to a camera pose (CAM_BY_NODE) + actor placements (OPENING_ACTORS). Runner is data-driven; new scenes need no code changes.

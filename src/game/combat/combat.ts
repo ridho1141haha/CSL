@@ -1,0 +1,325 @@
+import * as THREE from 'three';
+import { input } from '../input';
+import { usePlayer } from '../../stores/playerStore';
+import { useCombat } from '../../stores/combatStore';
+import { useGame } from '../../stores/gameStore';
+import { useStory } from '../../stores/storyStore';
+import { useDialogue } from '../../stores/dialogueStore';
+import { useStats } from '../../stores/statsStore';
+import { audio } from '../audio';
+import { playerPos, enemyPos, requestShake, camState } from '../runtime';
+import { makeAnim, type FigureAnim } from '../npc/Character';
+import { ENCOUNTERS } from '../../data/quests';
+
+// Real-time combat runtime (GDD §5.2). Physics handles locomotion only;
+// hit detection is gameplay-level (range + facing cone).
+
+export type PlayerCombatState = {
+  attack: { t: number; dur: number; heavy: boolean; hitDone: boolean } | null;
+  block: boolean;
+  dodge: { t: number; dirX: number; dirZ: number } | null;
+  invuln: number;
+  stagger: number;
+  hitPause: number;
+  stepTimer: number;
+};
+
+export const playerCombat: PlayerCombatState = {
+  attack: null,
+  block: false,
+  dodge: null,
+  invuln: 0,
+  stagger: 0,
+  hitPause: 0,
+  stepTimer: 0,
+};
+
+export const playerAnim = { current: makeAnim() };
+export const enemyAnim = { current: makeAnim() };
+
+type EnemyState = {
+  state: 'idle' | 'approach' | 'windup' | 'strike' | 'recover' | 'hurt' | 'stagger' | 'ko' | 'spawn';
+  t: number;
+  facing: number;
+  cooldown: number;
+};
+
+export const enemyRuntime: { state: EnemyState } = {
+  state: { state: 'spawn', t: 0, facing: 0, cooldown: 1.2 },
+};
+
+export function resetCombatRuntime() {
+  playerCombat.attack = null;
+  playerCombat.block = false;
+  playerCombat.dodge = null;
+  playerCombat.invuln = 0;
+  playerCombat.stagger = 0;
+  playerCombat.hitPause = 0;
+  Object.assign(playerAnim, makeAnim());
+  Object.assign(enemyAnim, makeAnim());
+  enemyRuntime.state = { state: 'spawn', t: 0, facing: 0, cooldown: 1.2 };
+}
+
+const LIGHT = { windup: 0.1, active: 0.12, recover: 0.22, dmg: 9, range: 2.0, arc: 1.15 };
+const HEAVY = { windup: 0.26, active: 0.14, recover: 0.42, dmg: 19, range: 2.2, arc: 1.3, focusCost: 10 };
+const DODGE = { dur: 0.34, speed: 7.2, invuln: 0.3, focusCost: 6 };
+
+function facingDot(dx: number, dz: number, facing: number) {
+  const len = Math.hypot(dx, dz) || 1;
+  return (dx / len) * Math.sin(facing) + (dz / len) * Math.cos(facing) * -1;
+}
+
+// Called per frame while mode === COMBAT. dt is unclamped frame delta.
+export function combatTick(
+  dt: number,
+  body: { setLinvel: (v: { x: number; y: number; z: number }, wake?: boolean) => void; linvel: () => { x: number; y: number; z: number } } | null,
+) {
+  const combat = useCombat.getState();
+  const enemy = combat.enemy();
+  if (!enemy) return;
+
+  if (playerCombat.hitPause > 0) {
+    playerCombat.hitPause -= dt;
+    return; // world holds still for a beat
+  }
+
+  const px = playerPos.x;
+  const pz = playerPos.z;
+  const dx = enemyPos.x - px;
+  const dz = enemyPos.z - pz;
+  const dist = Math.hypot(dx, dz);
+  const nx = dist > 0.001 ? dx / dist : 0;
+  const nz = dist > 0.001 ? dz / dist : 0;
+
+  const player = usePlayer.getState();
+  const game = useGame.getState();
+
+  // ---------------- player ----------------
+  let moveX = 0;
+  let moveZ = 0;
+  playerAnim.current.speed = playerPos.speed;
+
+  if (playerCombat.stagger > 0) {
+    playerCombat.stagger -= dt;
+    playerAnim.current.speed = 0;
+  } else if (playerCombat.dodge) {
+    playerCombat.dodge.t += dt;
+    moveX = playerCombat.dodge.dirX * DODGE.speed;
+    moveZ = playerCombat.dodge.dirZ * DODGE.speed;
+    if (playerCombat.dodge.t >= DODGE.dur) playerCombat.dodge = null;
+    playerAnim.current.speed = DODGE.speed * 0.9;
+  } else if (playerCombat.attack) {
+    const a = playerCombat.attack;
+    a.t += dt;
+    const total = a.heavy ? HEAVY.windup + HEAVY.active + HEAVY.recover : LIGHT.windup + LIGHT.active + LIGHT.recover;
+    playerAnim.current.attackT = a.t / total;
+    if (!a.hitDone && a.t >= (a.heavy ? HEAVY.windup : LIGHT.windup)) {
+      a.hitDone = true;
+      const cfg = a.heavy ? HEAVY : LIGHT;
+      if (dist < cfg.range && Math.abs(angleDiff(Math.atan2(dx, dz), player.facing)) < cfg.arc) {
+        const bonus = player.focus >= 60 ? 3 : 0;
+        const dmg = cfg.dmg + bonus;
+        combat.hitEnemy(dmg);
+        audio.hit();
+        requestShake(a.heavy ? 0.3 : 0.16);
+        playerCombat.hitPause = a.heavy ? 0.08 : 0.05;
+        enemyAnim.current.hurtT = 0;
+        onEnemyHit(enemy.hp - dmg, a.heavy);
+      } else {
+        audio.attack();
+      }
+    }
+    if (a.t >= total) {
+      playerCombat.attack = null;
+      playerAnim.current.attackT = -1;
+    }
+  } else {
+    // free movement + actions
+    playerCombat.block = input.mouse.right && player.focus > 0;
+    playerAnim.current.block = playerCombat.block;
+    if (!playerCombat.block) {
+      // reuse locomotion: read held keys relative to camera handled by caller? No —
+      // combatTick also reads input directly (camera-relative using camState.yaw)
+      const speed = input.isDown('run') ? 5.0 : 3.4;
+      let ix = 0;
+      let iz = 0;
+      if (input.isDown('forward')) iz += 1;
+      if (input.isDown('back')) iz -= 1;
+      if (input.isDown('left')) ix -= 1;
+      if (input.isDown('right')) ix += 1;
+      if (ix || iz) {
+        const yaw = camYaw();
+        const fX = -Math.sin(yaw);
+        const fZ = -Math.cos(yaw);
+        const rX = -fZ;
+        const rZ = fX;
+        moveX = (fX * iz + rX * ix) * speed;
+        moveZ = (fZ * iz + rZ * ix) * speed;
+        playerAnim.current.speed = speed;
+      } else {
+        playerAnim.current.speed = 0;
+      }
+      if (input.leftPressed && player.focus >= 0) {
+        playerCombat.attack = { t: 0, dur: 0, heavy: false, hitDone: false };
+        audio.attack();
+      } else if (input.isDown('attack_heavy') && player.focus >= HEAVY.focusCost) {
+        playerCombat.attack = { t: 0, dur: 0, heavy: true, hitDone: false };
+        player.setFocus(player.focus - HEAVY.focusCost);
+        audio.attack();
+      } else if (input.justPressed('dodge') && player.focus >= DODGE.focusCost) {
+        playerCombat.dodge = { t: 0, dirX: nx, dirZ: nz };
+        player.setFocus(player.focus - DODGE.focusCost);
+        playerCombat.invuln = DODGE.invuln;
+        audio.dodge();
+      }
+    } else {
+      playerAnim.current.speed = 0;
+    }
+  }
+
+  if (playerCombat.invuln > 0) playerCombat.invuln -= dt;
+  if (enemyAnim.current.hurtT >= 0) {
+    enemyAnim.current.hurtT += dt * 4;
+    if (enemyAnim.current.hurtT > 1) enemyAnim.current.hurtT = -1;
+  }
+
+  // movement application (simple, kinematic; y handled by gravity tick)
+  if (body) {
+    const lv = body.linvel();
+    body.setLinvel({ x: moveX, y: lv.y, z: moveZ });
+  }
+
+  // ---------------- enemy FSM ----------------
+  const st = enemyRuntime.state;
+  st.t += dt;
+  enemyAnim.current.speed = 0;
+
+  if (enemy.hp <= 0) {
+    st.state = 'ko';
+    enemyAnim.current.down = true;
+    return;
+  }
+
+  switch (st.state) {
+    case 'spawn':
+      if (st.t > 0.6) {
+        st.state = 'approach';
+        st.t = 0;
+      }
+      break;
+    case 'approach': {
+      const sp = enemy.speed;
+      enemyPos.x += nx * sp * dt;
+      enemyPos.z += nz * sp * dt;
+      enemyAnim.current.speed = sp;
+      st.facing = Math.atan2(dx, dz);
+      if (dist < 1.7 && st.cooldown <= 0) {
+        st.state = 'windup';
+        st.t = 0;
+      }
+      break;
+    }
+    case 'windup':
+      st.facing = Math.atan2(dx, dz);
+      if (st.t > 0.42) {
+        st.state = 'strike';
+        st.t = 0;
+      }
+      break;
+    case 'strike': {
+      if (st.t < 0.12 && dist < 2.1) {
+        if (playerCombat.invuln <= 0) {
+          const blocked = playerCombat.block && Math.abs(angleDiff(Math.atan2(-dx, -dz), player.facing)) < 1.4;
+          const dmg = blocked ? Math.max(1, Math.round(enemy.dmg * 0.3)) : enemy.dmg;
+          usePlayer.getState().damage(dmg);
+          useCombat.getState().hitPlayer(dmg);
+          audio.hurt();
+          requestShake(0.22);
+          if (!blocked) {
+            playerCombat.stagger = 0.28;
+            playerCombat.block = false;
+            playerAnim.current.block = false;
+          }
+          const hp = usePlayer.getState().hp;
+          if (hp <= 0) {
+            useCombat.getState().finish('lost');
+            playerAnim.current.down = true;
+            useGame.getState().setMode('GAME_OVER');
+            audio.defeat();
+            return;
+          }
+        }
+      }
+      if (st.t > 0.16) {
+        st.state = 'recover';
+        st.t = 0;
+      }
+      break;
+    }
+    case 'recover':
+      if (st.t > 0.5) {
+        st.state = 'approach';
+        st.t = 0;
+        st.cooldown = 0.9 + Math.random() * 1.1;
+      }
+      break;
+    case 'hurt':
+    case 'stagger':
+      if (st.t > 0.32) {
+        st.state = 'approach';
+        st.t = 0;
+      }
+      break;
+    case 'ko':
+      break;
+  }
+  if (st.cooldown > 0) st.cooldown -= dt;
+  enemyAnim.current.attackT = st.state === 'windup' ? st.t / 0.42 * 0.4 : st.state === 'strike' ? 0.4 + st.t / 0.16 * 0.6 : -1;
+
+  // keep enemy at a fair distance (never inside the player)
+  if (dist < 0.9) {
+    enemyPos.x -= nx * dt * 2;
+    enemyPos.z -= nz * dt * 2;
+  }
+}
+
+function onEnemyHit(hpAfter: number, heavy: boolean) {
+  const combat = useCombat.getState();
+  const enemy = combat.enemy();
+  if (!enemy) return;
+  const st = enemyRuntime.state;
+  if (hpAfter <= 0) {
+    // handled by store advancing to next enemy or victory
+  } else {
+    st.state = 'hurt';
+    st.t = 0;
+    if (heavy && Math.random() < 0.35) {
+      st.state = 'stagger';
+    }
+  }
+}
+
+export function angleDiff(a: number, b: number) {
+  let d = a - b;
+  while (d > Math.PI) d -= Math.PI * 2;
+  while (d < -Math.PI) d += Math.PI * 2;
+  return d;
+}
+
+export function camYaw() {
+  return camState.yaw;
+}
+
+// Victory/defeat flow is driven by CombatScene watching the store.
+export function finishCombatWin() {
+  const combat = useCombat.getState();
+  const game = useGame.getState();
+  const onWin = combat.encounterId ? ENCOUNTERS[combat.encounterId]?.onWin : undefined;
+  audio.victory();
+  useStats.getState().addStat('violence', 1);
+  combat.reset();
+  resetCombatRuntime();
+  enemyPos.active = false;
+  game.setMode('GAMEPLAY');
+  if (onWin) useDialogue.getState().open(onWin);
+}

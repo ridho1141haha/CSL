@@ -1,0 +1,201 @@
+import { useGame } from '../stores/gameStore';
+import { usePlayer } from '../stores/playerStore';
+import { useStats } from '../stores/statsStore';
+import { useStory } from '../stores/storyStore';
+import { useSocial } from '../stores/socialStore';
+import { useQuests } from '../stores/questStore';
+import { useInventory } from '../stores/inventoryStore';
+import { STARTING_INVENTORY } from '../data/items';
+import type { ChapterId, Clock, NpcId, QuestState, Route, StoryBeat, ZoneId } from '../types';
+
+export const SAVE_VERSION = 2;
+const KEY_PREFIX = 'csl-save-v2';
+export const SAVE_SLOTS = ['auto', '1', '2', '3'] as const;
+export type SlotId = (typeof SAVE_SLOTS)[number];
+
+type SaveV2 = {
+  version: number;
+  savedAt: number;
+  clock: Clock;
+  visitedZones: ZoneId[];
+  player: { hp: number; focus: number; x: number; z: number };
+  stats: { academic: number; violence: number; diplomacy: number; reputation: number };
+  story: { chapter: ChapterId; beat: StoryBeat; route: Route; flags: string[]; choices: Record<string, string> };
+  relationships: Record<NpcId, number>;
+  visitedNpc: Record<NpcId, boolean>;
+  quests: Record<string, QuestState>;
+  inventory: string[];
+};
+
+const num = (v: unknown, d: number) => (typeof v === 'number' && Number.isFinite(v) ? v : d);
+
+function snapshot(): SaveV2 {
+  const g = useGame.getState();
+  const p = usePlayer.getState();
+  const st = useStats.getState();
+  const s = useStory.getState();
+  const so = useSocial.getState();
+  const q = useQuests.getState();
+  const inv = useInventory.getState();
+  return {
+    version: SAVE_VERSION,
+    savedAt: Date.now(),
+    clock: { ...g.clock },
+    visitedZones: [...g.visitedZones],
+    player: { hp: p.hp, focus: p.focus, x: p.x, z: p.z },
+    stats: { academic: st.academic, violence: st.violence, diplomacy: st.diplomacy, reputation: st.reputation },
+    story: { chapter: s.chapter, beat: s.beat, route: s.route, flags: [...s.flags], choices: { ...s.choices } },
+    relationships: { ...so.relationships },
+    visitedNpc: { ...so.visitedNpc },
+    quests: { ...q.quests },
+    inventory: [...inv.items],
+  };
+}
+
+function applySave(d: SaveV2) {
+  useGame.setState({
+    phase: 'play',
+    clock: { day: num(d.clock?.day, 0), minutes: num(d.clock?.minutes, 7 * 60 + 12) },
+    visitedZones: Array.isArray(d.visitedZones) ? d.visitedZones : [],
+    ending: null,
+    notifications: [],
+    pendingChapter: null,
+    fade: 'none',
+  });
+  usePlayer.setState({
+    hp: num(d.player?.hp, 100),
+    maxHp: 100,
+    focus: num(d.player?.focus, 100),
+    x: num(d.player?.x, 7),
+    z: num(d.player?.z, 29),
+    defeated: false,
+  });
+  useStats.setState({
+    academic: num(d.stats?.academic, 68),
+    violence: num(d.stats?.violence, 5),
+    diplomacy: num(d.stats?.diplomacy, 8),
+    reputation: num(d.stats?.reputation, 0),
+  });
+  useStory.setState({
+    chapter: (num(d.story?.chapter, 1) as ChapterId) || 1,
+    beat: (d.story?.beat ?? 'ch1_explore') as StoryBeat,
+    route: (d.story?.route ?? 'none') as Route,
+    flags: Array.isArray(d.story?.flags) ? d.story.flags : [],
+    choices: d.story?.choices && typeof d.story.choices === 'object' ? d.story.choices : {},
+  });
+  const so = useSocial.getState();
+  useSocial.setState({
+    relationships: { ...so.relationships, ...(d.relationships ?? {}) },
+    visitedNpc: { ...so.visitedNpc, ...(d.visitedNpc ?? {}) },
+  });
+  useQuests.setState({ quests: { ...useQuests.getState().quests, ...(d.quests ?? {}) } });
+  useInventory.setState({ items: Array.isArray(d.inventory) ? d.inventory.filter((i) => typeof i === 'string') : [...STARTING_INVENTORY] });
+}
+
+const key = (slot: SlotId) => `${KEY_PREFIX}:${slot}`;
+
+export function saveGame(slot: SlotId = 'auto'): string {
+  try {
+    localStorage.setItem(key(slot), JSON.stringify(snapshot()));
+    useGame.getState().notify('Game tersimpan', 'info');
+    return '';
+  } catch {
+    return 'Gagal menyimpan progres.';
+  }
+}
+
+export function loadGame(slot: SlotId): string {
+  try {
+    const raw = localStorage.getItem(key(slot));
+    if (!raw) return 'Slot kosong.';
+    const parsed = JSON.parse(raw);
+    const data = parseSave(parsed);
+    if (!data) return 'Data save tidak valid.';
+    applySave(data);
+    useGame.getState().setMode('GAMEPLAY');
+    return '';
+  } catch {
+    return 'Data save tidak valid.';
+  }
+}
+
+export function deleteSave(slot: SlotId) {
+  try {
+    localStorage.removeItem(key(slot));
+  } catch {
+    /* storage unavailable */
+  }
+}
+
+export function hasSave(slot: SlotId): boolean {
+  try {
+    return !!localStorage.getItem(key(slot));
+  } catch {
+    return false;
+  }
+}
+
+export function slotInfo(slot: SlotId): { chapter: number; savedAt: number | null } {
+  try {
+    const raw = localStorage.getItem(key(slot));
+    if (!raw) return { chapter: 0, savedAt: null };
+    const d = parseSave(JSON.parse(raw));
+    return d ? { chapter: d.story.chapter, savedAt: d.savedAt } : { chapter: 0, savedAt: null };
+  } catch {
+    return { chapter: 0, savedAt: null };
+  }
+}
+
+// v1 schema (old csl-save-v1) migration — best effort, preserves story basics.
+export function migrateV1(old: Record<string, unknown>): SaveV2 | null {
+  if (!old || typeof old !== 'object') return null;
+  const flags = Array.isArray(old.flags) ? (old.flags as string[]) : [];
+  const phase = old.phase;
+  if (phase !== 'play') return null; // pre-opening v1 saves restart from scratch
+  return {
+    version: SAVE_VERSION,
+    savedAt: Date.now(),
+    clock: { day: 0, minutes: 7 * 60 + 40 },
+    visitedZones: ['courtyard'],
+    player: { hp: 100, focus: 100, x: num((old.player as { x?: number })?.x, 7), z: num((old.player as { z?: number })?.z, 29) },
+    stats: { academic: 68, violence: 5, diplomacy: 8, reputation: 0 },
+    story: {
+      chapter: 1,
+      beat: 'ch1_explore',
+      route: 'none',
+      flags: flags.includes('helped_aris') ? ['helped_aris', 'opening_complete'] : flags.includes('walked_past_aris') ? ['ignored_aris', 'opening_complete'] : ['opening_complete'],
+      choices: old.choice ? { o3_choice: String(old.choice) } : {},
+    },
+    relationships: {
+      aris: num((old.relationship as Record<string, number>)?.aris, 0),
+      siti: num((old.relationship as Record<string, number>)?.siti, 0),
+      bimo: num((old.relationship as Record<string, number>)?.bimo, 0),
+      budi: 0,
+    },
+    visitedNpc: { aris: true, siti: true, bimo: true, budi: false },
+    quests: { explore_school: (old.quests as Record<string, string>)?.explore_school === 'complete' ? 'completed' : 'active' },
+    inventory: [...STARTING_INVENTORY],
+  };
+}
+
+export function parseSave(parsed: unknown): SaveV2 | null {
+  if (!parsed || typeof parsed !== 'object') return null;
+  const d = parsed as Partial<SaveV2>;
+  if (num(d.version, 0) !== SAVE_VERSION) {
+    if (num((parsed as Record<string, unknown>).version, 0) === 1) return migrateV1(parsed as Record<string, unknown>);
+    return null;
+  }
+  if (!d.story || !d.player) return null;
+  return d as SaveV2;
+}
+
+// Check for a legacy v1 save and offer it on boot (one-time migration).
+export function checkLegacySave(): SaveV2 | null {
+  try {
+    const raw = localStorage.getItem('csl-save-v1');
+    if (!raw) return null;
+    return parseSave(JSON.parse(raw));
+  } catch {
+    return null;
+  }
+}
