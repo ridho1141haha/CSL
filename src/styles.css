@@ -123,6 +123,30 @@ canvas { display: block; }
 .interact span { color: var(--amber); }
 .controls { position: absolute; bottom: 14px; left: 50%; transform: translateX(-50%); color: #ffffff55; font-size: 10px; letter-spacing: 0.16em; font-family: var(--mono); }
 
+/* ============ pointer lock hint (BUG-3.1) ============ */
+.pointer-lock-hint {
+  position: absolute; inset: 0; z-index: 35;
+  display: grid; place-items: center;
+  background: radial-gradient(120% 100% at 50% 50%, #0b1017cc 0%, #0b1017f5 80%);
+  cursor: pointer; animation: fade-in 0.3s ease;
+}
+.plh-inner {
+  display: flex; flex-direction: column; align-items: center; gap: 14px;
+  text-align: center; padding: 32px 40px;
+  border: 1px solid var(--line);
+  background: var(--panel);
+  box-shadow: 0 14px 50px #000a;
+}
+.plh-icon { font-size: 42px; animation: pulse 1.4s infinite; }
+.plh-inner strong {
+  font-family: var(--display); font-size: clamp(16px, 1.6vw, 22px);
+  letter-spacing: 0.18em; color: var(--amber); text-transform: uppercase;
+}
+.plh-inner span {
+  color: var(--dim); font-size: 11px; letter-spacing: 0.18em;
+  font-family: var(--mono);
+}
+
 /* ============ dialogue ============ */
 .cinematic { position: absolute; inset: 0; z-index: 30; cursor: pointer; }
 .cinematic.is-cinematic::before, .cinematic.is-cinematic::after {

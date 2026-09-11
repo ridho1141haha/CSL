@@ -44,6 +44,12 @@ type EnemyState = {
   cooldown: number;
 };
 
+// BUG-8.3: idle state is now actually entered. After spawn, enemy briefly
+// idles (perception check) before approaching — gives player a moment to
+// orient. Perception radius 6.0; if player is further, enemy stays idle.
+const ENEMY_PERCEPTION = 6.0;
+const ENEMY_IDLE_TURN_RATE = 1.2; // radians/sec slow turn toward player
+
 export const enemyRuntime: { state: EnemyState } = {
   state: { state: 'spawn', t: 0, facing: 0, cooldown: 1.2 },
 };
@@ -63,6 +69,9 @@ export function resetCombatRuntime() {
 const LIGHT = { windup: 0.1, active: 0.12, recover: 0.22, dmg: 9, range: 2.0, arc: 1.15 };
 const HEAVY = { windup: 0.26, active: 0.14, recover: 0.42, dmg: 19, range: 2.2, arc: 1.3, focusCost: 10 };
 const DODGE = { dur: 0.34, speed: 7.2, invuln: 0.3, focusCost: 6 };
+// BUG-8.1: blocking drains Focus over time. Without this, players could hold
+// block infinitely with no consequence. 12/sec means 100 Focus lasts ~8s.
+const BLOCK_FOCUS_DRAIN = 12;
 
 function facingDot(dx: number, dz: number, facing: number) {
   const len = Math.hypot(dx, dz) || 1;
@@ -135,8 +144,31 @@ export function combatTick(
     }
   } else {
     // free movement + actions
-    playerCombat.block = input.mouse.right && player.focus > 0;
-    playerAnim.current.block = playerCombat.block;
+    // BUG-8.1: blocking drains Focus at BLOCK_FOCUS_DRAIN per second. Once
+    // Focus hits 0, block auto-releases.
+    const wantBlock = input.mouse.right && player.focus > 0;
+    if (wantBlock && playerCombat.block) {
+      // already blocking — drain Focus
+      const cost = BLOCK_FOCUS_DRAIN * dt;
+      player.setFocus(player.focus - cost);
+      if (player.focus <= 0) {
+        playerCombat.block = false;
+        playerAnim.current.block = false;
+      }
+    } else if (wantBlock && !playerCombat.block) {
+      // start blocking (small initial cost to prevent spam: 1 Focus)
+      if (player.focus > 1) {
+        playerCombat.block = true;
+        playerAnim.current.block = true;
+        player.setFocus(player.focus - 1);
+      } else {
+        playerCombat.block = false;
+        playerAnim.current.block = false;
+      }
+    } else {
+      playerCombat.block = false;
+      playerAnim.current.block = false;
+    }
     if (!playerCombat.block) {
       // reuse locomotion: read held keys relative to camera handled by caller? No —
       // combatTick also reads input directly (camera-relative using camState.yaw)
@@ -203,10 +235,24 @@ export function combatTick(
   switch (st.state) {
     case 'spawn':
       if (st.t > 0.6) {
+        // BUG-8.3: enter idle first instead of immediately approaching.
+        // Gives the player a brief moment to read the encounter.
+        st.state = 'idle';
+        st.t = 0;
+      }
+      break;
+    case 'idle': {
+      // face player slowly; approach only when within perception radius
+      const targetFacing = Math.atan2(dx, dz);
+      const dFacing = angleDiff(targetFacing, st.facing);
+      st.facing += Math.sign(dFacing) * Math.min(Math.abs(dFacing), ENEMY_IDLE_TURN_RATE * dt);
+      enemyAnim.current.speed = 0;
+      if (dist < ENEMY_PERCEPTION) {
         st.state = 'approach';
         st.t = 0;
       }
       break;
+    }
     case 'approach': {
       const sp = enemy.speed;
       enemyPos.x += nx * sp * dt;
@@ -229,7 +275,12 @@ export function combatTick(
     case 'strike': {
       if (st.t < 0.12 && dist < 2.1) {
         if (playerCombat.invuln <= 0) {
-          const blocked = playerCombat.block && Math.abs(angleDiff(Math.atan2(-dx, -dz), player.facing)) < 1.4;
+          // BUG-8.2 fix: block cone angle. Player faces `player.facing` (radians
+          // where atan2(vx, vz) = direction of movement/looking). Enemy is at
+          // offset (dx, dz) from player. For player to block, player.facing
+          // must point toward enemy → angle = atan2(dx, dz). Previously used
+          // atan2(-dx, -dz) which is reversed (player facing AWAY from enemy).
+          const blocked = playerCombat.block && Math.abs(angleDiff(Math.atan2(dx, dz), player.facing)) < 1.4;
           const dmg = blocked ? Math.max(1, Math.round(enemy.dmg * 0.3)) : enemy.dmg;
           usePlayer.getState().damage(dmg);
           useCombat.getState().hitPlayer(dmg);
@@ -266,7 +317,9 @@ export function combatTick(
     case 'hurt':
     case 'stagger':
       if (st.t > 0.32) {
-        st.state = 'approach';
+        // BUG-8.3: if player ran away during stagger, return to idle to
+        // re-evaluate perception instead of auto-resuming chase.
+        st.state = dist < ENEMY_PERCEPTION ? 'approach' : 'idle';
         st.t = 0;
       }
       break;

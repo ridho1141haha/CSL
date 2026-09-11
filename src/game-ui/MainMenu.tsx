@@ -17,8 +17,8 @@ export function MainMenu({ onStart, onLoad }: { onStart: () => void; onLoad: () 
         const idx = btns.indexOf(document.activeElement as HTMLButtonElement);
         if (idx >= 0) {
           e.preventDefault();
-          const next = e.key === 'ArrowDown' ? (idx + 1) % btns.length : btns[(idx - 1 + btns.length) % btns.length];
-          next.focus();
+          const nextIdx = e.key === 'ArrowDown' ? (idx + 1) % btns.length : (idx - 1 + btns.length) % btns.length;
+          btns[nextIdx]?.focus();
         }
       }
       if (e.key === 'Enter' && document.activeElement?.tagName !== 'BUTTON') {

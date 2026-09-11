@@ -1,6 +1,10 @@
 // Input abstraction (GDD §68): held-key state + just-pressed action queue,
 // pointer lock and wheel. Gameplay systems read actions; UI keeps its own
 // keyboard shortcuts via window events.
+//
+// BUG-3.2 fix: separate `run` (held) from `dodge` (tap, edge-detected on
+// keyup within DODGE_TAP_WINDOW). Previously both fired on every Shift press,
+// making it impossible to run without also dodging.
 
 export type GameAction =
   | 'forward'
@@ -15,6 +19,7 @@ export type GameAction =
   | 'dodge'
   | 'interact';
 
+// Keys that map directly to held/pressed actions (no tap-vs-hold ambiguity).
 const KEY_TO_ACTIONS: Record<string, GameAction[]> = {
   KeyW: ['forward'],
   ArrowUp: ['forward'],
@@ -25,11 +30,13 @@ const KEY_TO_ACTIONS: Record<string, GameAction[]> = {
   KeyD: ['right'],
   ArrowRight: ['right'],
   Space: ['jump'],
-  ShiftLeft: ['run', 'dodge'],
-  ShiftRight: ['run', 'dodge'],
   KeyE: ['interact'],
   KeyQ: ['attack_heavy'],
 };
+
+// Keys eligible for tap detection. Shift = run when held, dodge when tapped.
+const TAP_KEYS = new Set(['ShiftLeft', 'ShiftRight']);
+const DODGE_TAP_WINDOW = 0.25; // seconds — release within this window = tap
 
 class Input {
   held = new Set<GameAction>();
@@ -41,8 +48,23 @@ class Input {
   attached = false;
   pointerLocked = false;
 
+  // tap detection state
+  private shiftDownAt = 0;
+  private shiftPendingDodge = false; // true when dodge action should fire on next endFrame
+
   private onKeyDown = (e: KeyboardEvent) => {
     if (['INPUT', 'TEXTAREA'].includes((e.target as HTMLElement)?.tagName)) return;
+
+    if (TAP_KEYS.has(e.code)) {
+      if (!this.held.has('run')) {
+        // first press: start running, record timestamp
+        this.shiftDownAt = performance.now() / 1000;
+      }
+      this.held.add('run');
+      if (e.code === 'Space' || e.code.startsWith('Arrow')) e.preventDefault();
+      return;
+    }
+
     const actions = KEY_TO_ACTIONS[e.code];
     if (actions) {
       for (const a of actions) {
@@ -54,9 +76,26 @@ class Input {
   };
 
   private onKeyUp = (e: KeyboardEvent) => {
+    if (TAP_KEYS.has(e.code)) {
+      // releasing Shift: if it was held briefly, treat as dodge tap
+      const heldFor = performance.now() / 1000 - this.shiftDownAt;
+      if (heldFor <= DODGE_TAP_WINDOW) {
+        this.shiftPendingDodge = true;
+        this.pressed.add('dodge');
+      }
+      // only release run if no other Shift is still down
+      const otherShift = e.code === 'ShiftLeft' ? 'ShiftRight' : 'ShiftLeft';
+      if (!this.heldKeys.has(otherShift)) {
+        this.held.delete('run');
+      }
+      return;
+    }
     const actions = KEY_TO_ACTIONS[e.code];
     if (actions) for (const a of actions) this.held.delete(a);
   };
+
+  // track raw key codes so we can detect modifier-key aliases correctly
+  private heldKeys = new Set<string>();
 
   private onMouseDown = (e: MouseEvent) => {
     if (e.button === 0 && !this.mouse.left) this.leftPressed = true;
@@ -78,6 +117,7 @@ class Input {
     this.pointerLocked = document.pointerLockElement != null;
     if (!this.pointerLocked) {
       this.held.clear();
+      this.heldKeys.clear();
       this.mouse.left = false;
       this.mouse.right = false;
     }
@@ -93,6 +133,9 @@ class Input {
     window.addEventListener('wheel', this.onWheel, { passive: true });
     window.addEventListener('contextmenu', (e) => e.preventDefault());
     document.addEventListener('pointerlockchange', this.onLockChange);
+    // also track raw keydown/keyup for tap-key aliasing
+    window.addEventListener('keydown', (e) => this.heldKeys.add(e.code));
+    window.addEventListener('keyup', (e) => this.heldKeys.delete(e.code));
   }
 
   detach() {
@@ -120,6 +163,7 @@ class Input {
     this.leftPressed = false;
     this.rightPressed = false;
     this.wheel = 0;
+    this.shiftPendingDodge = false;
   }
 
   consumeWheel() {

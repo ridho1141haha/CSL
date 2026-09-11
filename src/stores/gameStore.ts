@@ -20,6 +20,7 @@ type Store = {
   fade: 'none' | 'out' | 'in';
   error: string;
   interactTarget: string | null;
+  pointerLocked: boolean; // BUG-3.1: drives "click to control" overlay
 
   boot: () => void;
   setPhase: (p: Phase) => void;
@@ -35,6 +36,7 @@ type Store = {
   setFade: (f: 'none' | 'out' | 'in') => void;
   setError: (e: string) => void;
   setInteractTarget: (name: string | null) => void;
+  setPointerLocked: (v: boolean) => void;
   resetAll: () => void;
 };
 
@@ -50,6 +52,7 @@ export const useGame = create<Store>((set, get) => ({
   fade: 'none',
   error: '',
   interactTarget: null,
+  pointerLocked: false,
 
   boot: () => set({ phase: 'menu', mode: 'MAIN_MENU' }),
   setPhase: (phase) => set({ phase }),
@@ -67,6 +70,7 @@ export const useGame = create<Store>((set, get) => ({
   setFade: (fade) => set({ fade }),
   setError: (error) => set({ error }),
   setInteractTarget: (interactTarget) => set((s) => (s.interactTarget === interactTarget ? s : { interactTarget })),
+  setPointerLocked: (pointerLocked) => set({ pointerLocked }),
   resetAll: () =>
     set({
       phase: 'menu',
@@ -80,6 +84,7 @@ export const useGame = create<Store>((set, get) => ({
       fade: 'none',
       error: '',
       interactTarget: null,
+      pointerLocked: false,
     }),
 }));
 

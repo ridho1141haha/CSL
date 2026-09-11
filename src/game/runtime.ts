@@ -2,6 +2,9 @@
 // Player writes; camera/NPCs/combat read. Store updates are throttled.
 
 export const playerPos = { x: 7, y: 1, z: 29, vx: 0, vz: 0, speed: 0, grounded: true, facing: Math.PI };
+// BUG-3.5: `active` flag is now read by StoryDirector to skip NPC interaction
+// while combat is in progress (prevents "talk to NPC" prompt from flickering
+// during enemy encounters).
 export const enemyPos = { x: 0, y: 1, z: 0, active: false };
 
 // Occlusion registry: world meshes the camera should avoid clipping into.

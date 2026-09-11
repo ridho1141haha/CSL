@@ -61,7 +61,7 @@ export function Player() {
     if (mode === 'COMBAT') {
       const combat = useCombat.getState();
       if (combat.phase === 'fighting' && combat.enemy()) {
-        combatTick(dt, rb);
+        combatTick(dt, asBody(rb));
       } else {
         // combat resolving: freeze gently
         rb.setLinvel({ x: 0, y: lv.y, z: 0 }, true);
@@ -101,9 +101,12 @@ export function Player() {
     const nvx = THREE.MathUtils.lerp(lv.x, tx, k);
     const nvz = THREE.MathUtils.lerp(lv.z, tz, k);
 
-    // grounded check (ray down, exclude self)
+    // grounded check (ray down, exclude self) — BUG-3.4 fix: extended ray
+    // length from 1.05 to 1.3 so small bumps/steps don't false-airborne the
+    // player. Capsule center is at y≈0.75 (resting on ground at y=0); ray
+    // 1.3 reaches y=-0.55, covering any reasonable step height.
     const ray = new rapier.Ray({ x: t.x, y: t.y, z: t.z }, { x: 0, y: -1, z: 0 });
-    const hit = world.castRay(ray, 1.05, true, undefined, undefined, undefined, rb);
+    const hit = world.castRay(ray, 1.3, true, undefined, undefined, undefined, rb);
     const grounded = !!hit;
     playerPos.grounded = grounded;
 
@@ -167,7 +170,7 @@ export function Player() {
       ref={body}
       type="dynamic"
       colliders={false}
-      position={[spawnRef.current.x, 1.0, spawnRef.current.z]}
+      position={[spawnRef.current.x, 0.75, spawnRef.current.z]}
       lockRotations
       friction={0.1}
       restitution={0}

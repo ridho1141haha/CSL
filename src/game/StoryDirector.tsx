@@ -6,7 +6,7 @@ import { useQuests } from '../stores/questStore';
 import { useSocial } from '../stores/socialStore';
 import { useDialogue } from '../stores/dialogueStore';
 import { input } from './input';
-import { playerPos, npcPositions } from './runtime';
+import { playerPos, npcPositions, enemyPos } from './runtime';
 import { zoneAt } from '../data/world';
 import { NPC_BY_ID } from '../data/npcs';
 import { saveGame } from './save';
@@ -33,7 +33,8 @@ export function StoryDirector() {
     const dialogue = useDialogue.getState();
 
     // ---------- interaction (E) ----------
-    if (input.justPressed('interact') && game.mode === 'GAMEPLAY') {
+    // BUG-3.5: skip NPC interaction while combat encounter is active
+    if (input.justPressed('interact') && game.mode === 'GAMEPLAY' && !enemyPos.active) {
       let best: { id: string; d: number } | null = null;
       for (const [id, p] of Object.entries(npcPositions)) {
         const d = Math.hypot(playerPos.x - p.x, playerPos.z - p.z);
@@ -54,13 +55,15 @@ export function StoryDirector() {
     if (zoneTimer.current < 0.2) return;
     zoneTimer.current = 0;
 
-    // prompt: nearest NPC
+    // prompt: nearest NPC (BUG-3.5: hide prompt during combat)
     let near: string | null = null;
-    for (const [id, p] of Object.entries(npcPositions)) {
-      const d = Math.hypot(playerPos.x - p.x, playerPos.z - p.z);
-      if (d < 2.3) {
-        const def = NPC_BY_ID[id];
-        if (def) near = def.name;
+    if (!enemyPos.active) {
+      for (const [id, p] of Object.entries(npcPositions)) {
+        const d = Math.hypot(playerPos.x - p.x, playerPos.z - p.z);
+        if (d < 2.3) {
+          const def = NPC_BY_ID[id];
+          if (def) near = def.name;
+        }
       }
     }
     game.setInteractTarget(near);

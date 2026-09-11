@@ -46,6 +46,7 @@ export default function App() {
   const phase = useGame((s) => s.phase);
   const mode = useGame((s) => s.mode);
   const boot = useGame((s) => s.boot);
+  const pointerLocked = useGame((s) => s.pointerLocked);
 
   // boot sequence: show loading, unlock audio on first gesture, then menu
   useEffect(() => {
@@ -62,6 +63,16 @@ export default function App() {
       window.removeEventListener('keydown', unlock);
     };
   }, [boot]);
+
+  // BUG-3.1: mirror pointer lock state into gameStore so the "click to control"
+  // overlay can render when gameplay is active but pointer is not locked.
+  useEffect(() => {
+    const onLockChange = () => {
+      useGame.getState().setPointerLocked(document.pointerLockElement != null);
+    };
+    document.addEventListener('pointerlockchange', onLockChange);
+    return () => document.removeEventListener('pointerlockchange', onLockChange);
+  }, []);
 
   // UI keyboard shortcuts (mode-aware)
   useEffect(() => {
@@ -188,6 +199,7 @@ export default function App() {
       {phase === 'play' && (mode === 'CINEMATIC' || mode === 'DIALOGUE') && <DialogueUI cinematic={mode === 'CINEMATIC'} />}
 
       {phase === 'play' && mode === 'GAMEPLAY' && <Hud />}
+      {phase === 'play' && mode === 'GAMEPLAY' && !pointerLocked && <PointerLockHint />}
       {phase === 'play' && mode === 'COMBAT' && <CombatHud />}
       {phase === 'play' && mode === 'TRANSITION' && <ChapterTransition />}
       <Notifications />
@@ -223,6 +235,26 @@ export default function App() {
 
       {mode === 'GAME_OVER' && <GameOverScreen onRestart={restart} />}
       {mode === 'ENDING' && <EndingScreen onRestart={restart} onMenu={toMenu} />}
+    </div>
+  );
+}
+
+// BUG-3.1: pointer lock UX hint. Shows when gameplay is active but the pointer
+// is not locked. Clicking anywhere triggers pointer lock via the CameraRig
+// onClick handler.
+function PointerLockHint() {
+  return (
+    <div
+      className="pointer-lock-hint"
+      onClick={() => input.requestLock()}
+      role="button"
+      tabIndex={-1}
+    >
+      <div className="plh-inner">
+        <div className="plh-icon">🖱</div>
+        <strong>KLIK UNTUK MENGAKTIFKAN KONTROL</strong>
+        <span>WASD bergerak · mouse menggerakkan kamera · ESC untuk pause</span>
+      </div>
     </div>
   );
 }
