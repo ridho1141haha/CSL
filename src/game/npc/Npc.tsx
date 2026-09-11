@@ -39,7 +39,7 @@ function Student({ home, wander, color, seed }: { home: [number, number]; wander
   });
 
   return (
-    <group ref={group} position={[home[0], 0.75, home[1]]} scale={0.96}>
+    <group ref={group} position={[home[0], 0.03, home[1]]} scale={0.96}>
       <Figure anim={anim} color={color} accent="#e5e7eb" />
     </group>
   );
@@ -105,7 +105,7 @@ function ScheduledNpc({ id }: { id: string }) {
 
   const start = def.schedule.arrive ?? [0, 0];
   return (
-    <group ref={group} position={[start[0], 0.75, start[1]]} userData={{ npcId: id }}>
+    <group ref={group} position={[start[0], 0.03, start[1]]} userData={{ npcId: id }}>
       <Figure anim={anim} color={def.color} accent={def.accent} scale={def.height / 1.65} nameTag={def.name} tag={def.role} />
     </group>
   );
@@ -131,7 +131,7 @@ function StoryActor({ x, z, color, faceTo }: { id: string; x: number; z: number;
     if (faceTo) g.rotation.y = Math.atan2(faceTo[0] - g.position.x, faceTo[1] - g.position.z);
   });
   return (
-    <group ref={group} position={[x, 0.75, z]} scale={0.98}>
+    <group ref={group} position={[x, 0.03, z]} scale={0.98}>
       <Figure anim={anim} color={color} accent="#94a3b8" />
     </group>
   );

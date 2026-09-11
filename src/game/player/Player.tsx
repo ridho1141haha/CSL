@@ -206,13 +206,16 @@ export function Player() {
 }
 
 // The figure must face movement direction — handled via parent group updated in frame.
+// Figure geometry: legs bottom at y=-0.03 (relative to Figure root).
+// RigidBody capsule center is at y=0.75 (so capsule bottom touches ground y=0).
+// To make Figure's feet touch ground, offset Figure root by y=-0.75 relative to RigidBody.
 function PlayerFigure() {
   const group = useRef<THREE.Group>(null);
   useFrame(() => {
     if (group.current) group.current.rotation.y = playerPos.facing;
   });
   return (
-    <group ref={group}>
+    <group ref={group} position={[0, -0.75, 0]}>
       <Figure anim={playerAnim} color="#e2e8f0" accent="#38bdf8" nameTag={undefined} />
     </group>
   );

@@ -82,7 +82,8 @@ export function World() {
         <CuboidCollider args={[(maxX - gateR) / 2, 2, 0.5]} position={[(gateR + maxX) / 2, 2, maxZ]} />
       </RigidBody>
 
-      <Fence minX={minX} maxX={maxX} minZ={minZ} maxZ={maxZ} />
+      {/* Fence removed per user request — was blocking view. Invisible perimeter
+          colliders above still prevent player from walking out of bounds. */}
       <GateProps />
       <CanteenProps />
       <FieldProps />
