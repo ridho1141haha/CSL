@@ -30,10 +30,11 @@ export function CameraRig() {
   const lookAt = useRef(new THREE.Vector3(0, 1.5, 20));
   const targetDist = useRef(4.6);
 
-  // Camera control: pointer lock (primary) + drag-look (fallback).
-  // Pointer lock: when engaged, raw mouse movement drives yaw/pitch.
-  // Drag-look: when NOT locked, hold LMB to drag-look (cursor visible).
-  // The overlay hint prompts user to click; clicking engages pointer lock.
+  // Camera control: drag-look (primary) + pointer lock (optional enhancement).
+  // Primary: hold LMB and move mouse to orbit camera. Always works.
+  // Optional: click to request pointer lock (cursor hidden, direct mouse look).
+  // If pointer lock engages, raw movementX/Y drives camera. If it fails
+  // silently (some browsers reject it), drag-look still works.
   useEffect(() => {
     let dragging = false;
     let lastX = 0;
@@ -41,14 +42,14 @@ export function CameraRig() {
     const onMove = (e: MouseEvent) => {
       const game = useGame.getState();
       if (game.mode !== 'GAMEPLAY' && game.mode !== 'COMBAT' && game.mode !== 'PAUSE') return;
-      // Pointer-lock mode: direct mouse movement
+      // Pointer-lock mode: raw mouse movement (no button needed)
       if (document.pointerLockElement != null) {
         yaw.current -= e.movementX * 0.0026;
         pitch.current = THREE.MathUtils.clamp(pitch.current + e.movementY * 0.0018, 0.06, 0.85);
         return;
       }
-      // Drag-look fallback: camera orbit while left mouse button held
-      if (dragging && e.buttons & 1) {
+      // Drag-look: hold ANY mouse button and move to orbit
+      if (dragging && e.buttons > 0) {
         const dx = e.clientX - lastX;
         const dy = e.clientY - lastY;
         lastX = e.clientX;
@@ -61,11 +62,11 @@ export function CameraRig() {
       const game = useGame.getState();
       if (game.phase !== 'play') return;
       if (game.mode === 'GAMEPLAY' || game.mode === 'COMBAT') {
-        // Try pointer lock first
+        // Try pointer lock (optional — if it works, great; if not, drag-look covers it)
         if (document.pointerLockElement == null) {
           input.requestLock();
         }
-        // Enable drag-look immediately (works even if pointer lock fails)
+        // Always enable drag-look as fallback
         dragging = true;
         lastX = e.clientX;
         lastY = e.clientY;

@@ -43,7 +43,7 @@ export function Hud() {
         <strong>{activeQuest ? activeQuest.objective : 'Ikuti cerita'}</strong>
       </div>
       {interactTarget && <div className="interact">[E] <span>BICARA DENGAN {interactTarget.toUpperCase()}</span></div>}
-      <div className="controls">WASD MOVE · SHIFT RUN · SPACE JUMP · LMB ATTACK · Q HEAVY · RMB BLOCK · E INTERACT · ESC PAUSE</div>
+      <div className="controls">WASD MOVE · SHIFT RUN · SPACE JUMP · HOLD LMB + MOUSE = CAMERA · LMB ATTACK · Q HEAVY · RMB BLOCK · E INTERACT · ESC PAUSE</div>
     </div>
   );
 }

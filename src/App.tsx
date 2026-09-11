@@ -1,4 +1,4 @@
-import { Suspense, useCallback, useEffect, useMemo } from 'react';
+import { Suspense, useCallback, useEffect, useMemo, useState } from 'react';
 import { Canvas } from '@react-three/fiber';
 import { Environment } from '@react-three/drei';
 import { Physics } from '@react-three/rapier';
@@ -246,22 +246,33 @@ export default function App() {
 }
 
 // BUG-3.1: pointer lock UX hint. The overlay is pointer-events:none so it
-// NEVER blocks mouse events from reaching the CameraRig's window-level
-// listeners. Click anywhere to engage pointer lock (CameraRig handles it).
+// NEVER blocks mouse events. Auto-dismisses after 5 seconds so it doesn't
+// block the view permanently. Camera works via drag-look (hold LMB) or
+// pointer lock (click once).
 function PointerLockHint() {
+  const [dismissed, setDismissed] = useState(false);
   useEffect(() => {
-    // Auto-request pointer lock on first click after mount
-    const onClick = () => input.requestLock();
+    // Auto-request pointer lock on first click
+    const onClick = () => {
+      input.requestLock();
+      setDismissed(true);
+    };
+    // Auto-dismiss after 5 seconds regardless
+    const timer = setTimeout(() => setDismissed(true), 5000);
     window.addEventListener('click', onClick, { once: true });
-    return () => window.removeEventListener('click', onClick);
+    return () => {
+      window.removeEventListener('click', onClick);
+      clearTimeout(timer);
+    };
   }, []);
+  if (dismissed) return null;
   return (
     <div className="pointer-lock-hint">
       <div className="plh-inner">
         <div className="plh-icon">🖱</div>
-        <strong>KLIK MANA SAJA UNTUK KAMERA</strong>
-        <span>WASD bergerak · MOUSE lihat sekeliling · ESC pause</span>
-        <span className="plh-alt">atau tahan KLIK KIRI untuk drag-look</span>
+        <strong>TAHAN KLIK KIRI + GERAKKAN MOUSE</strong>
+        <span>untuk menggerakkan kamera</span>
+        <span className="plh-alt">WASD bergerak · SHIFT run · SPACE jump · ESC pause</span>
       </div>
     </div>
   );
