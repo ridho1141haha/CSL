@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { RigidBody, CuboidCollider } from '@react-three/rapier';
 import { WallMeshes, WallColliders, SchoolSign } from './props';
+import { Pbr } from './pbr';
 
 // Rooftop scene (Bab III — Momen Kunci). Local coordinates: the stair
 // bulkhead sits at the south edge (z ~8..11), Bimo's spot is at the north
@@ -29,12 +30,12 @@ function CityBelow() {
     <group>
       <mesh position={[0, -14, -6]} rotation={[-Math.PI / 2, 0, 0]}>
         <planeGeometry args={[400, 400]} />
-        <meshStandardMaterial color="#5c6a72" roughness={1} />
+        <Pbr name="asphalt" repeat={[40, 40]} color="#9aa5ad" roughness={1} envMapIntensity={0.2} />
       </mesh>
       {blocks.map((b, i) => (
         <mesh key={i} position={[b.x, -14 + b.h / 2, b.z]}>
           <boxGeometry args={[b.w, b.h, b.d]} />
-          <meshStandardMaterial color={b.c} roughness={0.9} />
+          <Pbr name="concrete" repeat={[3, 2]} color={b.c} roughness={0.9} envMapIntensity={0.25} />
         </mesh>
       ))}
     </group>
@@ -62,7 +63,7 @@ export function RooftopWorld() {
       </RigidBody>
       <mesh position={[0, 0, 0]} rotation={[-Math.PI / 2, 0, 0]} receiveShadow>
         <planeGeometry args={[W, D]} />
-        <meshStandardMaterial color={FLOOR} roughness={0.96} />
+        <Pbr name="concrete" repeat={[7, 6]} color="#ccc9c0" roughness={0.96} envMapIntensity={0.3} />
       </mesh>
       {/* painted guide lines (rooftop maintenance lane) */}
       <mesh position={[0, 0.01, 3]} rotation={[-Math.PI / 2, 0, 0]}>
@@ -104,14 +105,14 @@ export function RooftopWorld() {
         />
         <mesh position={[0, 2.85, 0]} castShadow>
           <boxGeometry args={[4.6, 0.25, 3.5]} />
-          <meshStandardMaterial color="#5c636b" roughness={0.9} />
+          <Pbr name="roof" repeat={[2, 1]} roughness={0.9} envMapIntensity={0.35} />
         </mesh>
         {/* open door into the stairwell */}
         <mesh position={[0, 1.1, 1.55]} rotation={[0, 0.4, 0]} castShadow>
           <boxGeometry args={[1.2, 2.2, 0.08]} />
           <meshStandardMaterial color="#3a5a7c" roughness={0.5} metalness={0.2} />
         </mesh>
-        <SchoolSign position={[0, 2.15, -1.68]} text="TANGGA" size={0.22} color="#5d6a76" />
+        <SchoolSign position={[0, 2.15, -1.68]} text="TANGGA" size={0.22} color="#5d6a76" rotY={Math.PI} />
       </group>
       {/* AC units */}
       {[
@@ -122,7 +123,7 @@ export function RooftopWorld() {
         <group key={i} position={[x, 0, z]} rotation={[0, i * 0.5, 0]}>
           <mesh position={[0, 0.6, 0]} castShadow receiveShadow>
             <boxGeometry args={[1.9, 1.2, 1.4]} />
-            <meshStandardMaterial color="#aeb4ba" roughness={0.6} metalness={0.35} />
+            <Pbr name="metal" repeat={[1, 1]} color="#ccd2d8" roughness={0.6} metalness={0.35} envMapIntensity={0.6} />
           </mesh>
           <mesh position={[0, 1.22, 0]} rotation={[-Math.PI / 2, 0, 0]}>
             <circleGeometry args={[0.5, 18]} />
@@ -149,7 +150,7 @@ export function RooftopWorld() {
         ))}
         <mesh position={[0, 2.45, 0]} castShadow>
           <cylinderGeometry args={[1.25, 1.25, 1.9, 18]} />
-          <meshStandardMaterial color="#5f7c96" roughness={0.65} metalness={0.25} />
+          <Pbr name="metal" repeat={[3, 1]} color="#7f9cb8" roughness={0.65} metalness={0.3} envMapIntensity={0.5} />
         </mesh>
         <mesh position={[0, 3.55, 0]}>
           <coneGeometry args={[1.3, 0.5, 18]} />
@@ -210,11 +211,11 @@ export function RooftopWorld() {
       {/* pallet stack + crate */}
       <mesh position={[11.5, 0.35, 0.5]} rotation={[0, 0.3, 0]} castShadow>
         <boxGeometry args={[1.4, 0.7, 1.2]} />
-        <meshStandardMaterial color="#8a6f4d" roughness={0.95} />
+        <Pbr name="wood" repeat={[1, 1]} color="#d9c3a3" roughness={0.95} envMapIntensity={0.25} />
       </mesh>
       <mesh position={[11.2, 0.15, 2.2]} rotation={[0, -0.2, 0]}>
         <boxGeometry args={[1.5, 0.3, 1.3]} />
-        <meshStandardMaterial color="#9a7d55" roughness={0.95} />
+        <Pbr name="wood" repeat={[1, 1]} color="#e0c8a8" roughness={0.95} envMapIntensity={0.25} />
       </mesh>
       {/* pipes along the east parapet */}
       <mesh position={[13.6, 0.35, -2]} rotation={[Math.PI / 2, 0, 0]}>

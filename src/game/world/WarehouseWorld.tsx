@@ -1,5 +1,6 @@
 import { RigidBody, CuboidCollider } from '@react-three/rapier';
 import { WallMeshes, WallColliders, SchoolSign } from './props';
+import { Pbr } from './pbr';
 
 // Warehouse interior scene (Bab IV — jalur bad). Local coordinates: player
 // enters from the south door (z ~12) and the duel happens in the open middle
@@ -23,7 +24,7 @@ function HangLamp({ x, z }: { x: number; z: number }) {
         <sphereGeometry args={[0.13, 10, 10]} />
         <meshStandardMaterial color="#ffe9b0" emissive="#ffd27a" emissiveIntensity={2.2} />
       </mesh>
-      <pointLight position={[0, 3.8, 0]} intensity={14} distance={13} decay={1.6} color="#ffcf8a" />
+      <pointLight position={[0, 3.8, 0]} intensity={22} distance={16} decay={1.6} color="#ffcf8a" />
     </group>
   );
 }
@@ -31,27 +32,15 @@ function HangLamp({ x, z }: { x: number; z: number }) {
 function ContainerStack({ x, z, rot = 0, c1, c2 }: { x: number; z: number; rot?: number; c1: string; c2: string }) {
   return (
     <group position={[x, 0, z]} rotation={[0, rot, 0]}>
+      {/* corrugated PBR carries the ribbing via its normal map */}
       <mesh position={[0, 1.3, 0]} castShadow receiveShadow>
         <boxGeometry args={[6.1, 2.6, 2.45]} />
-        <meshStandardMaterial color={c1} roughness={0.8} metalness={0.3} />
+        <Pbr name="corrugated" repeat={[4, 1]} color={c1} roughness={0.78} metalness={0.3} envMapIntensity={0.5} />
       </mesh>
-      {/* corrugation stripes */}
-      {[-2.4, -1.6, -0.8, 0, 0.8, 1.6, 2.4].map((ox, i) => (
-        <mesh key={i} position={[ox, 1.3, 1.24]}>
-          <boxGeometry args={[0.12, 2.4, 0.03]} />
-          <meshStandardMaterial color="#00000033" roughness={0.9} transparent opacity={0.35} />
-        </mesh>
-      ))}
       <mesh position={[0.15, 3.9, 0]} castShadow receiveShadow>
         <boxGeometry args={[6.1, 2.6, 2.45]} />
-        <meshStandardMaterial color={c2} roughness={0.85} metalness={0.25} />
+        <Pbr name="corrugated" repeat={[4, 1]} color={c2} roughness={0.85} metalness={0.25} envMapIntensity={0.45} />
       </mesh>
-      {[-2.4, -1.2, 0, 1.2, 2.4].map((ox, i) => (
-        <mesh key={`u${i}`} position={[ox, 3.9, 1.24]}>
-          <boxGeometry args={[0.12, 2.4, 0.03]} />
-          <meshStandardMaterial color="#00000033" roughness={0.9} transparent opacity={0.35} />
-        </mesh>
-      ))}
     </group>
   );
 }
@@ -79,7 +68,7 @@ export function WarehouseWorld() {
       </RigidBody>
       <mesh position={[0, 0, 0]} rotation={[-Math.PI / 2, 0, 0]} receiveShadow>
         <planeGeometry args={[W, D]} />
-        <meshStandardMaterial color={FLOOR} roughness={0.97} />
+        <Pbr name="concrete" repeat={[8, 6]} color="#8b8e94" roughness={0.97} envMapIntensity={0.25} />
       </mesh>
       {/* oil stains */}
       {[
@@ -93,16 +82,16 @@ export function WarehouseWorld() {
         </mesh>
       ))}
       {/* walls */}
-      <WallMeshes segs={walls} />
+      <WallMeshes segs={walls} pbr="corrugated" color="#8d99a5" rough={0.85} />
       <WallColliders segs={walls} defaultH={H} />
       {/* roof with skylight strips */}
       <mesh position={[-8, H + 0.14, 0]} receiveShadow>
         <boxGeometry args={[W - 9, 0.28, D - 1]} />
-        <meshStandardMaterial color="#4b5259" roughness={0.95} />
+        <Pbr name="corrugated" repeat={[6, 1]} color="#6e7880" roughness={0.95} envMapIntensity={0.2} />
       </mesh>
       <mesh position={[8, H + 0.14, 0]} receiveShadow>
         <boxGeometry args={[W - 9, 0.28, D - 1]} />
-        <meshStandardMaterial color="#4b5259" roughness={0.95} />
+        <Pbr name="corrugated" repeat={[6, 1]} color="#6e7880" roughness={0.95} envMapIntensity={0.2} />
       </mesh>
       {[-6, 0, 6].map((z, i) => (
         <mesh key={i} position={[0, H + 0.05, z]} rotation={[-Math.PI / 2, 0, 0]}>
@@ -117,7 +106,7 @@ export function WarehouseWorld() {
         <boxGeometry args={[1.5, 2.7, 0.1]} />
         <meshStandardMaterial color="#4a545e" roughness={0.55} metalness={0.45} />
       </mesh>
-      <SchoolSign position={[0, 3, 11.7]} text="KELUAR" size={0.24} color="#9fc06a" />
+      <SchoolSign position={[0, 3, 11.7]} text="KELUAR" size={0.24} color="#9fc06a" rotY={Math.PI} />
       {/* container stacks framing the arena */}
       <ContainerStack x={-8.5} z={-5.5} rot={0.12} c1="#7f3b2a" c2="#4c6a52" />
       <ContainerStack x={8.5} z={-5.5} rot={-0.1} c1="#31547a" c2="#7f3b2a" />
@@ -134,7 +123,7 @@ export function WarehouseWorld() {
       ].map(([x, z, r], i) => (
         <mesh key={i} position={[x, 0.55, z]} rotation={[0, r, 0]} castShadow>
           <boxGeometry args={[1.15, 1.1, 1.15]} />
-          <meshStandardMaterial color={i % 2 ? '#8a6f4d' : '#7c6444'} roughness={0.95} />
+          <Pbr name="wood" repeat={[1, 1]} color={i % 2 ? '#d9c3a3' : '#c8b190'} roughness={0.95} envMapIntensity={0.3} />
         </mesh>
       ))}
       {/* shelving racks along the west wall */}
@@ -153,7 +142,7 @@ export function WarehouseWorld() {
           {[[-0.3, 1.6], [0.35, 2.3]].map(([oy, oz], j) => (
             <mesh key={`b${j}`} position={[0, oy, oz]} castShadow>
               <boxGeometry args={[1.1, 0.5, 0.7]} />
-              <meshStandardMaterial color={j ? '#8a6f4d' : '#5a6a52'} roughness={0.9} />
+              <Pbr name={j ? 'wood' : 'metal'} repeat={[1, 1]} color={j ? '#d9c3a3' : '#7e8f80'} roughness={0.9} metalness={j ? 0 : 0.3} envMapIntensity={0.3} />
             </mesh>
           ))}
         </group>
@@ -198,7 +187,7 @@ export function WarehouseWorld() {
       ].map(([x, z, r], i) => (
         <mesh key={i} position={[x, 0.16, z]} rotation={[0, r, 0]}>
           <boxGeometry args={[1.5, 0.32, 1.3]} />
-          <meshStandardMaterial color="#9a7d55" roughness={0.95} />
+          <Pbr name="wood" repeat={[1, 1]} color="#e0c8a8" roughness={0.95} envMapIntensity={0.3} />
         </mesh>
       ))}
       {/* catwalk along the east wall */}

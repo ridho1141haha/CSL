@@ -98,6 +98,17 @@ export function CameraRig() {
     camState.yaw = yaw.current;
     const reduced = settings.reducedMotion;
 
+    // LOADED-GAME hardening: CONTINUE restores a mid-game save straight into
+    // GAMEPLAY/COMBAT. fp.current is only cleared by the opening's FP→TP
+    // transition, so without this guard the camera would lerp to the campus
+    // fp_gate pose even in the rooftop/warehouse scenes — a black screen
+    // staring at the inside of a wall. If the opening is already complete,
+    // skip straight to third-person orbit.
+    if (fp.current && story.flags.includes('opening_complete') && (game.mode === 'GAMEPLAY' || game.mode === 'COMBAT')) {
+      fp.current = false;
+      transitionT.current = -1;
+    }
+
     // ---------- cinematic / first-person ----------
     if (game.mode === 'CINEMATIC' || fp.current) {
       const node = dialogue.nodeId;

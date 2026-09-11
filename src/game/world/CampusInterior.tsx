@@ -1,5 +1,6 @@
 import { RigidBody, CuboidCollider } from '@react-three/rapier';
 import { SchoolSign } from './props';
+import { Pbr } from './pbr';
 
 // Interiors of the main building (hall, corridor, classroom, teacher room)
 // and the canteen. Floors/ceilings/light fixtures are visual; furniture gets
@@ -10,7 +11,7 @@ function Desk({ x, z, rot = 0 }: { x: number; z: number; rot?: number }) {
     <group position={[x, 0, z]} rotation={[0, rot, 0]}>
       <mesh position={[0, 0.72, 0]} castShadow>
         <boxGeometry args={[0.72, 0.05, 0.55]} />
-        <meshStandardMaterial color="#b98a5a" roughness={0.7} />
+        <Pbr name="wood" repeat={[1, 1]} color="#e6bd92" roughness={0.7} envMapIntensity={0.35} />
       </mesh>
       <mesh position={[0, 0.36, 0]}>
         <boxGeometry args={[0.6, 0.62, 0.42]} />
@@ -29,11 +30,11 @@ function Chair({ x, z, rot = 0 }: { x: number; z: number; rot?: number }) {
     <group position={[x, 0, z]} rotation={[0, rot, 0]}>
       <mesh position={[0, 0.44, 0]} castShadow>
         <boxGeometry args={[0.42, 0.05, 0.42]} />
-        <meshStandardMaterial color="#a4713f" roughness={0.75} />
+        <Pbr name="wood" repeat={[1, 1]} color="#e0aa75" roughness={0.75} envMapIntensity={0.35} />
       </mesh>
       <mesh position={[0, 0.72, -0.19]}>
         <boxGeometry args={[0.42, 0.5, 0.05]} />
-        <meshStandardMaterial color="#a4713f" roughness={0.75} />
+        <Pbr name="wood" repeat={[1, 1]} color="#e0aa75" roughness={0.75} envMapIntensity={0.35} />
       </mesh>
       {[
         [-0.17, -0.17],
@@ -71,7 +72,7 @@ function Classroom() {
       {/* floor + ceiling */}
       <mesh position={[-9, 0.03, 9]} rotation={[-Math.PI / 2, 0, 0]} receiveShadow>
         <planeGeometry args={[13.8, 9.8]} />
-        <meshStandardMaterial color="#cfc4a8" roughness={0.85} />
+        <Pbr name="tile" repeat={[5, 4]} color="#ded4bc" roughness={0.6} envMapIntensity={0.4} />
       </mesh>
       <mesh position={[-9, 3.26, 9]} rotation={[Math.PI / 2, 0, 0]}>
         <planeGeometry args={[13.8, 9.8]} />
@@ -120,7 +121,7 @@ function TeacherRoom() {
     <group>
       <mesh position={[9, 0.03, 9]} rotation={[-Math.PI / 2, 0, 0]} receiveShadow>
         <planeGeometry args={[13.8, 9.8]} />
-        <meshStandardMaterial color="#c9c2b2" roughness={0.85} />
+        <Pbr name="wood" repeat={[6, 4]} color="#d8cbb4" roughness={0.8} envMapIntensity={0.35} />
       </mesh>
       <mesh position={[9, 3.26, 9]} rotation={[Math.PI / 2, 0, 0]}>
         <planeGeometry args={[13.8, 9.8]} />
@@ -131,7 +132,7 @@ function TeacherRoom() {
       {/* meeting table + chairs */}
       <mesh position={[9, 0.74, 9]} castShadow>
         <boxGeometry args={[3.4, 0.06, 1.4]} />
-        <meshStandardMaterial color="#a4713f" roughness={0.7} />
+        <Pbr name="wood" repeat={[3, 1]} color="#e0aa75" roughness={0.7} envMapIntensity={0.35} />
       </mesh>
       <mesh position={[9, 0.38, 9]}>
         <boxGeometry args={[3, 0.7, 1]} />
@@ -169,11 +170,11 @@ function HallAndCorridor() {
       {/* floors */}
       <mesh position={[0, 0.03, 24.5]} rotation={[-Math.PI / 2, 0, 0]} receiveShadow>
         <planeGeometry args={[31.8, 6.8]} />
-        <meshStandardMaterial color="#d6cfc0" roughness={0.8} />
+        <Pbr name="terrazzo" repeat={[8, 2]} envMapIntensity={0.45} />
       </mesh>
       <mesh position={[0, 0.03, 17.5]} rotation={[-Math.PI / 2, 0, 0]} receiveShadow>
         <planeGeometry args={[31.8, 6.9]} />
-        <meshStandardMaterial color="#cbc4b5" roughness={0.85} />
+        <Pbr name="terrazzo" repeat={[8, 2]} color="#d8d2c4" envMapIntensity={0.45} />
       </mesh>
       {/* ceilings */}
       <mesh position={[0, 3.26, 24.5]} rotation={[Math.PI / 2, 0, 0]}>
@@ -216,11 +217,11 @@ function HallAndCorridor() {
       {/* benches */}
       <mesh position={[-5, 0.45, 26.6]} castShadow>
         <boxGeometry args={[2.6, 0.06, 0.5]} />
-        <meshStandardMaterial color="#8a6f4d" roughness={0.8} />
+        <Pbr name="wood" repeat={[2, 1]} roughness={0.8} envMapIntensity={0.35} />
       </mesh>
       <mesh position={[5, 0.45, 26.6]} castShadow>
         <boxGeometry args={[2.6, 0.06, 0.5]} />
-        <meshStandardMaterial color="#8a6f4d" roughness={0.8} />
+        <Pbr name="wood" repeat={[2, 1]} roughness={0.8} envMapIntensity={0.35} />
       </mesh>
       {/* plants */}
       {[[-14.6, 26.8], [14.6, 26.8]].map(([x, z], i) => (
@@ -257,7 +258,7 @@ function CanteenInterior() {
     <group>
       <mesh position={[28, 0.03, 8]} rotation={[-Math.PI / 2, 0, 0]} receiveShadow>
         <planeGeometry args={[11.8, 11.8]} />
-        <meshStandardMaterial color="#d9d2c2" roughness={0.8} />
+        <Pbr name="tile" repeat={[5, 5]} color="#e2dccd" roughness={0.65} envMapIntensity={0.4} />
       </mesh>
       <mesh position={[28, 3.06, 8]} rotation={[Math.PI / 2, 0, 0]}>
         <planeGeometry args={[11.8, 11.8]} />

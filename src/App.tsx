@@ -1,7 +1,6 @@
-import { Suspense, useCallback, useEffect, useMemo, useState } from 'react';
+import { Component, Suspense, useCallback, useEffect, useMemo, useState, type ReactNode } from 'react';
 import { Canvas } from '@react-three/fiber';
-import { Environment } from '@react-three/drei';
-import { Physics } from '@react-three/rapier';
+import { Physics, RigidBody } from '@react-three/rapier';
 import * as THREE from 'three';
 import { useGame } from './stores/gameStore';
 import { useStory } from './stores/storyStore';
@@ -187,7 +186,14 @@ export default function App() {
         <Physics gravity={[0, -9.81, 0]} timeStep="vary">
           {phase === 'play' && (
             <>
-              <World />
+              {/* If anything inside the world throws (asset hiccup, driver
+                  quirk), fall back to a walkable flat plane instead of a
+                  blank canvas — the show must go on. */}
+              <SceneErrorBoundary>
+                <Suspense fallback={null}>
+                  <World />
+                </Suspense>
+              </SceneErrorBoundary>
               <Player />
               {scene === 'campus' && <Npcs hideMain={mode === 'CINEMATIC'} />}
               <StoryDirector />
@@ -329,6 +335,37 @@ function CinematicActors() {
   }, [nodeId]);
 
   return <StoryActors placements={placements} />;
+}
+
+// Emergency fallback world: if the scene tree crashes, keep lights + a walkable
+// floor so the player is never stuck in a void. Physics floor keeps colliders.
+class SceneErrorBoundary extends Component<{ children: ReactNode }, { failed: boolean }> {
+  state = { failed: false };
+  static getDerivedStateFromError() {
+    return { failed: true };
+  }
+  componentDidCatch(err: unknown) {
+    // eslint-disable-next-line no-console
+    console.error('[CSL] world scene error — using fallback plane:', err);
+  }
+  render() {
+    if (!this.state.failed) return this.props.children;
+    return (
+      <>
+        <mesh rotation={[-Math.PI / 2, 0, 0]} receiveShadow>
+          <planeGeometry args={[300, 300]} />
+          <meshStandardMaterial color="#8d9298" roughness={0.9} />
+        </mesh>
+        {/* attaches to the outer <Physics> world — never nest Physics */}
+        <RigidBody type="fixed" colliders="cuboid">
+          <mesh position={[0, -0.5, 0]} visible={false}>
+            <boxGeometry args={[300, 1, 300]} />
+            <meshStandardMaterial />
+          </mesh>
+        </RigidBody>
+      </>
+    );
+  }
 }
 
 // Dark overlay shown while a scene transition (requestScene) is in flight.

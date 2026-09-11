@@ -3,6 +3,7 @@ import * as THREE from 'three';
 import { RigidBody, CuboidCollider } from '@react-three/rapier';
 import { registerOccluders } from '../runtime';
 import { WallMeshes, WallColliders, Blockers, Tree, LampPost, Bench, Planter, SchoolSign, type Seg } from './props';
+import { Pbr } from './pbr';
 import { CampusInterior } from './CampusInterior';
 
 // SMA Yuson campus — rebuilt from scratch (no school GLB). Grounds, main
@@ -71,13 +72,13 @@ const STAIR_SHAFT: Seg[] = [
 ];
 
 const WAREHOUSE_WALLS: Seg[] = [
-  { x: -26, z: -32.5, w: 0.4, d: 7, h: 5.5, color: '#75808a' },
-  { x: -26, z: -21.5, w: 0.4, d: 7, h: 5.5, color: '#75808a' },
-  { x: -36, z: -36, w: 20.4, d: 0.4, h: 5.5, color: '#6f7a84' },
-  { x: -36, z: -18, w: 20.4, d: 0.4, h: 5.5, color: '#6f7a84' },
-  { x: -46, z: -27, w: 0.4, d: 18.4, h: 5.5, color: '#6f7a84' },
+  { x: -26, z: -32.5, w: 0.4, d: 7, h: 5.5, color: '#9aa4ae', pbr: 'corrugated' },
+  { x: -26, z: -21.5, w: 0.4, d: 7, h: 5.5, color: '#9aa4ae', pbr: 'corrugated' },
+  { x: -36, z: -36, w: 20.4, d: 0.4, h: 5.5, color: '#8f99a3', pbr: 'corrugated' },
+  { x: -36, z: -18, w: 20.4, d: 0.4, h: 5.5, color: '#8f99a3', pbr: 'corrugated' },
+  { x: -46, z: -27, w: 0.4, d: 18.4, h: 5.5, color: '#8f99a3', pbr: 'corrugated' },
   // dark interior blocker behind the doorway (door "closed")
-  { x: -27.3, z: -27, w: 1.8, d: 3.6, h: 4.2, color: '#0b0d10', rough: 1 },
+  { x: -27.3, z: -27, w: 1.8, d: 3.6, h: 4.2, color: '#0b0d10', rough: 1, pbr: 'none' },
 ];
 
 // ---------------------------------------------------------------------------
@@ -91,75 +92,75 @@ function Ground() {
       </RigidBody>
       <mesh position={[0, 0, 8]} rotation={[-Math.PI / 2, 0, 0]} receiveShadow>
         <planeGeometry args={[130, 130]} />
-        <meshStandardMaterial color={GRASS} roughness={1} />
+        <Pbr name="grass" repeat={[26, 26]} roughness={1} envMapIntensity={0.35} />
       </mesh>
       {/* street + sidewalk (south edge) */}
       <mesh position={[0, 0.012, 50.5]} rotation={[-Math.PI / 2, 0, 0]} receiveShadow>
         <planeGeometry args={[120, 8.5]} />
-        <meshStandardMaterial color={ROAD} roughness={0.95} />
+        <Pbr name="asphalt" repeat={[24, 2]} roughness={0.95} envMapIntensity={0.3} />
       </mesh>
       <mesh position={[0, 0.02, 45.4]} rotation={[-Math.PI / 2, 0, 0]} receiveShadow>
         <planeGeometry args={[120, 1.6]} />
-        <meshStandardMaterial color="#b9bcbe" roughness={0.9} />
+        <Pbr name="concrete" repeat={[30, 1]} roughness={0.9} />
       </mesh>
       {/* zebra crossing */}
       {[-2.4, -1.2, 0, 1.2, 2.4].map((dx, i) => (
         <mesh key={i} position={[7 + dx, 0.02, 47.9]} rotation={[-Math.PI / 2, 0, 0]}>
           <planeGeometry args={[0.7, 2.6]} />
-          <meshStandardMaterial color="#e6e8ea" roughness={0.85} />
+          <meshStandardMaterial color="#d8dadd" roughness={0.8} />
         </mesh>
       ))}
       {/* courtyard plaza + entry path */}
       <mesh position={[7, 0.015, 36]} rotation={[-Math.PI / 2, 0, 0]} receiveShadow>
         <planeGeometry args={[34, 16]} />
-        <meshStandardMaterial color={PAVE} roughness={0.92} />
+        <Pbr name="pavers" repeat={[10, 5]} roughness={0.92} envMapIntensity={0.35} />
       </mesh>
       <mesh position={[7, 0.02, 36]} rotation={[-Math.PI / 2, 0, 0]} receiveShadow>
         <planeGeometry args={[6.5, 15.8]} />
-        <meshStandardMaterial color={PAVE_D} roughness={0.94} />
+        <Pbr name="pavers" repeat={[2, 5]} color="#b0b2b4" roughness={0.94} />
       </mesh>
       {/* entrance steps landing */}
       <mesh position={[0, 0.05, 29.4]} rotation={[-Math.PI / 2, 0, 0]} receiveShadow>
         <planeGeometry args={[7, 2.6]} />
-        <meshStandardMaterial color={PAVE_D} roughness={0.9} />
+        <Pbr name="concrete" repeat={[2, 1]} color="#9fa2a5" roughness={0.9} />
       </mesh>
       {/* parking */}
       <mesh position={[34, 0.014, 34]} rotation={[-Math.PI / 2, 0, 0]} receiveShadow>
         <planeGeometry args={[16, 16]} />
-        <meshStandardMaterial color={ROAD} roughness={0.95} />
+        <Pbr name="asphalt" repeat={[5, 5]} roughness={0.95} envMapIntensity={0.3} />
       </mesh>
       {/* field */}
       <mesh position={[-33, 0.013, 15]} rotation={[-Math.PI / 2, 0, 0]} receiveShadow>
         <planeGeometry args={[26, 30]} />
-        <meshStandardMaterial color={GRASS_D} roughness={1} />
+        <Pbr name="grass" repeat={[7, 8]} color="#cdd8c9" roughness={1} envMapIntensity={0.35} />
       </mesh>
       <mesh position={[-33, 0.02, 15]} rotation={[-Math.PI / 2, 0, 0]}>
         <ringGeometry args={[8, 10.4, 48]} />
-        <meshStandardMaterial color="#a3703f" roughness={1} />
+        <Pbr name="dirt" repeat={[6, 1]} roughness={1} envMapIntensity={0.25} />
       </mesh>
       {/* back alley */}
       <mesh position={[6, 0.012, -21]} rotation={[-Math.PI / 2, 0, 0]} receiveShadow>
         <planeGeometry args={[24, 18]} />
-        <meshStandardMaterial color="#373b41" roughness={1} />
+        <Pbr name="asphalt" repeat={[6, 5]} color="#8b929c" roughness={1} envMapIntensity={0.25} />
       </mesh>
       <mesh position={[6, 0.018, -20]} rotation={[-Math.PI / 2, 0, 0]}>
         <planeGeometry args={[3.4, 1.6]} />
-        <meshStandardMaterial color="#2b2e33" roughness={0.4} metalness={0.1} />
+        <meshStandardMaterial color="#2b2e33" roughness={0.35} metalness={0.2} envMapIntensity={0.8} />
       </mesh>
       {/* rear yard path */}
       <mesh position={[0, 0.014, -2]} rotation={[-Math.PI / 2, 0, 0]} receiveShadow>
         <planeGeometry args={[22, 11]} />
-        <meshStandardMaterial color="#98938a" roughness={0.95} />
+        <Pbr name="concrete" repeat={[6, 3]} color="#b4afa6" roughness={0.95} />
       </mesh>
       {/* warehouse yard */}
       <mesh position={[-36, 0.014, -26]} rotation={[-Math.PI / 2, 0, 0]} receiveShadow>
         <planeGeometry args={[23, 21]} />
-        <meshStandardMaterial color="#7d7f80" roughness={1} />
+        <Pbr name="concrete" repeat={[6, 6]} color="#a2a4a5" roughness={1} envMapIntensity={0.25} />
       </mesh>
       {/* canteen front slab */}
       <mesh position={[20, 0.016, 8]} rotation={[-Math.PI / 2, 0, 0]} receiveShadow>
         <planeGeometry args={[5, 9]} />
-        <meshStandardMaterial color={PAVE_D} roughness={0.94} />
+        <Pbr name="pavers" repeat={[2, 3]} roughness={0.94} />
       </mesh>
     </group>
   );
@@ -188,11 +189,11 @@ function FenceGate() {
         <group key={i} position={[x, 0, 46]}>
           <mesh position={[0, 1.6, 0]} castShadow>
             <boxGeometry args={[0.7, 3.2, 0.7]} />
-            <meshStandardMaterial color="#8f959c" roughness={0.7} />
+            <Pbr name="concrete" repeat={[1, 4]} color="#b6babe" roughness={0.75} />
           </mesh>
           <mesh position={[0, 3.35, 0]}>
             <boxGeometry args={[0.95, 0.25, 0.95]} />
-            <meshStandardMaterial color="#6f757c" roughness={0.7} />
+            <Pbr name="metal" repeat={[1, 1]} color="#9aa0a6" roughness={0.6} metalness={0.5} />
           </mesh>
         </group>
       ))}
@@ -243,11 +244,11 @@ function MainBuilding() {
       ))}
       <mesh position={[0, 6.75, 16]} receiveShadow castShadow>
         <boxGeometry args={[33.2, 0.35, 25.6]} />
-        <meshStandardMaterial color={ROOF_GREY} roughness={0.9} />
+        <Pbr name="roof" repeat={[10, 8]} roughness={0.9} envMapIntensity={0.35} />
       </mesh>
       <mesh position={[0, 6.95, 16]}>
         <boxGeometry args={[33.4, 0.12, 25.8]} />
-        <meshStandardMaterial color="#4a5057" roughness={0.95} />
+        <Pbr name="roof" repeat={[10, 8]} color="#9aa2ab" roughness={0.95} envMapIntensity={0.3} />
       </mesh>
       {/* ground-floor windows (south facade) */}
       {[-12, -7, 7, 12].map((x, i) => (
@@ -278,11 +279,11 @@ function MainBuilding() {
       {/* entrance: steps, door frame, canopy, sign */}
       <mesh position={[0, 0.09, 28.9]} receiveShadow>
         <boxGeometry args={[4.4, 0.18, 1.8]} />
-        <meshStandardMaterial color={PAVE_D} roughness={0.85} />
+        <Pbr name="concrete" repeat={[2, 1]} roughness={0.85} />
       </mesh>
       <mesh position={[0, 0.2, 29.6]} receiveShadow>
         <boxGeometry args={[4.4, 0.2, 0.7]} />
-        <meshStandardMaterial color={PAVE_D} roughness={0.85} />
+        <Pbr name="concrete" repeat={[2, 1]} roughness={0.85} />
       </mesh>
       <group position={[0, 0, 28]}>
         {[-1.9, 1.9].map((x, i) => (
@@ -317,19 +318,19 @@ function StairShaft() {
       <WallColliders segs={STAIR_SHAFT} defaultH={6.6} />
       <mesh position={[0, 6.75, 1]} castShadow>
         <boxGeometry args={[8.6, 0.3, 6.9]} />
-        <meshStandardMaterial color={ROOF_GREY} roughness={0.9} />
+        <Pbr name="roof" repeat={[3, 2]} roughness={0.9} envMapIntensity={0.35} />
       </mesh>
       {/* steps (visual + walkable) */}
       {steps.map((s, i) => (
         <mesh key={i} position={[0, s.y + 0.17, s.z]} castShadow receiveShadow>
           <boxGeometry args={[6.2, 0.34, 0.62]} />
-          <meshStandardMaterial color="#c3baa6" roughness={0.9} />
+          <Pbr name="concrete" repeat={[3, 1]} color="#d4ccbb" roughness={0.9} />
         </mesh>
       ))}
       {/* landing platform below roof access door */}
       <mesh position={[0, 3.4, 3.4]} castShadow receiveShadow>
         <boxGeometry args={[6.2, 0.3, 1.6]} />
-        <meshStandardMaterial color="#c3baa6" roughness={0.9} />
+        <Pbr name="concrete" repeat={[3, 1]} color="#d4ccbb" roughness={0.9} />
       </mesh>
       {/* rooftop access door on upper landing (decor) */}
       <mesh position={[0, 4.7, 3.95]}>
@@ -359,7 +360,7 @@ function Canteen() {
       <WallColliders segs={CANTEEN_WALLS} defaultH={3.1} />
       <mesh position={[28, 3.25, 8]} castShadow>
         <boxGeometry args={[13, 0.3, 13]} />
-        <meshStandardMaterial color="#a0522d" roughness={0.85} />
+        <Pbr name="corrugated" repeat={[5, 1]} color="#c98f6d" roughness={0.85} envMapIntensity={0.3} />
       </mesh>
       {/* windows */}
       {[5, 11].map((z, i) => (
@@ -450,7 +451,7 @@ function FieldProps() {
         {[0, 1, 2].map((i) => (
           <mesh key={i} position={[i * 0.9, 0.3 + i * 0.42, 0]} castShadow receiveShadow>
             <boxGeometry args={[0.9, 0.18 + i * 0.42, 10]} />
-            <meshStandardMaterial color={i % 2 ? '#8d9299' : '#a3a8ae'} roughness={0.85} />
+            <Pbr name="concrete" repeat={[1, 3]} color={i % 2 ? '#b9bec5' : '#ccd1d7'} roughness={0.85} />
           </mesh>
         ))}
       </group>
@@ -490,12 +491,12 @@ function Alley() {
       {[[14.5, -25, 0.4], [15.2, -24.2, -0.2], [14.6, -23.4, 0.1]].map(([x, z, r], i) => (
         <mesh key={i} position={[x, 0.55, z]} rotation={[0, r, 0]} castShadow>
           <boxGeometry args={[1.1, 1.1, 1.1]} />
-          <meshStandardMaterial color="#8a6f4d" roughness={0.95} />
+          <Pbr name="wood" repeat={[1, 1]} color="#d9c3a3" roughness={0.95} envMapIntensity={0.25} />
         </mesh>
       ))}
       <mesh position={[-3, 0.3, -14]} rotation={[0, 0.5, 0]} castShadow>
         <boxGeometry args={[1.6, 0.5, 1.4]} />
-        <meshStandardMaterial color="#9a7d55" roughness={0.95} />
+        <Pbr name="wood" repeat={[1, 1]} color="#e0c8a8" roughness={0.95} envMapIntensity={0.25} />
       </mesh>
       <LampPost x={12.5} z={-15.5} h={3.6} />
     </group>
@@ -535,16 +536,16 @@ function RearYard() {
       <group position={[19.5, 0, -3]}>
         <mesh position={[0, 1.15, -1.4]} castShadow>
           <boxGeometry args={[4.6, 2.3, 0.15]} />
-          <meshStandardMaterial color="#757c83" roughness={0.75} />
+          <Pbr name="corrugated" repeat={[3, 1]} color="#aeb6bd" roughness={0.75} metalness={0.3} />
         </mesh>
         <mesh position={[0, 2.4, 0]} castShadow>
           <boxGeometry args={[5, 0.14, 3]} />
-          <meshStandardMaterial color="#4f565d" roughness={0.8} />
+          <Pbr name="corrugated" repeat={[3, 1]} color="#8a9299" roughness={0.8} metalness={0.3} envMapIntensity={0.35} />
         </mesh>
         {[-2.3, 2.3].map((x, i) => (
           <mesh key={i} position={[x, 1.15, 0]}>
             <boxGeometry args={[0.14, 2.3, 2.8]} />
-            <meshStandardMaterial color="#6a7178" roughness={0.75} />
+            <Pbr name="metal" repeat={[1, 2]} color="#9aa2a9" roughness={0.75} metalness={0.3} />
           </mesh>
         ))}
         {[[-1.2], [0.4]].map(([x], i) => (
@@ -565,7 +566,7 @@ function WarehouseExt() {
       <WallColliders segs={WAREHOUSE_WALLS} defaultH={5.5} />
       <mesh position={[-36, 5.65, -27]} castShadow>
         <boxGeometry args={[21, 0.3, 19]} />
-        <meshStandardMaterial color="#59636c" roughness={0.95} />
+        <Pbr name="corrugated" repeat={[8, 1]} color="#9aa2ab" roughness={0.95} envMapIntensity={0.3} />
       </mesh>
       {/* rust streaks */}
       {[[-31, -18.1, 3], [-40, -18.1, 4.5], [-26.1, -33, 4]].map(([x, z, w], i) => (
@@ -580,7 +581,7 @@ function WarehouseExt() {
       <group position={[-22.5, 0, -21]} rotation={[0, 0.5, 0]}>
         <mesh position={[0, 1.3, 0]} castShadow>
           <boxGeometry args={[6, 2.6, 2.4]} />
-          <meshStandardMaterial color="#7f3b2a" roughness={0.75} metalness={0.3} />
+          <Pbr name="corrugated" repeat={[4, 1]} color="#c97a5e" roughness={0.75} metalness={0.3} envMapIntensity={0.35} />
         </mesh>
         <mesh position={[0, 1.3, 0]}>
           <boxGeometry args={[6.05, 2.65, 2.3]} />
@@ -589,7 +590,7 @@ function WarehouseExt() {
       </group>
       <mesh position={[-24.5, 0.8, -33.5]} rotation={[0, -0.2, 0]} castShadow>
         <boxGeometry args={[5.6, 1.6, 2.2]} />
-        <meshStandardMaterial color="#4c6a52" roughness={0.8} metalness={0.25} />
+        <Pbr name="corrugated" repeat={[4, 1]} color="#8fae94" roughness={0.8} metalness={0.25} envMapIntensity={0.35} />
       </mesh>
       {/* tires */}
       {[[-29, -20.5], [-30.4, -20.2], [-29.7, -21.4]].map(([x, z], i) => (

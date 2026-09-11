@@ -1,5 +1,24 @@
 # Changelog
 
+## 0.3.1 — 2026-09-11 (PBR pass + blank-screen hotfix)
+
+### Fixed
+- **CRITICAL blank screen on mobile:** `<Environment preset="city">` downloaded an HDR from an external CDN (`raw.githack.com`) at runtime; on flaky mobile networks the fetch failed and crashed the entire Canvas subtree — the world turned into an empty sky while the dialogue DOM kept working. Replaced with a **local** `<Environment frames={1}>` built from in-scene Lightformers (zero network) for all three scenes.
+- **Loaded-game camera hardening:** `CameraRig.fp` was only cleared by the opening's FP→TP transition; continuing a save straight into GAMEPLAY/COMBAT kept the cinematic branch alive and lerped the camera to the campus `fp_gate` pose even in rooftop/warehouse scenes (black screen staring at a wall). The rig now snaps to third-person orbit when `opening_complete` is set.
+- **Scene error fallback:** `SceneErrorBoundary` + `Suspense` inside the Canvas — if any world component ever throws, gameplay continues on a lit fallback plane instead of a dead void.
+- **Mirrored 3D signs:** `KELUAR` (warehouse) and `TANGGA` (rooftop bulkhead) were seen from their back face; `SchoolSign` gained a `rotY` option and both now read correctly.
+- **Opening composition:** `fp_students` had the camera clipped inside the main building's east wall; `fp_end` stared at a blank facade 5 m away beside the door gap. Both re-posed to clear sightlines (canteen walkway / entrance reverse shot).
+- **Troika font CDN dependency:** signs now load Carlito from `public/fonts/` instead of the default Roboto fetched from `fonts.gstatic.com`.
+
+### Added — procedural PBR materials (request: "texture nya pake PBR biar lebih realistis")
+- `world/pbr.tsx`: zero-network PBR factory — 16 tileable surface sets (concrete, plaster, plaster_in, pavers, asphalt, grass, dirt, brick, wood, tile, terrazzo, metal, corrugated, roof, bark, foliage), each generated at runtime into 256px canvases with **albedo + normal (Sobel) + roughness** maps, wrapped/cached, integer-quantized repeat clones to bound VRAM on mobile.
+- `<Pbr>` drop-in `<meshStandardMaterial>` replacement; applied across every scene:
+  - **Campus:** grass field, asphalt street/parking/alley, concrete sidewalks/yard/warehouse yard, paver courtyard + paths, plaster facades, standing-seam roofs, concrete gate pillars/steps/stair/bleachers, corrugated warehouse shell + containers + bike shed, wood crates/benches/planters, bark + foliage trees.
+  - **Interior:** terrazzo hall/corridor, tiled classroom + canteen, wood teacher room/desks/chairs/benches.
+  - **Rooftop:** concrete deck, city blocks, metal AC/tank, wood pallets.
+  - **Warehouse:** stained concrete floor, corrugated walls/roof/containers (real ribbing via normal map — the fake stripe meshes are gone), wood crates/pallets/shelf boxes.
+- Local `<Environment>` maps for rooftop (sky) and warehouse (dim) so metals keep reflections; warehouse lighting lifted (ambient 0.62, lamps 22) so the duel arena stays readable while keeping the night mood.
+
 ## 0.3.0 — 2026-09-11 (world v2: multi-scene rebuild, no school GLB)
 
 ### Added

@@ -4,6 +4,14 @@ Working checklist (phase model per master directive). ✅ done · 🚧 in progre
 
 > **Final status 2026-09-11** — all phases complete. Repo is shippable.
 
+## Phase 21 — PBR Materials + Render Hotfixes ✅
+- ✅ Blank-screen hotfix: external CDN `<Environment preset>` → local Lightformer env maps (all scenes)
+- ✅ Procedural PBR factory `world/pbr.tsx` (16 surfaces: albedo + normal + roughness, zero network, mobile-safe VRAM)
+- ✅ PBR applied campus-wide + interiors + rooftop + warehouse; corrugated ribbing now real (normal map)
+- ✅ CameraRig loaded-game hardening (no more fp-pose leak into mid-game CONTINUE)
+- ✅ SceneErrorBoundary + Suspense inside Canvas; local Carlito font for signs; mirrored signs fixed
+- ✅ Re-posed `fp_students` / `fp_end`; warehouse lighting lifted; 52/52 tests; verified in headless browser
+
 ## Phase 20 — World v2: Multi-Scene Rebuild ✅
 - ✅ Multi-scene architecture (`SceneId`: campus / rooftop / warehouse) + `requestScene()` fade transitions + `sceneLoading` overlay
 - ✅ School GLB removed; campus rebuilt from scratch (visual + collider wall-segment system in `props.tsx`)

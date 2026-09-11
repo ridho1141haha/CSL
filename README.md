@@ -33,7 +33,7 @@ npm install
 npm run dev       # → http://localhost:5173
 npm run build     # production build → dist/
 npm run preview   # preview production build
-npm test          # 41 vitest unit tests
+npm test          # 52 vitest unit tests
 ```
 
 Requires Node 18+ (tested on Node 22).
@@ -68,7 +68,7 @@ CSL/
 │   │   ├── world/World.tsx   # SMA Yuson grounds (zones, colliders, props)
 │   │   └── StoryDirector.tsx # story/zone/quest glue per frame
 │   ├── game-ui/              # MainMenu, Hud, DialogueUI, Screens, menus/
-│   └── test/                 # 41 vitest specs
+│   └── test/                 # 52 vitest specs
 ├── ARCHITECTURE.md           # strict layering rules
 ├── PRD.md / GDD.md           # canon product/game design docs
 ├── DECISIONS.md              # 14 architectural decisions logged

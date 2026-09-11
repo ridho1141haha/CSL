@@ -53,7 +53,7 @@ export function MainMenu({ onStart, onLoad }: { onStart: () => void; onLoad: () 
         <div className="telemetry"><span>ACADEMIC<b>B</b></span><span>REPUTATION<b>UNKNOWN</b></span><span>RELATION<b>—</b></span></div>
         <div className="sync">CANON: REN · ARIS · SITI · BIMO <i>SMA YUSON</i></div>
       </aside>
-      <div className="menu-version">BUILD 0.2.0 <span>KEYBOARD + MOUSE · DESKTOP</span></div>
+      <div className="menu-version">BUILD 0.3.1 <span>KEYBOARD + MOUSE · DESKTOP</span></div>
     </div>
   );
 }
