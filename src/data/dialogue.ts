@@ -133,7 +133,14 @@ export const DIALOGUE: Record<string, DialogueNode> = Object.fromEntries(
       text: 'Ren, murid pindahan. Bagaimana penyesuaian di Yuson?',
       choices: [
         { id: 'budi_class', text: 'Ikut kelas tambahan (45 menit)', next: 'budi_class_done' },
-        { id: 'budi_study', text: 'Belajar sekarang (kuis singkat)', next: '__study__' },
+        {
+          id: 'budi_study',
+          text: 'Belajar sekarang (kuis singkat)',
+          next: '__study__',
+          // BUG-FIX: activate study_habit quest when player first chooses to study.
+          // Previously this quest was locked forever and only visible after completion.
+          effects: [{ k: 'quest', id: 'study_habit', state: 'active' }],
+        },
         {
           id: 'budi_form',
           text: 'Siti menyuruh saya mengantar formulir OSIS.',

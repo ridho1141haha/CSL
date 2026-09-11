@@ -130,7 +130,10 @@ export function combatTick(
     if (!a.hitDone && a.t >= (a.heavy ? HEAVY.windup : LIGHT.windup)) {
       a.hitDone = true;
       const cfg = a.heavy ? HEAVY : LIGHT;
-      if (dist < cfg.range && Math.abs(angleDiff(Math.atan2(dx, dz), player.facing)) < cfg.arc) {
+      // BUG-FIX: use playerPos.facing (live runtime value) not player.facing (stale store)
+      // player.facing is never updated after mount; playerPos.facing is updated every frame
+      // by Player.tsx locomotion and combat movement below.
+      if (dist < cfg.range && Math.abs(angleDiff(Math.atan2(dx, dz), playerPos.facing)) < cfg.arc) {
         const bonus = player.focus >= 60 ? 3 : 0;
         const dmg = cfg.dmg + bonus;
         combat.hitEnemy(dmg);
@@ -193,6 +196,9 @@ export function combatTick(
         moveX = (fX * iz + rX * ix) * speed;
         moveZ = (fZ * iz + rZ * ix) * speed;
         playerAnim.current.speed = speed;
+        // BUG-FIX: update playerPos.facing during combat movement so attacks/blocks
+        // connect in the direction the player is visually moving.
+        playerPos.facing = Math.atan2(moveX, moveZ);
       } else {
         playerAnim.current.speed = 0;
       }
@@ -285,7 +291,8 @@ export function combatTick(
           // offset (dx, dz) from player. For player to block, player.facing
           // must point toward enemy → angle = atan2(dx, dz). Previously used
           // atan2(-dx, -dz) which is reversed (player facing AWAY from enemy).
-          const blocked = playerCombat.block && Math.abs(angleDiff(Math.atan2(dx, dz), player.facing)) < 1.4;
+          // BUG-FIX: use playerPos.facing (live) not player.facing (stale store)
+          const blocked = playerCombat.block && Math.abs(angleDiff(Math.atan2(dx, dz), playerPos.facing)) < 1.4;
           const dmg = blocked ? Math.max(1, Math.round(enemy.dmg * 0.3)) : enemy.dmg;
           usePlayer.getState().damage(dmg);
           useCombat.getState().hitPlayer(dmg);

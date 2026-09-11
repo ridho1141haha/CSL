@@ -48,6 +48,7 @@ export default function App() {
   const mode = useGame((s) => s.mode);
   const boot = useGame((s) => s.boot);
   const pointerLocked = useGame((s) => s.pointerLocked);
+  const fade = useGame((s) => s.fade);
 
   // boot sequence: show loading, unlock audio on first gesture, then menu
   useEffect(() => {
@@ -193,6 +194,7 @@ export default function App() {
       </Canvas>
 
       {phase === 'boot' && <LoadingScreen />}
+      {fade !== 'none' && <div className={`fade-overlay fade-${fade}`} />}
       {phase === 'menu' && (mode === 'SAVELOAD_MENU' || mode === 'SETTINGS') && (
         <FullMenu title={mode === 'SETTINGS' ? 'SETTINGS' : 'LOAD GAME'} onClose={() => useGame.getState().setMode('MAIN_MENU')}>
           {mode === 'SETTINGS' ? <SettingsPanel /> : <SaveLoadPanel />}

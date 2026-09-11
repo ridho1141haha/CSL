@@ -1,4 +1,4 @@
-import { useRef } from 'react';
+import { useEffect, useRef } from 'react';
 import { useFrame } from '@react-three/fiber';
 import { RigidBody, CapsuleCollider, useRapier, type RapierRigidBody } from '@react-three/rapier';
 import * as THREE from 'three';
@@ -28,6 +28,28 @@ export function Player() {
   const spawnRef = useRef({ x: spawnX, z: spawnZ });
 
   const asBody = (b: RapierRigidBody) => b as unknown as Parameters<typeof combatTick>[1];
+
+  // BUG-FIX: Teleport effect. When store x/z changes (e.g. ch4_bad_warehouse
+  // teleport to warehouse), move the rigid body to the new position. Without
+  // this, the teleport effect only updates the store; the rigid body stays at
+  // its old position and the player never visually relocates.
+  useEffect(() => {
+    const rb = body.current;
+    if (!rb) return;
+    const current = rb.translation();
+    const dx = spawnX - current.x;
+    const dz = spawnZ - current.z;
+    // Only teleport if the position changed significantly (>1 unit) —
+    // avoids fighting with normal physics motion on small store updates.
+    if (Math.hypot(dx, dz) > 1.0) {
+      rb.setTranslation({ x: spawnX, y: 0.75, z: spawnZ }, true);
+      rb.setLinvel({ x: 0, y: 0, z: 0 }, true);
+      // Also update runtime playerPos so camera/combat read the new position
+      playerPos.x = spawnX;
+      playerPos.z = spawnZ;
+      spawnRef.current = { x: spawnX, z: spawnZ };
+    }
+  }, [spawnX, spawnZ]);
 
   useFrame((state, deltaRaw) => {
     const rb = body.current;

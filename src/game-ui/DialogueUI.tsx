@@ -10,6 +10,8 @@ import { usePlayer } from '../stores/playerStore';
 import { getDialogue } from '../data/dialogue';
 import { NPC_BY_ID } from '../data/npcs';
 import { evalCondition, type ConditionContext } from '../game/systems/conditions';
+import { NODE_FX } from '../data/chapters';
+import { requestShake } from '../game/runtime';
 import { audio } from '../game/audio';
 
 const PORTRAIT_COLORS: Record<string, string> = {
@@ -45,6 +47,26 @@ export function DialogueUI({ cinematic }: { cinematic: boolean }) {
     raf = requestAnimationFrame(step);
     return () => cancelAnimationFrame(raf);
   }, [text, cps]);
+
+  // BUG-FIX: NODE_FX — fire fade/shake transitions when entering specific nodes.
+  // Previously NODE_FX data in chapters.ts was dead (nothing read it). Now we
+  // trigger camera shake + fade overlay when the dialogue node matches.
+  useEffect(() => {
+    if (!nodeId) return;
+    const fx = NODE_FX[nodeId];
+    if (!fx) return;
+    const game = useGame.getState();
+    if (fx.fx === 'shake') {
+      requestShake(0.5);
+    } else if (fx.fx === 'fade-out') {
+      game.setFade('out');
+      setTimeout(() => game.setFade('none'), 600);
+    } else if (fx.fx === 'fade-in') {
+      game.setFade('in');
+      setTimeout(() => game.setFade('none'), 600);
+    }
+    // 'fp-to-tp' is handled by CameraRig via opening_complete flag, skip here
+  }, [nodeId]);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {

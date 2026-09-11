@@ -17,6 +17,10 @@ export function CombatScene() {
   const winTimer = useRef(-1);
   const encounterId = useCombat((s) => s.encounterId);
   const enemyCount = useCombat((s) => s.enemies.length);
+  // BUG-FIX: subscribe to index so component re-renders when enemy advances.
+  // Previously, when enemy #1 died and index advanced to #2, the Figure
+  // kept enemy #1's color/scale/name because the component didn't re-render.
+  const enemyIndex = useCombat((s) => s.index);
 
   // (re)initialize when a new encounter or enemy starts
   useEffect(() => {
@@ -30,7 +34,7 @@ export function CombatScene() {
     winTimer.current = -1;
     audio.combatStart();
     inputRelease();
-  }, [encounterId, enemyCount]);
+  }, [encounterId, enemyCount, enemyIndex]);
 
   useFrame(() => {
     const g = group.current;
