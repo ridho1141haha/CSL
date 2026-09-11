@@ -61,8 +61,13 @@ export function resetCombatRuntime() {
   playerCombat.invuln = 0;
   playerCombat.stagger = 0;
   playerCombat.hitPause = 0;
-  Object.assign(playerAnim, makeAnim());
-  Object.assign(enemyAnim, makeAnim());
+  // BUG-FIX: must replace .current, not assign makeAnim() fields onto the wrapper.
+  // Object.assign(playerAnim, makeAnim()) was adding fields to the wrapper object
+  // { current: ... } instead of resetting the inner anim state. This caused
+  // down=true to persist across game sessions, making the character appear
+  // crouched/lying down on new games after a previous KO.
+  playerAnim.current = makeAnim();
+  enemyAnim.current = makeAnim();
   enemyRuntime.state = { state: 'spawn', t: 0, facing: 0, cooldown: 1.2 };
 }
 

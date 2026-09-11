@@ -129,6 +129,7 @@ canvas { display: block; }
   display: grid; place-items: center;
   background: radial-gradient(120% 100% at 50% 50%, #0b1017cc 0%, #0b1017f5 80%);
   cursor: pointer; animation: fade-in 0.3s ease;
+  pointer-events: none;  /* CRITICAL: never block mouse events to CameraRig */
 }
 .plh-inner {
   display: flex; flex-direction: column; align-items: center; gap: 14px;

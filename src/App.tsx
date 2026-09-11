@@ -24,6 +24,7 @@ import { CameraRig } from './game/camera/CameraRig';
 import { Npcs, StoryActors } from './game/npc/Npc';
 import { CombatScene } from './game/combat/CombatScene';
 import { StoryDirector } from './game/StoryDirector';
+import { resetCombatRuntime } from './game/combat/combat';
 
 import { MainMenu } from './game-ui/MainMenu';
 import { Hud, Notifications, CombatHud } from './game-ui/Hud';
@@ -113,6 +114,9 @@ export default function App() {
     useInventory.getState().resetAll();
     useCombat.getState().reset();
     useDialogue.getState().reset();
+    // Reset combat runtime anim state — ensures playerAnim.current.down = false
+    // so the player character starts upright, not crouched/lying from a previous session
+    resetCombatRuntime();
     usePlayer.getState().spawn(PLAYER_SPAWN[0], PLAYER_SPAWN[1]);
     const g = useGame.getState();
     g.setPhase('play');
@@ -239,21 +243,22 @@ export default function App() {
   );
 }
 
-// BUG-3.1: pointer lock UX hint. Shows when gameplay is active but the pointer
-// is not locked. Clicking anywhere triggers pointer lock via the CameraRig
-// onClick handler.
+// BUG-3.1: pointer lock UX hint. The overlay is pointer-events:none so it
+// NEVER blocks mouse events from reaching the CameraRig's window-level
+// listeners. Click anywhere to engage pointer lock (CameraRig handles it).
 function PointerLockHint() {
+  useEffect(() => {
+    // Auto-request pointer lock on first click after mount
+    const onClick = () => input.requestLock();
+    window.addEventListener('click', onClick, { once: true });
+    return () => window.removeEventListener('click', onClick);
+  }, []);
   return (
-    <div
-      className="pointer-lock-hint"
-      onClick={() => input.requestLock()}
-      role="button"
-      tabIndex={-1}
-    >
+    <div className="pointer-lock-hint">
       <div className="plh-inner">
         <div className="plh-icon">🖱</div>
-        <strong>KLIK UNTUK MENGAKTIFKAN KAMERA</strong>
-        <span>WASD bergerak · MOUSE menggerakkan kamera · ESC pause</span>
+        <strong>KLIK MANA SAJA UNTUK KAMERA</strong>
+        <span>WASD bergerak · MOUSE lihat sekeliling · ESC pause</span>
         <span className="plh-alt">atau tahan KLIK KIRI untuk drag-look</span>
       </div>
     </div>
