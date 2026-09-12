@@ -1,4 +1,9 @@
 import type { Condition } from '../../types';
+import { periodFor } from './time';
+import { zoneAt } from '../../data/world';
+import { playerPos } from '../runtime';
+import { useGame } from '../../stores/gameStore';
+import { useSocial } from '../../stores/socialStore';
 
 export type ConditionContext = {
   flags: string[];
@@ -17,6 +22,8 @@ export function evalCondition(c: Condition | undefined, ctx: ConditionContext): 
       return ctx.flags.includes(c.id) !== !!c.not;
     case 'chapter':
       return ctx.chapter === c.id;
+    case 'chapterMin':
+      return ctx.chapter >= c.id;
     case 'route':
       return ctx.route === c.id;
     case 'quest':
@@ -27,7 +34,20 @@ export function evalCondition(c: Condition | undefined, ctx: ConditionContext): 
       return ctx.stats[c.stat] > c.v;
     case 'focusAbove':
       return ctx.focus > c.v;
+    case 'period':
+      return periodFor(useGame.getState().clock.minutes).id === c.id;
+    case 'zone':
+      return useGame.getState().currentZone === c.id;
+    case 'talks':
+      return (useSocial.getState().talkCounts[c.target] ?? 0) >= c.v;
     case 'and':
       return c.all.every((sub) => evalCondition(sub, ctx));
   }
+}
+
+// Convenience used by hidden-event checks: is the player inside a zone id
+// right now (center-radius, scene-aware)?
+export function playerInZone(zoneId: string): boolean {
+  const g = useGame.getState();
+  return zoneAt(playerPos.x, playerPos.z, g.scene)?.id === zoneId;
 }

@@ -1,8 +1,8 @@
-import { useMemo, useRef } from 'react';
+import { useEffect, useMemo, useRef } from 'react';
 import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
 import { useGame } from '../../stores/gameStore';
-import { playerPos, npcPositions } from '../runtime';
+import { playerPos, npcPositions, actorPositions } from '../runtime';
 import { mobile } from '../mobile';
 import { Figure, makeAnim } from './Character';
 import { NPCS, AMBIENT_STUDENTS, NPC_BY_ID } from '../../data/npcs';
@@ -74,6 +74,11 @@ function ScheduledNpc({ id }: { id: string }) {
   const anim = useRef(makeAnim());
   const dest = useRef<[number, number]>(def.schedule.arrive ?? [0, 0]);
 
+  // stale-position guard: when the scheduled NPC unmounts (cinematic hideMain,
+  // scene switch) its last written position must not leak into npcPositions —
+  // the dialogue camera and acting system would aim at a ghost.
+  useEffect(() => () => { delete npcPositions[id]; }, [id]);
+
   useFrame((_, dtRaw) => {
     const dt = Math.min(dtRaw, 0.05);
     const g = group.current;
@@ -124,6 +129,7 @@ function ScheduledNpc({ id }: { id: string }) {
         pants={def.pants}
         skirt={def.skirt}
         hair={def.hair}
+        actId={def.id}
       />
     </group>
   );
@@ -140,17 +146,19 @@ export function StoryActors({ placements }: { placements: { id: string; x: numbe
   );
 }
 
-function StoryActor({ x, z, color, faceTo }: { id: string; x: number; z: number; color: string; faceTo?: [number, number] }) {
+function StoryActor({ id, x, z, color, faceTo }: { id: string; x: number; z: number; color: string; faceTo?: [number, number] }) {
   const group = useRef<THREE.Group>(null);
   const anim = useRef(makeAnim());
   useFrame(() => {
     const g = group.current;
     if (!g) return;
     if (faceTo) g.rotation.y = Math.atan2(faceTo[0] - g.position.x, faceTo[1] - g.position.z);
+    // expose the placement to the dialogue camera + acting system
+    actorPositions[id] = { x: g.position.x, z: g.position.z };
   });
   return (
     <group ref={group} position={[x, 0.03, z]} scale={0.98}>
-      <Figure anim={anim} color={color} accent="#94a3b8" />
+      <Figure anim={anim} color={color} accent="#94a3b8" actId={id} />
     </group>
   );
 }

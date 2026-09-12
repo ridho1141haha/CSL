@@ -1,5 +1,70 @@
 # Changelog
 
+## 0.6.0 — 2026-09-12 (dialogue overhaul — mentor feedback P0+P1)
+
+Mentor feedback addressed: (1) natural dialogue, (2) dialogue camera framing the
+speaker, (3) believable character behavior in conversations, (4) consequential
+story choices, (5) hidden events/secret interactions, (6) side quests.
+
+### Added — dialogue acting system (`systems/acting.ts`)
+- Registry keyed by entity id (`ren`, NPC ids, story-actor ids). Every dialogue
+  node updates it (via `dialogueStore`) with: who is talking, gaze targets,
+  emotional energy (mapped from `Emotion`), gesture/nod timers.
+- `Figure` consumes the registry: head yaw toward the conversation partner,
+  mouth opens/closes while talking, 3 subtle gesture cycles (open palm /
+  emphasis / hand-to-chest) scaled by energy, listening nods every 2–5s,
+  breathing idle. Ambient students stay on the cheap idle path.
+- Ren turns his body toward the partner during conversations.
+
+### Added — dialogue camera (`systems/shot.ts`, `data/shots.ts`)
+- Data-driven shot presets (`close/medium/wide/ots/two`, subject/side/dist/
+  height/look/dur). Nodes reference presets via `cam`; speakers without an
+  explicit preset get a default per speaker role (narrator → wide, NPC → OTS
+  over Ren's shoulder).
+- `CameraRig` resolves shots from LIVE speaker/listener positions (new
+  `actorPositions` runtime registry + stale-position cleanup on NPC unmount)
+  in both CINEMATIC (post-opening) and a new DIALOGUE branch, with per-shot
+  occlusion pull-in. Static `CAM_BY_NODE` poses remain as fallback and for the
+  untouched first-person opening.
+
+### Added — hidden events (`data/hiddenEvents.ts`, `systems/hiddenEvents.ts`)
+- 9 data-driven discoveries (zone / NPC / time-of-day / flag gated): rooftop
+  carving, alley gang mark, canteen rumor, field gloves, parking patrol
+  schedule, Pak Budi's after-school story, the "tolong" desk carving, the OSIS
+  anonymous-report notice, Bimo's personal alley warning.
+- Rewards: items (`sarung_tangan`, `coretan_atap`), relationship/focus/stats,
+  and info flags that feed NPC dialogue. Discovery persists as a story flag
+  (save-compatible, no schema bump) and shows in the agenda journal
+  ("TEMUAN TERSEMBUNYI x/9").
+
+### Added — side quests (extends existing quest system, no new store)
+- `aris_notes` (borrow → actually study), `canteen_teh` (Siti's lunch favor),
+  `field_training` (dusk training: violence/hp), `alley_check` (gang patrol
+  evidence for Siti). Activation through condition-gated dialogue choices;
+  completion through world state in StoryDirector's existing scan.
+
+### Changed — dialogue rework (canon preserved)
+- Per-character voice guide documented in `data/dialogue.ts` (Aris hesitant,
+  Siti structured, Bimo minimal/cold, Pak Budi formal, Ren dry).
+- Repeat-visit variation via condition-gated choices (first meeting vs. known),
+  callbacks to earlier choices (`helped_aris`, `bimo_impressed`, route,
+  reputation ≥15, academic >80) — early decisions now echo later.
+- New condition kinds: `chapterMin`, `period`, `zone`, `talks`. `socialStore`
+  tracks `talkCounts` (persisted, optional in the save schema).
+
+### Fixed — E-interaction regression (latent, caught by new QA)
+- `input.endFrame()` ran at the end of the Player's frame — but R3F executes
+  frames in mount order and the Player mounts BEFORE `StoryDirector`, so
+  `justPressed('interact')` was always read from an already-cleared set.
+  Cleanup now lives in an `InputJanitor` mounted after StoryDirector; `wheel`
+  moved to explicit-consume only (CameraRig).
+
+### QA
+- `scripts/qa-mentor.mjs` (Playwright desktop): seeded mid-game save → gameplay
+  → E-interact → ARIS dialogue with speaker-driven framing → condition-gated
+  choices verified; 0 console errors.
+- Test suite: **85/85** (27 new: shot math 8, acting 10, hidden events 9).
+
 ## 0.5.0 — 2026-09-12 (mobile rescue pack + character overhaul)
 
 ### Fixed — CRITICAL: blank world on mobile (root cause found)

@@ -195,12 +195,14 @@ class Input {
     return this.pressed.has(a);
   }
 
-  // Called once per frame after systems consumed their input.
+  // Called once per frame by the input janitor AFTER every gameplay system has
+  // consumed its input. NOTE: `wheel` is deliberately NOT cleared here — it is
+  // an explicit-consume accumulator (CameraRig.consumeWheel) and the camera
+  // rig's frame runs after this janitor.
   endFrame() {
     this.pressed.clear();
     this.leftPressed = false;
     this.rightPressed = false;
-    this.wheel = 0;
     this.shiftPendingDodge = false;
     // one-shot touch actions auto-release after systems had a chance to read
     for (const a of this.touchAutoRelease) this.held.delete(a);

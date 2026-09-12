@@ -11,6 +11,7 @@ import { useStats } from './stores/statsStore';
 import { useSocial } from './stores/socialStore';
 import { useQuests } from './stores/questStore';
 import { useInventory } from './stores/inventoryStore';
+import { useFrame } from '@react-three/fiber';
 import { input } from './game/input';
 import { audio } from './game/audio';
 import { saveGame } from './game/save';
@@ -220,6 +221,7 @@ export default function App() {
               <Player />
               {scene === 'campus' && <Npcs hideMain={mode === 'CINEMATIC'} />}
               <StoryDirector />
+              <InputJanitor />
               {mode === 'COMBAT' && <CombatScene />}
               {mode === 'CINEMATIC' && <CinematicActors />}
             </>
@@ -362,8 +364,18 @@ function CinematicActors() {
   return <StoryActors placements={placements} />;
 }
 
-// Emergency fallback world: if the scene tree crashes, keep lights + a walkable
-// floor so the player is never stuck in a void. Physics floor keeps colliders.
+// Input janitor (v0.6 regression fix): input.endFrame() clears just-pressed
+// actions, so it must run AFTER every consumer. The Player used to clear at
+// the end of its own frame — but R3F runs frames in mount order and the
+// Player mounts BEFORE StoryDirector, so justPressed('interact') was read
+// from an already-cleared set and E-interaction silently never fired.
+// The janitor mounts after StoryDirector (inside Physics) and owns the
+// cleanup. Wheel is untouched (explicit consume in CameraRig, which runs last).
+function InputJanitor() {
+  useFrame(() => input.endFrame());
+  return null;
+}
+
 class SceneErrorBoundary extends Component<{ children: ReactNode }, { failed: boolean }> {
   state = { failed: false };
   static getDerivedStateFromError() {

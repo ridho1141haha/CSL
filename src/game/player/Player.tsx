@@ -8,6 +8,7 @@ import { usePlayer } from '../../stores/playerStore';
 import { useCombat } from '../../stores/combatStore';
 import { playerPos, camState } from '../runtime';
 import { Figure } from '../npc/Character';
+import { acting } from '../systems/acting';
 import { playerAnim, combatTick, camYaw } from '../combat/combat';
 import { audio } from '../audio';
 
@@ -75,7 +76,6 @@ export function Player() {
       }
       syncFrom(t.x, t.z, 0, 0);
       updateAnim(dt, 0, false);
-      input.endFrame();
       return;
     }
 
@@ -89,7 +89,6 @@ export function Player() {
         rb.setLinvel({ x: 0, y: lv.y, z: 0 }, true);
       }
       syncFrom(t.x, t.z, lv.x, lv.z);
-      input.endFrame();
       return;
     }
 
@@ -160,7 +159,6 @@ export function Player() {
 
     updateAnim(dt, hSpeed, run);
     syncFrom(t.x, t.z, nvx, nvz);
-    input.endFrame();
   });
 
   const syncFrom = (x: number, z: number, vx: number, vz: number) => {
@@ -212,11 +210,25 @@ export function Player() {
 function PlayerFigure() {
   const group = useRef<THREE.Group>(null);
   useFrame(() => {
-    if (group.current) group.current.rotation.y = playerPos.facing;
+    const g = group.current;
+    if (!g) return;
+    const game = useGame.getState();
+    const act = acting['ren'];
+    // During dialogue Ren turns his body toward the conversation partner
+    // (mentor #3 — body orientation). In gameplay the body follows movement.
+    if ((game.mode === 'DIALOGUE' || game.mode === 'CINEMATIC') && act && !Number.isNaN(act.gazeX)) {
+      const desired = Math.atan2(act.gazeX - playerPos.x, act.gazeZ - playerPos.z);
+      let local = desired - playerPos.facing;
+      local = Math.atan2(Math.sin(local), Math.cos(local));
+      const clamped = Math.max(-1.1, Math.min(1.1, local));
+      g.rotation.y = playerPos.facing + THREE.MathUtils.lerp(0, clamped, 0.85);
+    } else {
+      g.rotation.y = playerPos.facing;
+    }
   });
   return (
     <group ref={group} position={[0, -0.75, 0]}>
-      <Figure anim={playerAnim} color="#e2e8f0" accent="#38bdf8" nameTag={undefined} />
+      <Figure anim={playerAnim} color="#e2e8f0" accent="#38bdf8" nameTag={undefined} actId="ren" />
     </group>
   );
 }

@@ -12,6 +12,8 @@ import { ITEM_BY_ID } from '../../data/items';
 import { NPCS } from '../../data/npcs';
 import { SCENES } from '../../data/world';
 import { STUDY_QUESTIONS } from '../../data/chapters';
+import { HIDDEN_EVENTS } from '../../data/hiddenEvents';
+import { isDiscovered, HIDDEN_EVENT_COUNT } from '../../game/systems/hiddenEvents';
 import { relLabel } from '../../game/systems/relationship';
 import { repLabel } from '../../game/systems/reputation';
 import { clockLabel, DAYS, formatHhmm } from '../../game/systems/time';
@@ -206,6 +208,7 @@ export function RelationshipsPanel() {
 
 export function QuestsPanel() {
   const quests = useQuests((s) => s.quests);
+  const discovered = HIDDEN_EVENTS.filter((e) => isDiscovered(e));
   const groups: [string, string][] = [['main', 'MAIN QUEST // MISI UTAMA'], ['side', 'SIDE QUEST // MISI SAMPINGAN']];
   const statusChip = (st: string) =>
     st === 'completed' ? <span className="chip chip-green q-status">SELESAI</span>
@@ -231,6 +234,24 @@ export function QuestsPanel() {
           })}
         </div>
       ))}
+      {/* hidden events journal (mentor feedback #5) — rewards exploration */}
+      <div>
+        <div className="sec-head" style={{ marginBottom: 10 }}>
+          TEMUAN TERSEMBUNYI <span className="right">{discovered.length} / {HIDDEN_EVENT_COUNT} DITEMUKAN</span>
+        </div>
+        {discovered.map((e) => (
+          <div className="quest-row st-completed" key={e.id}>
+            <div className="q-top">
+              <strong>{e.title}</strong>
+              <span className="chip chip-cyan q-status">TERCATAT</span>
+            </div>
+            <span>Temuan opsional. Detailnya tersimpan di arsip pribadi Ren.</span>
+          </div>
+        ))}
+        {!discovered.length && (
+          <p className="empty">Belum ada. Bicara dengan orang. Menyimpang dari jalur. Yuson menyimpan lebih banyak daripada yang terlihat.</p>
+        )}
+      </div>
     </div>
   );
 }

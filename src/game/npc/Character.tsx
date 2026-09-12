@@ -2,6 +2,7 @@ import { useRef, type MutableRefObject } from 'react';
 import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
 import { mobile } from '../mobile';
+import { acting, tickActing, type ActingState } from '../systems/acting';
 
 // Animatable runtime state shared between owner controller and figure.
 export type FigureAnim = {
@@ -29,6 +30,9 @@ type Props = {
   scale?: number;
   nameTag?: string;
   tag?: string;
+  // dialogue acting (mentor #3): entity key in systems/acting registry.
+  // Present = this figure looks/gestures/nods during conversations.
+  actId?: string;
   // stylized-realistic overrides (data/npcs.ts NpcDef)
   skin?: string;
   pants?: string;
@@ -174,7 +178,7 @@ function hardMat(color: string, rough = 0.4): THREE.MeshStandardMaterial {
 
 // ---------- component ----------
 
-export function Figure({ anim, color, accent, scale = 1, nameTag, tag, skin = SKIN_DEFAULT, pants = PANTS_DEFAULT, skirt, hair }: Props) {
+export function Figure({ anim, color, accent, scale = 1, nameTag, tag, actId, skin = SKIN_DEFAULT, pants = PANTS_DEFAULT, skirt, hair }: Props) {
   const root = useRef<THREE.Group>(null);
   const legL = useRef<THREE.Group>(null);
   const legR = useRef<THREE.Group>(null);
@@ -182,7 +186,9 @@ export function Figure({ anim, color, accent, scale = 1, nameTag, tag, skin = SK
   const armR = useRef<THREE.Group>(null);
   const torso = useRef<THREE.Group>(null);
   const head = useRef<THREE.Group>(null);
+  const mouth = useRef<THREE.Mesh>(null);
   const phase = useRef(0);
+  const wp = useRef(new THREE.Vector3());
 
   const hairColor = hair?.color ?? HAIR_DEFAULT;
 
@@ -216,6 +222,28 @@ export function Figure({ anim, color, accent, scale = 1, nameTag, tag, skin = SK
     const stride = a.run ? 11 : 7.5;
     phase.current += dt * (moving ? stride * Math.max(0.35, a.speed / 3.2) : 1.6);
 
+    // ---- dialogue acting (mentor #3): timers + gesture/nod scheduling ----
+    let act: ActingState | undefined;
+    if (actId) {
+      act = acting[actId];
+      if (act) tickActing(act, dt, moving);
+    }
+    // additive gesture offsets resolved below (amp × sin envelope = smooth in/out)
+    let gLx = 0, gLz = 0, gRx = 0, gRz = 0;
+    if (act && act.gesture >= 0 && !moving) {
+      const env = Math.sin(Math.min(1, act.gestureT) * Math.PI) * act.energy;
+      if (act.gesture === 0) {
+        // open palm — right forearm rises, hand turns slightly outward
+        gRx = -0.5 * env; gRz = 0.28 * env;
+      } else if (act.gesture === 1) {
+        // emphasis — a short forward punch of the right arm
+        gRx = -0.9 * env;
+      } else {
+        // reserved/emotional — hand to chest (left)
+        gLx = -0.8 * env; gLz = 0.45 * env;
+      }
+    }
+
     const swing = moving ? Math.sin(phase.current) * (a.run ? 0.85 : 0.55) : Math.sin(phase.current * 0.6) * 0.05;
     if (legL.current) legL.current.rotation.x = swing;
     if (legR.current) legR.current.rotation.x = -swing;
@@ -225,8 +253,8 @@ export function Figure({ anim, color, accent, scale = 1, nameTag, tag, skin = SK
         armL.current.rotation.x = -1.9;
         armL.current.rotation.z = 0.5;
       } else {
-        armL.current.rotation.x = -swing * 0.8;
-        armL.current.rotation.z = 0;
+        armL.current.rotation.x = -swing * 0.8 + gLx;
+        armL.current.rotation.z = gLz;
       }
     }
     if (armR.current) {
@@ -237,18 +265,39 @@ export function Figure({ anim, color, accent, scale = 1, nameTag, tag, skin = SK
         armR.current.rotation.x = -1.9;
         armR.current.rotation.z = -0.5;
       } else {
-        armR.current.rotation.x = swing * 0.8;
-        armR.current.rotation.z = 0;
+        armR.current.rotation.x = swing * 0.8 + gRx;
+        armR.current.rotation.z = gRz;
       }
     }
     if (torso.current) {
+      const lean = act && act.talking && !moving ? 0.05 * act.energy : 0;
       torso.current.rotation.y = moving ? Math.sin(phase.current) * 0.12 : Math.sin(phase.current * 0.6) * 0.03;
-      torso.current.rotation.x = a.attackT >= 0 ? -atk * 0.35 : moving ? 0.08 + (a.run ? 0.1 : 0) : 0;
-      const bob = moving ? Math.abs(Math.sin(phase.current)) * (a.run ? 0.05 : 0.03) : 0;
+      torso.current.rotation.x = a.attackT >= 0 ? -atk * 0.35 : moving ? 0.08 + (a.run ? 0.1 : 0) : lean;
+      const bob = moving ? Math.abs(Math.sin(phase.current)) * (a.run ? 0.05 : 0.03) : Math.sin(phase.current * 0.55) * 0.006; // idle: gentle breathing
       torso.current.position.y = 0.92 + bob;
     }
     if (head.current) {
-      head.current.rotation.y = moving ? 0 : Math.sin(phase.current * 0.35) * 0.14;
+      if (act && !Number.isNaN(act.gazeX)) {
+        // gaze: yaw the head toward the conversation partner (world → local)
+        g.getWorldPosition(wp.current);
+        const desired = Math.atan2(act.gazeX - wp.current.x, act.gazeZ - wp.current.z);
+        const parentYaw = g.parent?.rotation.y ?? 0;
+        let local = desired - parentYaw;
+        local = Math.atan2(Math.sin(local), Math.cos(local)); // wrap to [-π, π]
+        const clamped = THREE.MathUtils.clamp(local, -0.62, 0.62);
+        const sway = moving ? 0 : Math.sin(phase.current * 0.35) * 0.03;
+        head.current.rotation.y = THREE.MathUtils.lerp(head.current.rotation.y, clamped + sway, 1 - Math.exp(-7 * dt));
+      } else {
+        head.current.rotation.y = moving ? 0 : Math.sin(phase.current * 0.35) * 0.14;
+      }
+      // listening nod (two quick dips) — reading state, tiny amplitude
+      const nodX = act && act.nodT >= 0 ? Math.sin(act.nodT * Math.PI * 2) * 0.1 * (0.5 + act.energy * 0.5) : 0;
+      head.current.rotation.x = THREE.MathUtils.lerp(head.current.rotation.x, nodX, 1 - Math.exp(-10 * dt));
+    }
+    if (mouth.current) {
+      // speech: mouth opens/closes on the talk phase; silent when not talking
+      const open = act && act.talking && !moving ? Math.abs(Math.sin(act.talkPhase)) * 2.1 * act.energy : 0;
+      mouth.current.scale.y = THREE.MathUtils.lerp(mouth.current.scale.y, 1 + open, 1 - Math.exp(-14 * dt));
     }
   });
 
@@ -336,8 +385,8 @@ export function Figure({ anim, color, accent, scale = 1, nameTag, tag, skin = SK
           <mesh position={[0, -0.022, 0.152]} rotation={[0.35, 0, 0]} material={mSkin}>
             <boxGeometry args={[0.022, 0.042, 0.03]} />
           </mesh>
-          {/* mouth */}
-          <mesh position={[0, -0.072, 0.143]} material={hardMat('#9a4f46', 0.5)}>
+          {/* mouth — ref-driven so dialogue acting can open/close it */}
+          <mesh ref={mouth} position={[0, -0.072, 0.143]} material={hardMat('#9a4f46', 0.5)}>
             <boxGeometry args={[0.05, 0.009, 0.012]} />
           </mesh>
           {/* hair variants */}

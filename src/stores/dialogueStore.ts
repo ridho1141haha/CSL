@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { getDialogue, SPECIAL_NODES } from '../data/dialogue';
 import { applyEffects } from '../game/systems/effects';
+import { resolveCast, applyDialogueActing, clearDialogueActing } from '../game/systems/acting';
 import { useGame } from './gameStore';
 import { useStory } from './storyStore';
 import { useCombat } from './combatStore';
@@ -25,6 +26,18 @@ type Store = {
   reset: () => void;
 };
 
+// Mentor feedback #3: every node change updates the acting registry (who
+// talks, who listens, emotional energy) so the procedural characters act the
+// conversation. One funnel — open/advance/choose all pass through here.
+function actNode(nodeId: string | null) {
+  const node = nodeId ? getDialogue(nodeId) : null;
+  if (!node) {
+    clearDialogueActing();
+    return;
+  }
+  applyDialogueActing(resolveCast(node.portrait, node.speaker, node.emotion));
+}
+
 export const useDialogue = create<Store>((set, get) => ({
   nodeId: null,
   awaitingChoice: false,
@@ -33,6 +46,7 @@ export const useDialogue = create<Store>((set, get) => ({
     const game = useGame.getState();
     game.setMode(cinematic ? 'CINEMATIC' : 'DIALOGUE');
     set({ nodeId: id, awaitingChoice: false });
+    actNode(id);
   },
 
   advance: () => {
@@ -57,10 +71,12 @@ export const useDialogue = create<Store>((set, get) => ({
     }
     if (node.next === SPECIAL_NODES.study) {
       get().close();
+      clearDialogueActing();
       useGame.getState().setMode('STUDY');
       return;
     }
     set({ nodeId: node.next });
+    actNode(node.next);
   },
 
   choose: (choice) => {
@@ -71,19 +87,27 @@ export const useDialogue = create<Store>((set, get) => ({
     useStory.getState().recordChoice(nodeId, choice.id);
     if (choice.effects) applyEffects(choice.effects);
     set({ awaitingChoice: false });
-    if (choice.next) set({ nodeId: choice.next });
-    else get().close();
+    if (choice.next) {
+      set({ nodeId: choice.next });
+      actNode(choice.next);
+    } else {
+      get().close();
+    }
   },
 
   close: () => {
     set({ nodeId: null, awaitingChoice: false });
+    clearDialogueActing();
     const game = useGame.getState();
     // DIALOGUE returns to gameplay. CINEMATIC exit is owned by the camera
     // transition (FP→TP) so the opening can land before control resumes.
     if (game.mode === 'DIALOGUE') game.setMode('GAMEPLAY');
   },
 
-  reset: () => set({ nodeId: null, awaitingChoice: false }),
+  reset: () => {
+    set({ nodeId: null, awaitingChoice: false });
+    clearDialogueActing();
+  },
 }));
 
 export const getDialogueState = () => useDialogue.getState();

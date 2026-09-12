@@ -57,6 +57,39 @@ export const QUESTS: QuestDef[] = [
     objective: 'Selesaikan satu sesi belajar',
     chapter: 1,
   },
+  // ---- side quests v0.6 (mentor feedback #6) ----
+  {
+    id: 'aris_notes',
+    title: 'Pinjaman Catatan',
+    type: 'side',
+    desc: 'Aris menawarkan buku catatannya. Catatan itu hanya berguna kalau Ren benar-benar membacanya.',
+    objective: 'Selesaikan satu sesi belajar dengan catatan Aris',
+    chapter: 1,
+  },
+  {
+    id: 'canteen_teh',
+    title: 'Teh untuk Siti',
+    type: 'side',
+    desc: 'Siti minta satu favor kecil: teh kotak dari kantin saat istirahat siang.',
+    objective: 'Bawakan teh dari kantin saat istirahat siang',
+    chapter: 1,
+  },
+  {
+    id: 'field_training',
+    title: 'Latihan Senja',
+    type: 'side',
+    desc: 'Aris bilang ada anak-anak latihan di lapangan setelah pulang sekolah. Ren ingin tubuhnya tidak berdiri diam lagi.',
+    objective: 'Berlatih di lapangan setelah pulang sekolah',
+    chapter: 2,
+  },
+  {
+    id: 'alley_check',
+    title: 'Cek Gang Belakang',
+    type: 'side',
+    desc: 'Siti mencatat aktivitas anak-anak Bimo. Satu titik kosong: gang belakang. Dia tidak bisa lewat sana tanpa menarik perhatian.',
+    objective: 'Periksa gang belakang, cari tanda aktivitas geng',
+    chapter: 2,
+  },
 ];
 
 export const QUEST_BY_ID: Record<string, QuestDef> = Object.fromEntries(QUESTS.map((q) => [q.id, q]));

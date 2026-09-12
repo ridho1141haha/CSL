@@ -19,6 +19,11 @@ export const camState = { yaw: 0, shake: 0 };
 // NPC positions (updated by ScheduledNpc) for interaction checks.
 export const npcPositions: Record<string, { x: number; z: number }> = {};
 
+// Cinematic story-actor positions (updated by StoryActor) — lets the dialogue
+// camera + acting system frame/aim at bullies, gang members, route actors etc.
+// Keyed by actor id ('bully1', 'gang1', 'aris'…).
+export const actorPositions: Record<string, { x: number; z: number }> = {};
+
 export function requestShake(mag: number) {
   camState.shake = Math.max(camState.shake, mag);
 }

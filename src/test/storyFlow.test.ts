@@ -8,19 +8,20 @@ import {
   ZONE_FLAVOR,
 } from '../data/dialogue';
 import { ENCOUNTERS } from '../data/quests';
+import { HIDDEN_EVENTS } from '../data/hiddenEvents';
 import { OPENING_ROOT } from '../data/chapters';
 import { NPCS } from '../data/npcs';
 import { BEAT_ENCOUNTER } from '../stores/dialogueStore';
 
 // Story-flow regression tests. The dialogue graph is wired to the runtime from
 // several directions (StoryDirector triggers, montage roots, combat onWin,
-// NPC roots, zone flavor). A broken link in any direction used to produce
-// dead content or a permanent soft-lock (see CHANGELOG 0.2.1).
+// NPC roots, hidden events, zone flavor). A broken link in any direction used
+// to produce dead content or a permanent soft-lock (see CHANGELOG 0.2.1).
 
 describe('story flow: node reachability', () => {
   // Entry points mirror the runtime wiring: StoryDirector.open(...) targets,
   // montage roots opened after the ch3 choice, finishCombatWin onWin nodes,
-  // NPC interaction roots and per-zone flavor one-shots.
+  // NPC interaction roots, hidden-event discovery nodes and per-zone flavor.
   const entryPoints = [
     OPENING_ROOT,
     ...MONTAGE_ROOTS,
@@ -28,6 +29,7 @@ describe('story flow: node reachability', () => {
     ...Object.values(ENCOUNTERS).map((e) => e.onWin),
     ...NPCS.map((n) => n.dialogueRoot),
     ...Object.values(ZONE_FLAVOR),
+    ...HIDDEN_EVENTS.map((e) => e.dialogue),
   ];
 
   it('all entry points exist', () => {

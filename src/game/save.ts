@@ -26,6 +26,7 @@ type SaveV2 = {
   story: { chapter: ChapterId; beat: StoryBeat; route: Route; flags: string[]; choices: Record<string, string> };
   relationships: Record<NpcId, number>;
   visitedNpc: Record<NpcId, boolean>;
+  talkCounts?: Record<NpcId, number>; // optional since v0.6 — old saves default to zero
   quests: Record<string, QuestState>;
   inventory: string[];
   scene?: SceneId;
@@ -51,6 +52,7 @@ function snapshot(): SaveV2 {
     story: { chapter: s.chapter, beat: s.beat, route: s.route, flags: [...s.flags], choices: { ...s.choices } },
     relationships: { ...so.relationships },
     visitedNpc: { ...so.visitedNpc },
+    talkCounts: { ...so.talkCounts },
     quests: { ...q.quests },
     inventory: [...inv.items],
     scene: g.scene,
@@ -93,6 +95,7 @@ function applySave(d: SaveV2) {
   useSocial.setState({
     relationships: { ...so.relationships, ...(d.relationships ?? {}) },
     visitedNpc: { ...so.visitedNpc, ...(d.visitedNpc ?? {}) },
+    talkCounts: { ...so.talkCounts, ...(d.talkCounts ?? {}) },
   });
   useQuests.setState({ quests: { ...useQuests.getState().quests, ...(d.quests ?? {}) } });
   useInventory.setState({ items: Array.isArray(d.inventory) ? d.inventory.filter((i) => typeof i === 'string') : [...STARTING_INVENTORY] });

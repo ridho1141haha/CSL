@@ -10,10 +10,75 @@ import { playerPos, camState, occluders } from '../runtime';
 import { mobile } from '../mobile';
 import { CAMERA_POSES } from '../../data/world';
 import { CAM_BY_NODE } from '../../data/chapters';
+import { SHOT_PRESETS, DEFAULT_SHOT } from '../../data/shots';
+import { getDialogue } from '../../data/dialogue';
+import { resolveCast, entityPosition } from '../systems/acting';
+import { computeShot, type ShotResult } from '../systems/shot';
 
 const lerpV = new THREE.Vector3();
 const lookV = new THREE.Vector3();
 const rayV = new THREE.Raycaster();
+const shotLookV = new THREE.Vector3();
+const shotDirV = new THREE.Vector3();
+
+// ---------------------------------------------------------------------------
+// Dialogue shot resolution (mentor feedback #2).
+// Speaker-driven framing computed from LIVE entity positions. Resolution chain
+// per node: SHOT_PRESETS[node.cam] → DEFAULT_SHOT[speaker] → medium_speaker.
+// Returns null when nothing is framable (FP opening, narrator-only lines,
+// no placed entities) — callers fall back to authored static poses.
+// ---------------------------------------------------------------------------
+function shotForNode(nodeId: string | null): ShotResult | null {
+  if (!nodeId) return null;
+  // the first-person opening keeps its authored CAM_BY_NODE poses — speaker
+  // shots only make sense once the story is in third person
+  if (!useStory.getState().flags.includes('opening_complete')) return null;
+  const node = getDialogue(nodeId);
+  if (!node) return null;
+  const cast = resolveCast(node.portrait, node.speaker, node.emotion);
+  const spk = cast.speaker ? entityPosition(cast.speaker) : null;
+  const lis = cast.listener ? entityPosition(cast.listener) : null;
+  if (!spk) return null; // narrator / unplaced speaker → static fallback
+  const presetKey = node.cam ?? DEFAULT_SHOT[node.speaker] ?? 'medium_speaker';
+  const preset = SHOT_PRESETS[presetKey];
+  if (!preset) return null;
+  return computeShot(preset, spk, lis);
+}
+
+// Occlusion pull-in for shots: raycast look-target → camera through the
+// world's registered occluders, clamp distance so walls never clip the frame.
+function clampShotOcclusion(shot: ShotResult) {
+  if (!occluders.objects.length) return;
+  shotLookV.set(shot.look.x, shot.lookHeight, shot.look.z);
+  shotDirV.set(shot.pos.x - shotLookV.x, shot.height - shotLookV.y, shot.pos.z - shotLookV.z);
+  const len = shotDirV.length();
+  if (len < 0.01) return;
+  shotDirV.divideScalar(len);
+  rayV.set(shotLookV, shotDirV);
+  rayV.far = len;
+  const hits = rayV.intersectObjects(occluders.objects as THREE.Object3D[], true);
+  if (hits.length && hits[0].distance < len) {
+    const d = Math.max(0.9, hits[0].distance - 0.28);
+    shot.pos = { x: shotLookV.x + shotDirV.x * d, z: shotLookV.z + shotDirV.z * d };
+    shot.height = shotLookV.y + shotDirV.y * d;
+  }
+}
+
+// Lerp the camera toward a resolved shot and aim it. Returns true when applied.
+function applyShot(
+  camera: THREE.Camera,
+  lookAt: THREE.Vector3,
+  shot: ShotResult,
+  dt: number,
+  reduced: boolean,
+): boolean {
+  clampShotOcclusion(shot);
+  const k = reduced ? 1 : 1 - Math.exp(-shot.dur * dt);
+  camera.position.lerp(lerpV.set(shot.pos.x, shot.height, shot.pos.z), k);
+  lookAt.lerp(lookV.set(shot.look.x, shot.lookHeight, shot.look.z), k);
+  camera.lookAt(lookAt);
+  return true;
+}
 
 // Third-person camera + cinematic override (GDD §17).
 // GAMEPLAY: pointer-lock orbit, pitch clamp, wheel zoom, shoulder offset,
@@ -106,6 +171,11 @@ export function CameraRig() {
         yaw.current -= look.dx * 0.0042;
         pitch.current = THREE.MathUtils.clamp(pitch.current + look.dy * 0.0028, 0.06, 0.85);
       }
+    } else {
+      // wheel is explicit-consume only since the input janitor took over
+      // endFrame — drain it outside gameplay so it can't pile up into a zoom
+      // jump when control resumes
+      input.consumeWheel();
     }
 
     camState.yaw = yaw.current;
@@ -186,12 +256,30 @@ export function CameraRig() {
           game.setMode('GAMEPLAY');
           return;
         }
-        const k = reduced ? 1 : 1 - Math.exp(-2.6 * dt);
-        camera.position.lerp(lerpV.set(pose.pos[0], pose.pos[1], pose.pos[2]), k);
-        lookAt.current.lerp(lookV.set(pose.look[0], pose.look[1], pose.look[2]), k);
-        camera.lookAt(lookAt.current);
+        // speaker-driven shot first (mentor #2); authored static pose fallback
+        const shot = shotForNode(dialogue.nodeId);
+        if (shot) {
+          applyShot(camera, lookAt.current, shot, dt, reduced);
+        } else {
+          const k = reduced ? 1 : 1 - Math.exp(-2.6 * dt);
+          camera.position.lerp(lerpV.set(pose.pos[0], pose.pos[1], pose.pos[2]), k);
+          lookAt.current.lerp(lookV.set(pose.look[0], pose.look[1], pose.look[2]), k);
+          camera.lookAt(lookAt.current);
+        }
       }
       return;
+    }
+
+    // ---------- dialogue (post-opening NPC conversations) ----------
+    // Mentor feedback #2: NPC talks get real shot framing (close/OTS/two…)
+    // instead of the raw orbit rig. Falls back to the orbit below when no
+    // shot can be resolved (e.g. narrator-only lines with nobody placed).
+    if (game.mode === 'DIALOGUE' && !fp.current) {
+      const shot = shotForNode(dialogue.nodeId);
+      if (shot) {
+        applyShot(camera, lookAt.current, shot, dt, reduced);
+        return;
+      }
     }
 
     // ---------- third person ----------

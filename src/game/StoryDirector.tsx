@@ -11,6 +11,9 @@ import { zoneAt, SCENES } from '../data/world';
 import { NPC_BY_ID } from '../data/npcs';
 import { ZONE_FLAVOR } from '../data/dialogue';
 import { saveGame } from './save';
+import { applyEffects } from './systems/effects';
+import { pickZoneEvent, pickNpcEvent, discoverEvent } from './systems/hiddenEvents';
+import { periodFor } from './systems/time';
 
 const EXPLORE_TARGETS = ['courtyard', 'canteen', 'field', 'back_alley'] as const;
 
@@ -43,6 +46,14 @@ export function StoryDirector() {
         const def = NPC_BY_ID[best.id];
         if (def) {
           useSocial.getState().visit(def.id as never);
+          // hidden npc-moments take priority over the regular dialogue root —
+          // talking to an NPC at the right time can reveal secret content
+          const ev = pickNpcEvent(def.id);
+          if (ev) {
+            discoverEvent(ev);
+            dialogue.open(ev.dialogue);
+            return;
+          }
           dialogue.open(def.dialogueRoot);
           return;
         }
@@ -126,7 +137,58 @@ export function StoryDirector() {
       }
     }
 
+    // ---------- hidden events (mentor #5) ----------
+    // Zone-triggered discoveries. Evaluated every tick (not only on zone
+    // change) because period/chapter requirements can become true while the
+    // player stands still. One-time guard lives inside eventReady.
+    const hidden = pickZoneEvent(game.currentZone);
+    if (hidden) {
+      discoverEvent(hidden);
+      dialogue.open(hidden.dialogue);
+      return;
+    }
+
     if (game.scene !== 'campus') return;
+
+    // ---------- side quest completions (mentor #6) ----------
+    // Optional quests complete through existing world state (zone, period,
+    // flags) — the same pattern as explore_school above.
+    const q = quests.quests;
+    if (q.aris_notes === 'active' && story.flags.includes('studied_once')) {
+      applyEffects([
+        { k: 'quest', id: 'aris_notes', state: 'completed' },
+        { k: 'stat', stat: 'academic', delta: 3 },
+        { k: 'rel', target: 'aris', delta: 2 },
+        { k: 'notify', text: 'Quest selesai: Pinjaman Catatan (Akademik +3)' },
+      ]);
+      return;
+    }
+    if (q.canteen_teh === 'active' && game.currentZone === 'canteen' && periodFor(game.clock.minutes).id === 'lunch') {
+      applyEffects([
+        { k: 'quest', id: 'canteen_teh', state: 'completed' },
+        { k: 'flag', id: 'canteen_teh_done' },
+        { k: 'notify', text: 'Teh dibawa. Pulangkan ke Siti.' },
+      ]);
+      return;
+    }
+    if (q.field_training === 'active' && game.currentZone === 'field' && periodFor(game.clock.minutes).id === 'after') {
+      applyEffects([
+        { k: 'quest', id: 'field_training', state: 'completed' },
+        { k: 'stat', stat: 'violence', delta: 2 },
+        { k: 'hp', delta: 10 },
+        { k: 'notify', text: 'Latihan senja selesai. (Instink +2, Tenaga +10)' },
+      ]);
+      return;
+    }
+    if (q.alley_check === 'active' && (game.currentZone === 'back_alley' || story.flags.includes('alley_mark'))) {
+      applyEffects([
+        { k: 'quest', id: 'alley_check', state: 'completed' },
+        { k: 'flag', id: 'alley_checked' },
+        { k: 'stat', stat: 'diplomacy', delta: 2 },
+        { k: 'notify', text: 'Tanda geng tercatat. Laporkan ke Siti. (Diplomasi +2)' },
+      ]);
+      return;
+    }
 
     // ---------- chapter 1: explore objective ----------
     if (quests.quests.explore_school === 'active' && story.beat === 'ch1_explore') {

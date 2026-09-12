@@ -84,6 +84,23 @@ export type ItemCategory = 'consumable' | 'quest' | 'key' | 'misc';
 
 export type RelationshipDelta = { target: NpcId; delta: number };
 
+// ---------------------------------------------------------------------------
+// Dialogue camera shots (mentor feedback #2). A DialogueShot is resolved at
+// runtime from the speaker/listener world positions (see systems/shot.ts).
+// Nodes reference a preset by key (data/shots.ts SHOT_PRESETS).
+// ---------------------------------------------------------------------------
+export type ShotKind = 'close' | 'medium' | 'wide' | 'ots' | 'two';
+
+export type DialogueShot = {
+  kind: ShotKind;
+  subject?: 'speaker' | 'listener' | 'player'; // default: speaker
+  side?: -1 | 1;      // over-the-shoulder side (default 1)
+  dist?: number;      // camera distance override (m)
+  height?: number;    // camera height override (m)
+  look?: 'subject' | 'midpoint'; // default subject
+  dur?: number;       // smoothing constant (higher = faster settle)
+};
+
 export type Effect =
   | { k: 'flag'; id: string }
   | { k: 'rel'; target: NpcId; delta: number }
@@ -107,11 +124,15 @@ export type Effect =
 export type Condition =
   | { k: 'flag'; id: string; not?: boolean }
   | { k: 'chapter'; id: ChapterId }
+  | { k: 'chapterMin'; id: ChapterId }
   | { k: 'route'; id: Route }
   | { k: 'quest'; id: string; state: QuestState }
   | { k: 'relAbove'; target: NpcId; v: number }
   | { k: 'statAbove'; stat: keyof Stats; v: number }
   | { k: 'focusAbove'; v: number }
+  | { k: 'period'; id: string }        // time-of-day window (systems/time PeriodId)
+  | { k: 'zone'; id: ZoneId }          // player currently inside zone
+  | { k: 'talks'; target: NpcId; v: number } // has talked to NPC >= v times
   | { k: 'and'; all: Condition[] };
 
 export type Choice = {
@@ -136,6 +157,7 @@ export type DialogueNode = {
   effects?: Effect[];
   auto?: boolean; // cinematic: advance with camera beat, still click-to-skip
   end?: boolean;
+  cam?: string; // SHOT_PRESETS key — speaker-driven framing (optional; static CAM_BY_NODE is the fallback)
 };
 
 export type CameraPose = {
@@ -193,6 +215,26 @@ export type QuestDef = {
   desc: string;
   objective: string;
   chapter: ChapterId;
+};
+
+// Hidden/optional interaction (mentor feedback #5). Data-driven; runner lives
+// inside StoryDirector's world scan. Discovered events persist as `he_<id>`
+// story flags — no save-schema change required.
+export type HiddenEventTrigger =
+  | { k: 'zone' }                 // fired on entering the required zone
+  | { k: 'npc' }                  // fired on interacting with the required NPC
+  | { k: 'zone-npc' };            // zone entry while the NPC requirement also matches (reserved)
+
+export type HiddenEventDef = {
+  id: string;
+  title: string;                  // shown in the discovery toast + journal
+  trigger: HiddenEventTrigger;
+  zone?: ZoneId;                  // required zone (trigger k: zone)
+  npc?: NpcId;                    // required NPC (trigger k: npc)
+  period?: string;                // optional time-of-day requirement
+  reqs?: Condition;               // optional extra requirements (flags/rel/stats…)
+  dialogue: string;               // node opened on discovery
+  oneTime?: boolean;              // default true
 };
 
 export type NpcDef = {
