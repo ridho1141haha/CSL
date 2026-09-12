@@ -3,6 +3,7 @@ import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
 import { useGame } from '../../stores/gameStore';
 import { playerPos, npcPositions } from '../runtime';
+import { mobile } from '../mobile';
 import { Figure, makeAnim } from './Character';
 import { NPCS, AMBIENT_STUDENTS, NPC_BY_ID } from '../../data/npcs';
 import { periodFor } from '../systems/time';
@@ -48,13 +49,19 @@ function Student({ home, wander, color, seed }: { home: [number, number]; wander
 // Scheduled main NPCs. Stand at their period waypoint; glide there on change.
 export function Npcs({ hideMain = false }: { hideMain?: boolean }) {
   const nodes = useMemo(() => NPCS.map((def) => ({ def })), []);
+  // v0.5.0 mobile tier: halve the ambient crowd on phones (draw-call budget —
+  // each figure is ~30 meshes; 14 figures ≈ 420 calls is too much for low GPUs)
+  const ambient = useMemo(
+    () => (mobile.lowSpec ? AMBIENT_STUDENTS.filter((_, i) => i % 2 === 0) : AMBIENT_STUDENTS),
+    [],
+  );
 
   return (
     <>
       {!hideMain && nodes.map(({ def }) => (
         <ScheduledNpc key={def.id} id={def.id} />
       ))}
-      {AMBIENT_STUDENTS.map((s, i) => (
+      {ambient.map((s, i) => (
         <Student key={i} home={s.pos} wander={s.wander} color={s.color} seed={i + 1} />
       ))}
     </>

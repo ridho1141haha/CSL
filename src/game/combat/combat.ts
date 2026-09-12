@@ -154,7 +154,7 @@ export function combatTick(
     // free movement + actions
     // BUG-8.1: blocking drains Focus at BLOCK_FOCUS_DRAIN per second. Once
     // Focus hits 0, block auto-releases.
-    const wantBlock = input.mouse.right && player.focus > 0;
+    const wantBlock = (input.mouse.right || input.touch.block) && player.focus > 0;
     if (wantBlock && playerCombat.block) {
       // already blocking — drain Focus
       const cost = BLOCK_FOCUS_DRAIN * dt;

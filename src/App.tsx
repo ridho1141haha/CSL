@@ -14,6 +14,7 @@ import { useInventory } from './stores/inventoryStore';
 import { input } from './game/input';
 import { audio } from './game/audio';
 import { saveGame } from './game/save';
+import { mobile } from './game/mobile';
 import { OPENING_ROOT, OPENING_ACTORS } from './data/chapters';
 import { PLAYER_SPAWN } from './data/world';
 
@@ -30,6 +31,8 @@ import { MainMenu } from './game-ui/MainMenu';
 import { Hud, Notifications, CombatHud } from './game-ui/Hud';
 import { DialogueUI } from './game-ui/DialogueUI';
 import { LoadingScreen, ChapterTransition, GameOverScreen, EndingScreen } from './game-ui/Screens';
+import { TouchControls } from './game-ui/TouchControls';
+import { DiagnosticsChip } from './game-ui/DiagnosticsChip';
 import {
   FullMenu,
   StatusPanel,
@@ -162,9 +165,29 @@ export default function App() {
     <div className="app">
       <Canvas
         camera={{ position: [7, 1.62, 44], fov: 60, near: 0.1, far: 500 }}
-        shadows
-        gl={{ antialias: true, toneMapping: THREE.ACESFilmicToneMapping, toneMappingExposure: 1.0 }}
-        dpr={[1, 2]}
+        shadows={mobile.lowSpec ? 'basic' : true}
+        // v0.5.0 mobile tier: dpr cap 1.5 + antialias off on phones — the v0.4.x
+        // full-fat config (dpr 2 + MSAA + 2048 shadows) could kill the GPU loop
+        // on mid-range Android = the "blank world" report
+        dpr={mobile.dpr}
+        gl={{
+          antialias: !mobile.lowSpec,
+          toneMapping: THREE.ACESFilmicToneMapping,
+          toneMappingExposure: 1.0,
+          powerPreference: 'high-performance',
+        }}
+        onCreated={({ gl }) => {
+          // WebGL context loss recovery — previously a lost context meant a
+          // permanently blank canvas with zero user-visible feedback.
+          gl.domElement.addEventListener('webglcontextlost', (e) => {
+            e.preventDefault(); // allow restore
+            mobile.report('webgl', 'Konteks WebGL hilang — mencoba pulihkan…');
+          });
+          gl.domElement.addEventListener('webglcontextrestored', () => {
+            mobile.contextRecovered = true;
+            mobile.report('webgl', 'Konteks WebGL pulih');
+          });
+        }}
       >
         <color attach="background" args={['#9fb6c9']} />
         <fog attach="fog" args={['#a8bccb', 60, 220]} />
@@ -208,6 +231,8 @@ export default function App() {
       {phase === 'boot' && <LoadingScreen />}
       {sceneLoading && <SceneLoadingOverlay />}
       {fade !== 'none' && <div className={`fade-overlay fade-${fade}`} />}
+      <TouchControls />
+      <DiagnosticsChip />
       {phase === 'menu' && (mode === 'SAVELOAD_MENU' || mode === 'SETTINGS') && (
         <FullMenu title={mode === 'SETTINGS' ? <>PENGATURAN <em>//</em> SISTEM</> : <>MUAT <em>//</em> PERMAINAN</>} onClose={() => useGame.getState().setMode('MAIN_MENU')}>
           {mode === 'SETTINGS' ? <SettingsPanel /> : <SaveLoadPanel />}

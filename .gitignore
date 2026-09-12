@@ -14,3 +14,4 @@ stitch/ref*.jpg
 
 # QA screenshots
 qa-*.png
+qa/

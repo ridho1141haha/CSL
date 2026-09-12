@@ -48,6 +48,48 @@ class Input {
   attached = false;
   pointerLocked = false;
 
+  // ---- touch state (v0.5.0) — written by TouchControls UI, read by gameplay
+  // axes: y>0 = forward, x>0 = right, magnitude ≤ 1 (joystick deflection)
+  touch = {
+    axes: { x: 0, y: 0 },
+    run: false,        // joystick pushed to the rim
+    block: false,      // BLOCK button held (combat)
+    look: { dx: 0, dy: 0 }, // look-drag accumulator (px), consumed by CameraRig
+  };
+
+  // ---- touch injectors (called from DOM pointer events) ----
+  setAxes(x: number, y: number) {
+    this.touch.axes.x = x;
+    this.touch.axes.y = y;
+  }
+  injectPress(a: GameAction) {
+    this.pressed.add(a);
+    this.held.add(a);
+    // auto-release next endFrame via touchHeld cleanup below
+    this.touchAutoRelease.add(a);
+  }
+  injectHeld(a: GameAction, down: boolean) {
+    if (down) {
+      if (!this.held.has(a)) this.pressed.add(a);
+      this.held.add(a);
+    } else {
+      this.held.delete(a);
+    }
+  }
+  injectLeftTap() {
+    this.leftPressed = true;
+    this.pressed.add('attack_light');
+  }
+  /** consume accumulated look delta (px). CameraRig calls once per frame. */
+  consumeLook() {
+    const l = this.touch.look;
+    const out = { dx: l.dx, dy: l.dy };
+    l.dx = 0;
+    l.dy = 0;
+    return out;
+  }
+  private touchAutoRelease = new Set<GameAction>();
+
   // tap detection state
   private shiftDownAt = 0;
   private shiftPendingDodge = false; // true when dodge action should fire on next endFrame
@@ -149,10 +191,6 @@ class Input {
     document.removeEventListener('pointerlockchange', this.onLockChange);
   }
 
-  isDown(a: GameAction) {
-    return this.held.has(a);
-  }
-
   justPressed(a: GameAction) {
     return this.pressed.has(a);
   }
@@ -164,6 +202,22 @@ class Input {
     this.rightPressed = false;
     this.wheel = 0;
     this.shiftPendingDodge = false;
+    // one-shot touch actions auto-release after systems had a chance to read
+    for (const a of this.touchAutoRelease) this.held.delete(a);
+    this.touchAutoRelease.clear();
+  }
+
+  /** isDown with touch fallback — movement/run read both sources. */
+  isDown(a: GameAction) {
+    if (this.held.has(a)) return true;
+    switch (a) {
+      case 'forward': return this.touch.axes.y > 0.3;
+      case 'back': return this.touch.axes.y < -0.3;
+      case 'left': return this.touch.axes.x < -0.3;
+      case 'right': return this.touch.axes.x > 0.3;
+      case 'run': return this.touch.run;
+      default: return false;
+    }
   }
 
   consumeWheel() {

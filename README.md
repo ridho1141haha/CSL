@@ -5,7 +5,7 @@
 **Live demo:** https://csl-henna.vercel.app/
 
 **Genre:** Action-Adventure + Narrative + Social Simulation  
-**Platform:** Desktop browser (Chrome/Edge/Firefox), keyboard + mouse  
+**Platform:** Desktop (keyboard + mouse) & **mobile browser** (touch: virtual joystick + camera drag + action buttons)  
 **Stack:** React 18 + TypeScript + Vite + React Three Fiber + Drei + Rapier + Zustand
 
 ---
@@ -15,7 +15,7 @@
 1. Open https://csl-henna.vercel.app/ in a desktop browser.
 2. Click **NEW GAME** to start the opening cinematic.
 3. After the cinematic, click anywhere to engage pointer lock (mouse look).
-4. **WASD** move · **Shift** run (hold) / dodge (tap) · **Space** jump · **Mouse** camera orbit
+4. **WASD** move · **Shift** run (hold) / dodge (tap) · **Space** jump · **Mouse** camera orbit — di HP: joystick kiri (jalan/lari), geser layar kanan (kamera), tombol E/↑/ATK/BLK
 5. **LMB** light attack · **Q** heavy attack · **RMB** block · **E** interact
 6. **Tab/R/M/I/J/P/O** status / relationships / map / inventory / quests / phone / save-load
 7. **Esc** pause
@@ -56,7 +56,8 @@ CSL/
 │   ├── data/                 # content only (dialogue, chapters, quests, npcs, world, items)
 │   ├── stores/               # 9 Zustand stores (game/player/stats/story/social/quest/inventory/dialogue/combat/settings)
 │   ├── game/
-│   │   ├── input.ts          # keyboard/mouse abstraction (held + just-pressed + tap-vs-hold)
+│   │   ├── input.ts          # keyboard/mouse/touch abstraction (held + just-pressed + tap-vs-hold + virtual axes)
+│   │   ├── mobile.ts         # device tier + render diagnostics + watchdog
 │   │   ├── audio.ts          # WebAudio procedural synth (5 buses)
 │   │   ├── save.ts           # versioned localStorage save (v2 + v1 migration)
 │   │   ├── runtime.ts        # per-frame mutable state (outside React)

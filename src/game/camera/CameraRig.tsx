@@ -7,6 +7,7 @@ import { useSettings } from '../../stores/settingsStore';
 import { useDialogue } from '../../stores/dialogueStore';
 import { useStory } from '../../stores/storyStore';
 import { playerPos, camState, occluders } from '../runtime';
+import { mobile } from '../mobile';
 import { CAMERA_POSES } from '../../data/world';
 import { CAM_BY_NODE } from '../../data/chapters';
 
@@ -89,11 +90,23 @@ export function CameraRig() {
   }, []);
 
   useFrame((_, deltaRaw) => {
+    // render-loop heartbeat — DiagnosticsChip watches this to detect a dead
+    // WebGL loop (the v0.4.x mobile "blank world" failure mode)
+    mobile.markFrame();
     const dt = Math.min(deltaRaw, 0.05);
     const game = useGame.getState();
     const settings = useSettings.getState();
     const dialogue = useDialogue.getState();
     const story = useStory.getState();
+
+    // touch look-drag (v0.5.0): works in GAMEPLAY/COMBAT, same feel as mouse drag
+    if (game.mode === 'GAMEPLAY' || game.mode === 'COMBAT') {
+      const look = input.consumeLook();
+      if (look.dx || look.dy) {
+        yaw.current -= look.dx * 0.0042;
+        pitch.current = THREE.MathUtils.clamp(pitch.current + look.dy * 0.0028, 0.06, 0.85);
+      }
+    }
 
     camState.yaw = yaw.current;
     const reduced = settings.reducedMotion;

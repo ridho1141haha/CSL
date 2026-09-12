@@ -1,4 +1,5 @@
 import { Sky, Environment, Lightformer } from '@react-three/drei';
+import { mobile } from '../mobile';
 import { useGame } from '../../stores/gameStore';
 import { CampusWorld } from './CampusWorld';
 import { RooftopWorld } from './RooftopWorld';
@@ -29,7 +30,7 @@ function CampusScene() {
         intensity={2.5}
         color="#fff3dd"
         castShadow
-        shadow-mapSize={[2048, 2048]}
+        shadow-mapSize={[mobile.shadowMapSize, mobile.shadowMapSize]}
         shadow-camera-near={1}
         shadow-camera-far={240}
         shadow-camera-left={-75}
@@ -66,7 +67,7 @@ function RooftopScene() {
         intensity={2.9}
         color="#fff7e6"
         castShadow
-        shadow-mapSize={[2048, 2048]}
+        shadow-mapSize={[mobile.shadowMapSize, mobile.shadowMapSize]}
         shadow-camera-near={1}
         shadow-camera-far={180}
         shadow-camera-left={-45}

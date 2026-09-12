@@ -1,5 +1,37 @@
 # Changelog
 
+## 0.5.0 — 2026-09-12 (mobile rescue pack + character overhaul)
+
+### Fixed — CRITICAL: blank world on mobile (root cause found)
+- **Troika `<Text>` name tags fetched a Roboto webfont from a CDN at runtime.** On phone networks the fetch hangs → the component suspends with no `Suspense` boundary between `<Physics>` and the NPC list → React hides the ENTIRE canvas subtree → sky-colored blank world while the DOM dialogue kept working (exactly the reported screenshot). Name tags are now **canvas-sprite based** (`NameTagSprite`): zero network, zero suspense, amber-bordered dossier style.
+- Previously-suspected GPU overload is now ALSO handled (belt & suspenders):
+  - `game/mobile.ts` device tiering — phones get dpr ≤1.5, antialias off, `'basic'` shadows, 1024px shadow maps, reduced geometry segments, half the ambient crowd.
+  - `webglcontextlost` handler with `preventDefault()` + recovery reporting (was: permanent silent death).
+  - Render-loop watchdog (`mobile.markFrame` petted by `CameraRig`): a dead loop surfaces a "RENDER TERHENTI — MUAT ULANG" chip instead of a silent freeze.
+  - `DiagnosticsChip`: JS errors / unhandled rejections / context loss print as a small on-screen mono line — blank screens can never be information-less again.
+
+### Added — touch controls
+- `game-ui/TouchControls.tsx`: virtual joystick (walk; rim = run), right-half camera drag pad, action cluster (E/↑ in gameplay; ATK/HEV/BLK/DGE in combat), top-right pause, landscape suggestion in portrait.
+- `input.ts` extended: touch axes merged into `isDown()` (movement/run read both keyboard and joystick), action injectors, per-frame look-delta consumed by `CameraRig`.
+
+### Changed — character overhaul (stylized-realistic + PBR)
+- `npc/Character.tsx`: shared procedural **fabric weave normal + roughness maps** (one 128px texture set cached across all figures), material cache keyed by color/kind, upgraded silhouette (flattened chest capsule, hips block, neck, shoulder caps), detailed face (sclera + iris + catchlight, nose, mouth), pleated skirt with hem band, socks + soled shoes, button details.
+- Tier-aware: shadow casting off + reduced segment counts on phones; draw-call budget halved for ambient students (`Npcs` filters every other ambient on low tier).
+
+### QA
+- `scripts/qa-mobile.mjs` + `scripts/qa-landscape.mjs` (Playwright, Pixel 7 emulation): menu → prolog → dialogue → world render verified, 0 console errors; landscape choice UI + pause verified.
+- Test suite: **58/58** (6 new tier-classification tests).
+
+## 0.4.0 — 2026-09-12 (Stitch-style UI overhaul + cleanup)
+
+### Added
+- **Design system "STITCH"** (dark terminal dossier): panel #111319, amber/red/cyan accents, Anton + JetBrains Mono + Space Grotesk, corner brackets, chips, segmented bars — applied to MainMenu, HUD, DialogueUI, all FullMenu panels, loading/game-over/ending screens; UI copy localized to Indonesian.
+- FullMenu titles as dual-tone "X // Y" with per-menu eyebrow labels.
+
+### Removed
+- Unused assets: old school GLBs (×2), char.glb, all NPC GLB + preview files (14), stitch generator scripts (4).
+
+
 ## 0.3.1 — 2026-09-11 (PBR pass + blank-screen hotfix)
 
 ### Fixed
