@@ -28,8 +28,9 @@ export function TouchControls() {
   const mode = useGame((s) => s.mode);
   const setMode = useGame((s) => s.setMode);
   const show = mobile.touch && phase === 'play';
-  const [stick, setStick] = useState<{ active: boolean; ox: number; oy: number; kx: number; ky: number }>({ active: false, ox: 0, oy: 0, kx: 0, ky: 0 });
+  const [stick, setStick] = useState<{ active: boolean; ox: number; oy: number }>({ active: false, ox: 0, oy: 0 });
   const stickId = useRef<number | null>(null);
+  const nubRef = useRef<HTMLDivElement>(null);
   const lookId = useRef<number | null>(null);
   const lookLast = useRef({ x: 0, y: 0 });
 
@@ -57,7 +58,10 @@ export function TouchControls() {
     const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
     const ox = rect.left + rect.width / 2;
     const oy = rect.top + rect.height / 2;
-    setStick({ active: true, ox, oy, kx: 0, ky: 0 });
+    setStick({ active: true, ox, oy });
+    if (nubRef.current) {
+      nubRef.current.style.transform = `translate(0px, 0px)`;
+    }
   };
   const onStickMove = (e: React.PointerEvent) => {
     if (stickId.current !== e.pointerId || !stick.active) return;
@@ -69,7 +73,9 @@ export function TouchControls() {
       dx = (dx / len) * max;
       dy = (dy / len) * max;
     }
-    setStick((s) => ({ ...s, kx: dx, ky: dy }));
+    if (nubRef.current) {
+      nubRef.current.style.transform = `translate(${dx}px, ${dy}px)`;
+    }
     // axes: screen y-down → game y-up forward
     input.setAxes(dx / max, -dy / max);
     input.touch.run = len > max * 0.92;
@@ -77,7 +83,10 @@ export function TouchControls() {
   const onStickUp = (e: React.PointerEvent) => {
     if (stickId.current !== e.pointerId) return;
     stickId.current = null;
-    setStick((s) => ({ ...s, active: false, kx: 0, ky: 0 }));
+    setStick((s) => ({ ...s, active: false }));
+    if (nubRef.current) {
+      nubRef.current.style.transform = `translate(0px, 0px)`;
+    }
     input.setAxes(0, 0);
     input.touch.run = false;
   };
@@ -123,7 +132,7 @@ export function TouchControls() {
           onPointerCancel={onStickUp}
         >
           <div className="tc-stick-ring" />
-          <div className="tc-stick-nub" style={{ transform: `translate(${stick.kx}px, ${stick.ky}px)` }} />
+          <div className="tc-stick-nub" ref={nubRef} style={{ transform: `translate(0px, 0px)` }} />
         </div>
       )}
 
