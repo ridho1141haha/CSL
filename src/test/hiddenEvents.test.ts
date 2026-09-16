@@ -58,10 +58,10 @@ describe('zone-triggered events', () => {
     expect(pickZoneEvent('field')?.id).toBe('he_field_gloves');
   });
 
-  it('classroom desk carving requires the helped_aris choice', () => {
+  it('classroom desk carving requires the defended_aris choice (v0.7.0)', () => {
     useGame.getState().setCurrentZone('classroom');
     expect(pickZoneEvent('classroom')).toBeNull();
-    useStory.getState().setFlag('helped_aris');
+    useStory.getState().setFlag('defended_aris');
     expect(pickZoneEvent('classroom')?.id).toBe('he_classroom_desk');
   });
 

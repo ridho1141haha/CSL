@@ -8,70 +8,58 @@ const N = (n: DialogueNode) => n;
 export const DIALOGUE: Record<string, DialogueNode> = Object.fromEntries(
   [
     // ============================================================
-    // OPENING — Chapter 1 (first-person cinematic)
+    // OPENING v0.7.0 — "Minggu Pertama: Pria Tanpa Wajah"
+    // Alur opening baru yang LEBIH LAMBAT (GDD §"Alur yang lebih lambat"):
+    // empat scene pertama minggu Ren di SMA Yuson — gerbang & map merah,
+    // meja baris belakang (Aris), peringatan di lorong (Siti), lalu
+    // bisik-bisik kantin & kemunculan Bimo. First-person cinematic.
     // ============================================================
-    N({ id: 'o1_1', speaker: 'REN', portrait: 'ren', emotion: 'calm', text: 'SMA Yuson. Sekolah baru.', next: 'o1_2' }),
-    N({ id: 'o1_2', speaker: 'REN', portrait: 'ren', emotion: 'calm', text: 'Rencananya sederhana. Nilai aman, tidak cari masalah, lulus, pergi.', next: 'o1_3' }),
-    N({ id: 'o1_3', speaker: 'REN', portrait: 'ren', emotion: 'calm', text: 'Cukup lihat. Jangan ikut campur.', next: 'o2_1' }),
 
-    N({ id: 'o2_1', speaker: 'NARATOR', portrait: 'narrator', text: 'Pagar yang sedikit lapuk. Lukisan dinding yang setengah terhapus. Tapi sekolahnya tetap berjalan seperti biasa.', next: 'o2_2' }),
-    N({ id: 'o2_2', speaker: 'NARATOR', portrait: 'narrator', text: 'Hanya saja... beberapa siswa berjalan seolah sedang menghindari sesuatu. Berbisik. Lalu diam.', next: 'o3_1' }),
+    // ---- Scene 1: Gerbang & Map Merah ----
+    N({ id: 'o1_1', speaker: 'NARATOR', portrait: 'narrator', text: 'Gerbang SMA Yuson, pagi hari. Pagar besi karatan, dan bau cat semprot mural yang masih menempel di tembok luar.', next: 'o1_2' }),
+    N({ id: 'o1_2', speaker: 'NARATOR', portrait: 'narrator', text: 'Murid-murid berjalan terburu-buru sambil menunduk. Ada rasa cemas yang menggantung di udara.', next: 'o1_3' }),
+    N({ id: 'o1_3', speaker: 'REN', portrait: 'ren', emotion: 'calm', text: 'Di tanganku, map merah: surat pindah sekolah dan lembar penilaian akademisku yang hampir sempurna.', next: 'o1_4' }),
+    N({ id: 'o1_4', speaker: 'REN', portrait: 'ren', emotion: 'calm', text: 'SMA Yuson. Cuma perlu bertahan satu tahun.', next: 'o1_5' }),
+    N({ id: 'o1_5', speaker: 'REN', portrait: 'ren', emotion: 'calm', text: 'Jaga nilai tetap di atas delapan puluh, jangan cari masalah, ambil ijazah, lalu pergi dari tempat ini.', next: 'o1_6' }),
+    N({ id: 'o1_6', speaker: 'REN', portrait: 'ren', emotion: 'calm', text: 'Cukup lihat. Jangan ikut campur.', next: 'o2_1' }),
 
-    N({ id: 'o3_1', speaker: 'NARATOR', portrait: 'narrator', text: 'Di sisi halaman, dua siswa mengepung satu anak. Buku-bukunya dijatuhkan ke tanah.', next: 'o3_2' }),
-    N({ id: 'o3_2', speaker: 'BULLY', portrait: 'bully', emotion: 'tense', text: 'Kamu lambat lagi, Aris. Bukuimu juga lambat.', next: 'o3_3' }),
-    N({ id: 'o3_3', speaker: 'ARIS', portrait: 'aris', emotion: 'worried', text: 'T-tolong... itu catatan ujianku...', next: 'o3_4' }),
-    N({ id: 'o3_4', speaker: 'REN', portrait: 'ren', emotion: 'neutral', text: '...Bukan urusanku. Jangan ikut campur. Nilai. Lulus. Pergi.', next: 'o3_choice' }),
+    // ---- Scene 2: Meja Baris Belakang ----
+    N({ id: 'o2_1', speaker: 'NARATOR', portrait: 'narrator', text: 'Kelas 11-B, siang hari. Kipas angin gantung berderit pelan. Ren duduk di sudut belakang dekat jendela — posisi ideal untuk tidak terlihat.', next: 'o2_2' }),
+    N({ id: 'o2_2', speaker: 'NARATOR', portrait: 'narrator', text: 'Teman sebangkunya, seorang anak bertubuh ringkih, membungkuk di atas buku catatannya yang tebal. Aris.', next: 'o2_3' }),
+    N({ id: 'o2_3', speaker: 'NARATOR', portrait: 'narrator', text: 'Dua murid berbadan besar lewat di samping meja mereka — dan sengaja menyenggol kursi Aris sampai pulpennya jatuh. Aris buru-buru memungutnya tanpa bersuara.', next: 'o2_4' }),
+    N({ id: 'o2_4', speaker: 'REN', portrait: 'ren', emotion: 'neutral', text: 'Ren melihatnya. Lalu memilih terus mencatat materi guru di papan tulis.', next: 'o2_5' }),
+    N({ id: 'o2_5', speaker: 'ARIS', portrait: 'aris', emotion: 'worried', text: '(Berbisik ragu sambil menyodorkan penghapus) N-nih... kalau butuh. Kamu murid baru yang dari kota itu, kan?', next: 'o2_6' }),
+    N({ id: 'o2_6', speaker: 'REN', portrait: 'ren', emotion: 'calm', text: '(Menerima tanpa menoleh dari catatannya) Makasih. Namaku Ren.', next: 'o2_7' }),
+    N({ id: 'o2_7', speaker: 'ARIS', portrait: 'aris', emotion: 'neutral', text: 'Aku Aris. Kalau ada materi Pak Budi yang kelewat, kamu bisa lihat catatanku kok.', next: 'o2_8' }),
+    N({ id: 'o2_8', speaker: 'REN', portrait: 'ren', emotion: 'calm', text: 'Satu bangku di sudut, satu teman sebangku yang takut pada sekolahnya sendiri. Tahun ini aku cuma butuh dua hal itu.', next: 'o3_1' }),
 
-    N({
-      id: 'o3_choice',
-      speaker: 'REN',
-      portrait: 'ren',
-      emotion: 'tense',
-      text: 'Tapi kalau aku berjalan terus...',
-      choices: [
-        {
-          id: 'help_aris',
-          text: '[A] Bantu Aris mengumpulkan bukunya',
-          next: 'o_help_1',
-          effects: [
-            { k: 'flag', id: 'helped_aris' },
-            { k: 'rel', target: 'aris', delta: 4 },
-            { k: 'stat', stat: 'diplomacy', delta: 3 },
-          ],
-        },
-        {
-          id: 'walk_past',
-          text: '[B] Berjalan terus',
-          next: 'o_walk_1',
-          effects: [
-            { k: 'flag', id: 'ignored_aris' },
-            { k: 'rel', target: 'aris', delta: -2 },
-          ],
-        },
-      ],
-    }),
+    // ---- Scene 3: Peringatan Pertama di Lorong ----
+    N({ id: 'o3_1', speaker: 'NARATOR', portrait: 'narrator', text: 'Waktu istirahat. Ren hendak ke perpustakaan. Di lorong, seorang siswi ber-nametag OSIS sedang mencatat nama-nama murid yang membolos dekat tangga.', next: 'o3_2' }),
+    N({ id: 'o3_2', speaker: 'SITI', portrait: 'siti', emotion: 'firm', text: 'Kamu murid baru yang nilai transfernya tinggi itu, kan? Ren?', next: 'o3_3' }),
+    N({ id: 'o3_3', speaker: 'REN', portrait: 'ren', emotion: 'neutral', text: 'Iya.', next: 'o3_4' }),
+    N({ id: 'o3_4', speaker: 'SITI', portrait: 'siti', emotion: 'firm', text: 'Saran saja. Kalau habis jam sekolah, langsung pulang. Jangan lewat gang belakang kantin, dan kalau lihat keributan di halaman... balik badan.', next: 'o3_5' }),
+    N({ id: 'o3_5', speaker: 'SITI', portrait: 'siti', emotion: 'firm', text: 'Sekolah ini tidak punya hukum buat melindungi anak pintar.', next: 'o3_6' }),
+    N({ id: 'o3_6', speaker: 'REN', portrait: 'ren', emotion: 'calm', text: 'Memang dari awal aku tidak berniat cari masalah.', next: 'o3_7' }),
+    N({ id: 'o3_7', speaker: 'SITI', portrait: 'siti', emotion: 'neutral', text: 'Bagus kalau paham. Tapi di Yuson, kadang masalah yang mencarimu.', next: 'o4_1' }),
 
-    N({ id: 'o_help_1', speaker: 'NARATOR', portrait: 'narrator', text: 'Ren berhenti. Berjongkok. Mengumpulkan buku-buku yang berserak.', next: 'o_help_2' }),
-    N({ id: 'o_help_2', speaker: 'REN', portrait: 'ren', emotion: 'calm', text: 'Bukumu. Aku tidak berani apa-apa. Tapi berjalan terus rasanya... salah.', next: 'o4_1' }),
+    // ---- Scene 4: Bisik-Bisik & Pengenalan Bimo ----
+    N({ id: 'o4_1', speaker: 'NARATOR', portrait: 'narrator', text: 'Kantin sekolah, sore menjelang jam pulang. Ren duduk sendirian di meja sudut, membaca ulang catatannya.', next: 'o4_2' }),
+    N({ id: 'o4_2', speaker: 'NARATOR', portrait: 'narrator', text: 'Di meja sebelah, dua murid kelas 10 berbisik-bisik cemas.', next: 'o4_3' }),
+    N({ id: 'o4_3', speaker: 'MURID A', portrait: 'generic', emotion: 'worried', text: 'Eh, kamu tahu belum? Geng anak SMA 4 kemarin coba-coba masuk ke parkiran belakang sekolah kita.', next: 'o4_4' }),
+    N({ id: 'o4_4', speaker: 'MURID B', portrait: 'generic', emotion: 'worried', text: 'Terus gimana? Ditegur sama guru piket?', next: 'o4_5' }),
+    N({ id: 'o4_5', speaker: 'MURID A', portrait: 'generic', emotion: 'worried', text: 'Mana ada guru yang berani ke sana. Bimo sendiri yang turun tangan sama dua temennya. Enggak nyampe lima menit, anak-anak SMA 4 lari kocar-kacir.', next: 'o4_6' }),
+    N({ id: 'o4_6', speaker: 'MURID A', portrait: 'generic', emotion: 'worried', text: 'Katanya kapten mereka sampai enggak bisa ikut latihan seminggu.', next: 'o4_7' }),
+    N({ id: 'o4_7', speaker: 'MURID B', portrait: 'generic', emotion: 'worried', text: 'Seriusan...? Padahal Bimo jarang kelihatan berantem langsung di depan umum.', next: 'o4_8' }),
+    N({ id: 'o4_8', speaker: 'MURID A', portrait: 'generic', emotion: 'worried', text: 'Justru itu. Dia enggak perlu teriak-teriak atau pamer. Sekali dia ngomong atau nunjuk orang, anak buahnya yang bakal eksekusi.', next: 'o4_9' }),
+    N({ id: 'o4_9', speaker: 'MURID A', portrait: 'generic', emotion: 'worried', text: 'Jangan pernah cari urusan sama Bimo, atau nama kamu hilang dari daftar hadir.', next: 'o4_10' }),
+    N({ id: 'o4_10', speaker: 'REN', portrait: 'ren', emotion: 'tense', text: '(Bimo... jadi nama itu yang bikin satu sekolah jalan sambil menunduk.)', next: 'o4_11' }),
+    N({ id: 'o4_11', speaker: 'REN', portrait: 'ren', emotion: 'tense', text: '(Penguasa geng sekolah. Mending menjauh dari awal — jangan sampai namaku masuk radar mereka.)', next: 'o4_12' }),
+    N({ id: 'o4_12', speaker: 'NARATOR', portrait: 'narrator', text: 'Tiba-tiba gelombang keheningan menyebar dari arah pintu masuk kantin. Gelak tawa di meja depan terhenti seketika. Kedua murid di sebelah Ren langsung bungkam dan menunduk dalam-dalam.', next: 'o4_13' }),
+    N({ id: 'o4_13', speaker: 'NARATOR', portrait: 'narrator', text: 'Bimo melangkah masuk, diikuti tiga pengikutnya. Santai, tanpa ekspresi, tangan di saku celana. Kehadirannya seolah menyedot seluruh keributan di ruangan itu.', next: 'o4_14' }),
+    N({ id: 'o4_14', speaker: 'NARATOR', portrait: 'narrator', text: 'Ia tidak bicara, tidak membentak. Tapi saat melintas, Bimo sempat menoleh melihat Ren — lebih lama dari yang perlu.', next: 'o5_1' }),
 
-    N({ id: 'o_walk_1', speaker: 'NARATOR', portrait: 'narrator', text: 'Ren mempercepat langkah. Pandangannya lurus ke depan. Suara tawa kecil di belakangnya.', next: 'o_walk_2' }),
-    N({ id: 'o_walk_2', speaker: 'REN', portrait: 'ren', emotion: 'neutral', text: 'Aku di sini untuk lulus. Bukan untuk jadi pahlawan.', next: 'o4_1' }),
-
-    N({ id: 'o4_1', speaker: 'SITI', portrait: 'siti', emotion: 'firm', text: 'Berhenti. Sekarang.', next: 'o4_2' }),
-    N({ id: 'o4_2', speaker: 'SITI', portrait: 'siti', emotion: 'firm', text: 'Kalau kalian ingin mencari masalah, cari saja aku di ruang OSIS. Di sini, tidak.', next: 'o4_3' }),
-    N({ id: 'o4_3', speaker: 'BULLY', portrait: 'bully', emotion: 'tense', text: 'Che... OSIS memang. Pergi sana, Aris. Hari ini cuma pemanasan.', next: 'o4_4' }),
-    N({ id: 'o4_4', speaker: 'NARATOR', portrait: 'narrator', text: 'Kedua anak itu pergi tanpa menghadap Siti. Siti berjongkok, merapikan buku Aris.', next: 'o5_1' }),
-
-    N({ id: 'o5_1', speaker: 'ARIS', portrait: 'aris', emotion: 'worried', text: 'Ren... tadi. Makasih, ya.', next: 'o5_2' }),
-    N({ id: 'o5_2', speaker: 'SITI', portrait: 'siti', emotion: 'neutral', text: 'Kamu yang murid pindahan? Ren, kan? Siti. Kalau di Yuson, jangan jalan sendirian di belakang kantin.', next: 'o5_3' }),
-    N({ id: 'o5_3', speaker: 'SITI', portrait: 'siti', emotion: 'firm', text: 'Beberapa jalur itu... bukan sekadar jalur. Jaga nilaimu, dan jaga temanmu.', next: 'o6_1' }),
-
-    N({ id: 'o6_1', speaker: 'NARATOR', portrait: 'narrator', text: 'Sore menjelang. Di dekat kantin belakang, kerumunan siswa tiba-tiba menipis.', next: 'o6_2' }),
-    N({ id: 'o6_2', speaker: 'NARATOR', portrait: 'narrator', text: 'Seorang siswa berjalan santai, diikuti tiga anak. Tidak ada yang berani berpapasan dengannya.', next: 'o6_3' }),
-    N({ id: 'o6_3', speaker: 'NARATOR', portrait: 'narrator', text: 'Bimo. Ia tidak bicara, tidak mengejar, tidak mengancam. Ia hanya melihat Ren — lebih lama dari yang perlu.', next: 'o6_4' }),
-    N({ id: 'o6_4', speaker: 'REN', portrait: 'ren', emotion: 'tense', text: '...Sepertinya aku baru saja dicatat.', next: 'o7_1' }),
-
-    N({ id: 'o7_1', speaker: 'REN', portrait: 'ren', emotion: 'calm', text: 'Orientasi dulu. Jaga nilai. Jangan cari masalah.', effects: [{ k: 'flag', id: 'opening_complete' }], end: true }),
+    // ---- Penutup opening: transisi ke gameplay (Hub Area) ----
+    N({ id: 'o5_1', speaker: 'REN', portrait: 'ren', emotion: 'tense', text: '...Sepertinya aku sempat menarik perhatiannya. Jangan pedulikan. Jaga nilai. Jangan cari masalah.', effects: [{ k: 'flag', id: 'opening_complete' }], end: true }),
 
     // ============================================================
     // NPC AMBIENT DIALOGUE — v0.6 rework (mentor feedback #1 & #4)
@@ -194,6 +182,12 @@ export const DIALOGUE: Record<string, DialogueNode> = Object.fromEntries(
           next: 'siti_rep_1',
           condition: { k: 'and', all: [{ k: 'statAbove', stat: 'reputation', v: 15 }, { k: 'flag', id: 'siti_rep_talk', not: true }] },
         },
+        {
+          id: 'siti_neu',
+          text: 'Soal Aris... aku masih memikirkannya.',
+          next: 'siti_neu_1',
+          condition: { k: 'and', all: [{ k: 'route', id: 'neutral' }, { k: 'chapterMin', id: 3 as const }, { k: 'flag', id: 'siti_neu_talk', not: true }] },
+        },
         { id: 'siti_bye', text: 'Sampai nanti.', end: true },
       ],
     }),
@@ -206,6 +200,8 @@ export const DIALOGUE: Record<string, DialogueNode> = Object.fromEntries(
     N({ id: 'siti_teh_2', speaker: 'SITI', portrait: 'siti', emotion: 'warm', text: 'Bukan perintah OSIS. Permintaan orang yang belum sarapan. Itu saja.', end: true }),
     N({ id: 'siti_teh_thanks', speaker: 'SITI', portrait: 'siti', emotion: 'warm', text: 'Tehnya… kamu benar-benar ingat. Ren, kamu tipe yang bisa diandalkan. Dan kalimatku itu tidak murah.', effects: [{ k: 'rel', target: 'siti', delta: 3 }, { k: 'flag', id: 'siti_teh_thanks' }, { k: 'notify', text: 'Siti mulai percaya pada Ren. (Rel Siti +3)' }], end: true }),
     N({ id: 'siti_rep_1', speaker: 'SITI', portrait: 'siti', emotion: 'firm', text: 'Namamu mulai disebut di luar kelas. Semoga karena hal yang benar. Yuson mengingat dua jenis orang: yang melindungi, dan yang menyerang.', effects: [{ k: 'flag', id: 'siti_rep_talk' }, { k: 'rel', target: 'siti', delta: 1 }], end: true }),
+    N({ id: 'siti_neu_1', speaker: 'SITI', portrait: 'siti', emotion: 'firm', text: 'Sekarang baru memikirkannya? Aris mengajukan pengunduran diri, Ren. Anak itu menyerah pada sekolah ini — dan kamu mendapat nilai sempurna.', next: 'siti_neu_2' }),
+    N({ id: 'siti_neu_2', speaker: 'SITI', portrait: 'siti', emotion: 'dark', text: 'Kadang aku tidak tahu mana yang lebih dingin: geng yang menghajar, atau teman sebangku yang berjalan terus.', effects: [{ k: 'flag', id: 'siti_neu_talk' }, { k: 'rel', target: 'siti', delta: -2 }], end: true }),
     N({ id: 'siti_form_1', speaker: 'SITI', portrait: 'siti', emotion: 'neutral', text: 'Hmm... tolong antarkan formulir OSIS ini ke Pak Budi di ruang guru, ya. Aku harus siapkan rapat.', effects: [{ k: 'item', id: 'osis_form' }, { k: 'quest', id: 'osis_form', state: 'active' }, { k: 'flag', id: 'osis_form_given' }, { k: 'notify', text: 'Quest baru: Bantuan Siti' }], next: 'siti_form_2' }),
     N({ id: 'siti_form_2', speaker: 'SITI', portrait: 'siti', emotion: 'warm', text: 'Terima kasih, Ren. Kamu tipe yang bisa diandalkan.', end: true }),
     N({ id: 'siti_chat_1', speaker: 'SITI', portrait: 'siti', emotion: 'neutral', text: 'Ingat: nilai baik itu perisai. Lebih kuat dari apapun di sekolah ini. Kalau kamu ragu, mulai dari belajar.', effects: [{ k: 'stat', stat: 'diplomacy', delta: 1 }], end: true }),
@@ -237,6 +233,12 @@ export const DIALOGUE: Record<string, DialogueNode> = Object.fromEntries(
           next: 'bimo_res_1',
           condition: { k: 'and', all: [{ k: 'route', id: 'resistance' }, { k: 'flag', id: 'bimo_res_talk', not: true }] },
         },
+        {
+          id: 'bimo_neu',
+          text: 'Kita pernah bertemu di kantin.',
+          next: 'bimo_neu_1',
+          condition: { k: 'and', all: [{ k: 'route', id: 'neutral' }, { k: 'chapterMin', id: 3 as const }, { k: 'flag', id: 'bimo_neu_talk', not: true }] },
+        },
         { id: 'bimo_bye', text: '(Menjauh tanpa bicara)', end: true },
       ],
     }),
@@ -246,6 +248,8 @@ export const DIALOGUE: Record<string, DialogueNode> = Object.fromEntries(
     N({ id: 'bimo_imp_2', speaker: 'BIMO', portrait: 'bimo', emotion: 'dark', text: 'Yang panik mengelompok. Yang tenang berjalan sendiri. Simpan kalimat itu. Nanti kupakai lagi.', effects: [{ k: 'flag', id: 'bimo_imp_talk' }, { k: 'rel', target: 'bimo', delta: 2 }], end: true }),
     N({ id: 'bimo_bad_1', speaker: 'BIMO', portrait: 'bimo', emotion: 'dark', text: 'Kau keluarga sekarang. Aturan satu: tidak ada yang memikul sendirian. Aturan dua kuterus nanti.', effects: [{ k: 'flag', id: 'bimo_bad_talk' }, { k: 'rel', target: 'bimo', delta: 2 }], end: true }),
     N({ id: 'bimo_res_1', speaker: 'BIMO', portrait: 'bimo', emotion: 'dark', text: 'Kau menolak dengan sopan. Itu yang membuatku penasaran. Orang sopan biasanya paling berbahaya saat terpojok.', effects: [{ k: 'flag', id: 'bimo_res_talk' }, { k: 'rel', target: 'bimo', delta: -2 }], end: true }),
+    N({ id: 'bimo_neu_1', speaker: 'BIMO', portrait: 'bimo', emotion: 'dark', text: 'Anak yang diam itu. Nilaimu tinggi, mulutmu tutup. Di Yuson, kombinasi itu namanya aman.', next: 'bimo_neu_2' }),
+    N({ id: 'bimo_neu_2', speaker: 'BIMO', portrait: 'bimo', emotion: 'dark', text: 'Jangan berubah. Orang yang berubah di sini biasanya berubah ke arah yang salah.', effects: [{ k: 'flag', id: 'bimo_neu_talk' }, { k: 'rel', target: 'bimo', delta: 1 }], end: true }),
 
     // ---- PAK BUDI ----
     N({
@@ -285,17 +289,155 @@ export const DIALOGUE: Record<string, DialogueNode> = Object.fromEntries(
     N({ id: 'budi_form_done', speaker: 'PAK BUDI', portrait: 'budi', emotion: 'neutral', text: 'Formulir OSIS? Saya terima. Sampaikan ke Siti, kerjanya rapi.', effects: [{ k: 'item', id: 'osis_form', remove: true }, { k: 'quest', id: 'osis_form', state: 'completed' }, { k: 'flag', id: 'osis_form_done' }, { k: 'rel', target: 'siti', delta: 3 }, { k: 'rel', target: 'budi', delta: 2 }, { k: 'stat', stat: 'diplomacy', delta: 2 }, { k: 'stat', stat: 'reputation', delta: 4 }, { k: 'notify', text: 'Formulir terkirim. Siti menghargai itu. (Rel Siti +3)' }], end: true }),
 
     // ============================================================
-    // CHAPTER 2 — Gesekan Pertama & Pengamatan Bimo
+    // CHAPTER 2 v0.7.0 — "Kesalahan Kecil Aris" (GDD §Bab 2)
+    // Trigger StoryDirector: zone back_stairs saat istirahat setelah eksplorasi.
+    // Node inilah GARIS CABANG rute:
+    //   [A] Mengabaikan  → route 'neutral' → montage "Dinding Dingin"
+    //                      → Netral Ending "Lulus Tanpa Nama"
+    //   [B] Membantu     → stair_fight → Bimo terkesan → rooftop
+    //                      (rute bad / resistance seperti sebelumnya)
     // ============================================================
-    N({ id: 'ch2_intro_1', speaker: 'NARATOR', portrait: 'narrator', text: 'Bel istirahat. Dari arah gerbang terdengar suara yang bukan suara siswa — logo jaket yang bukan logo sekolah ini.', next: 'ch2_intro_2' }),
-    N({ id: 'ch2_intro_2', speaker: 'ORANG GENG', portrait: 'gang', emotion: 'tense', text: 'Yuson memang sekolah yang rapi. Sayang, perlindungannya belum bayar bulan ini.', next: 'ch2_intro_3' }),
-    N({ id: 'ch2_intro_3', speaker: 'REN', portrait: 'ren', emotion: 'tense', text: 'Aku cuma mau melewati gerbang. Ren sudah melangkah menjauh — tapi jalan keluarnya diblokir.', next: 'ch2_intro_4' }),
-    N({ id: 'ch2_intro_4', speaker: 'ORANG GENG', portrait: 'gang', emotion: 'tense', text: 'Mau ke mana? Cerita dulu. Dengan sopan.', next: '__combat__' }),
+    N({ id: 'ch2_intro_1', speaker: 'NARATOR', portrait: 'narrator', text: 'Lorong tangga menuju kantin belakang, jam istirahat. Dua anak geng inti Bimo merokok tipis di undakan — santai, seperti yang punya tempat.', next: 'ch2_intro_2' }),
+    N({ id: 'ch2_intro_2', speaker: 'NARATOR', portrait: 'narrator', text: 'Dari arah berlawanan, Aris berjalan terburu-buru sambil membawa tumpukan buku catatan tebal dan sebotol minuman.', next: 'ch2_intro_3' }),
+    N({ id: 'ch2_intro_3', speaker: 'NARATOR', portrait: 'narrator', text: 'Langkahnya yang panik membuat kakinya tersandung undakan. Botol minumnya terlepas — air menumpah tepat ke sepatu dan celana salah satu anak geng. Buku-buku Aris berserakan di tanah.', next: 'ch2_intro_4' }),
+    N({ id: 'ch2_intro_4', speaker: 'ORANG GENG', portrait: 'gang', emotion: 'tense', text: 'Woy! Mata lo ditaruh mana, hah?! (Menendang tumpukan buku Aris sampai kotor)', next: 'ch2_intro_5' }),
+    N({ id: 'ch2_intro_5', speaker: 'ARIS', portrait: 'aris', emotion: 'worried', text: '(Pucat pasi, langsung berlutut gemetar) M-maaf... maaf banget! Aku gak sengaja, sungguhan!', next: 'ch2_intro_6' }),
+    N({ id: 'ch2_intro_6', speaker: 'ORANG GENG', portrait: 'gang', emotion: 'tense', text: '(Mencengkeram kerah baju Aris sampai terangkat) Sepatu ini mahal. Lo pikir kata "maaf" cukup buat ganti rugi? Seret dia ke belakang kantin!', next: 'ch2_choice' }),
 
-    N({ id: 'ch2_win', speaker: 'NARATOR', portrait: 'narrator', text: 'Anak geng itu jatuh, menepi, dan pergi sambil menjerawut. Halaman depan menutup riwayatnya cepat — seolah tidak terjadi apa-apa.', next: 'ch2_win_2' }),
-    N({ id: 'ch2_win_2', speaker: 'NARATOR', portrait: 'narrator', text: 'Tapi ada satu pasang mata yang tidak pura-pura sibuk. Di dekat kantin, Bimo melipat tangannya.', next: 'ch2_win_3' }),
+    N({
+      id: 'ch2_choice',
+      speaker: 'REN',
+      portrait: 'ren',
+      emotion: 'tense',
+      text: 'Tangan Ren terkepal di balik saku seragamnya. Sepuluh meter lagi mereka mencapai belakang kantin.',
+      choices: [
+        {
+          id: 'ignore_aris',
+          text: '[A] Diamkan. Jaga jarak. Pulang.',
+          next: 'ch2_away_1',
+          effects: [
+            { k: 'flag', id: 'ignored_aris_stairs' },
+            { k: 'route', id: 'neutral' },
+            { k: 'rel', target: 'aris', delta: -5 },
+            { k: 'rel', target: 'siti', delta: -3 },
+            { k: 'quest', id: 'aris_incident', state: 'completed' },
+          ],
+        },
+        {
+          id: 'defend_aris',
+          text: '[B] Hadangi mereka. Aris tidak bisa dikeret begitu saja.',
+          next: 'ch2_fight_1',
+          effects: [
+            { k: 'flag', id: 'defended_aris' },
+            { k: 'rel', target: 'aris', delta: 5 },
+            { k: 'stat', stat: 'diplomacy', delta: 2 },
+            { k: 'quest', id: 'aris_incident', state: 'completed' },
+          ],
+        },
+      ],
+    }),
+
+    // ---- [A] mengabaikan → RUTE NETRAL ----
+    N({ id: 'ch2_away_1', speaker: 'NARATOR', portrait: 'narrator', text: 'Ren berbalik arah secara perlahan, lalu mempercepat langkahnya menuju ruang kelas tanpa pernah menoleh ke belakang. Dari kejauhan, suara tumpukan buku yang ditendang perlahan memudar.', next: 'ch2_away_2' }),
+    N({
+      id: 'ch2_away_2',
+      speaker: 'REN',
+      portrait: 'ren',
+      emotion: 'neutral',
+      text: 'Jangan lihat ke belakang. Aku datang ke sini hanya untuk belajar dan lulus. Bukan buat jadi pahlawan. Biarkan saja...',
+      effects: [
+        { k: 'chapter', id: 3 },
+        { k: 'beat', id: 'ch3_neutral' },
+        { k: 'notify', text: 'Rute terkunci: NETRAL — Dinding Dingin' },
+        { k: 'save' },
+      ],
+      end: true,
+    }),
+
+    // ---- [B] membantu → pertarungan tangga → alur utama ----
+    N({ id: 'ch2_fight_1', speaker: 'REN', portrait: 'ren', emotion: 'tense', text: 'Ren melangkah menghadang sebelum mereka menyeret Aris turun ke undakan terakhir. Lepaskan dia.', next: 'ch2_fight_2' }),
+    N({ id: 'ch2_fight_2', speaker: 'ORANG GENG', portrait: 'gang', emotion: 'tense', text: 'Lo pikir lo siapa, anak baru? Oke... sekalian ajarin lo tau tempat.', next: '__combat__' }),
+
+    N({ id: 'ch2_win', speaker: 'NARATOR', portrait: 'narrator', text: 'Dua anak geng itu jatuh, menepi, dan pergi sambil menjerawut. Aris mengangguk gemetar — tidak sempat mengucapkan satu kata pun.', next: 'ch2_win_2' }),
+    N({ id: 'ch2_win_2', speaker: 'NARATOR', portrait: 'narrator', text: 'Tapi ada satu pasang mata yang tidak pura-pura sibuk. Dari ujung lorong, Bimo melipat tangannya — mencatat setiap gerakan Ren tadi.', next: 'ch2_win_3' }),
     N({ id: 'ch2_win_3', speaker: 'BIMO', portrait: 'bimo', emotion: 'dark', text: '...Tidak buruk.', effects: [{ k: 'flag', id: 'bimo_impressed' }], next: 'ch2_close' }),
     N({ id: 'ch2_close', speaker: 'REN', portrait: 'ren', emotion: 'tense', text: 'Aku tidak mencari ini. Masalah yang mencariku. Sejak kapan aku bisa seperti ini...?', effects: [{ k: 'stat', stat: 'violence', delta: 3 }, { k: 'stat', stat: 'reputation', delta: 6 }, { k: 'chapter', id: 3 }, { k: 'time', minutes: 245 }, { k: 'quest', id: 'rooftop_meeting', state: 'active' }, { k: 'notify', text: 'Kabar menyebar cepat. (Reputasi meningkat)' }, { k: 'save' }], end: true }),
+
+    // ============================================================
+    // CHAPTER 3 v0.7.0 — RUTE NETRAL: "Dinding Dingin & Keheningan Kelas"
+    // (GDD §Bab 3 Rute Netral). Montage sinematik empat scene; dibuka
+    // StoryDirector saat beat ch3_neutral (setelah ch2_away_2).
+    // ============================================================
+
+    // ---- Scene 1: Bangku Kosong & Kacamata Retak (kelas, dua hari kemudian) ----
+    N({ id: 'n1_1', speaker: 'NARATOR', portrait: 'narrator', text: 'Kelas 11-B, dua hari setelah kejadian di lorong. Bangku Aris kosong. Ren mencatat materi seperti biasa — sendirian.', next: 'n1_2' }),
+    N({ id: 'n1_2', speaker: 'NARATOR', portrait: 'narrator', text: 'Hari ketiga, Aris akhirnya datang. Duduknya makin membungkuk. Ada sudut kacamata yang ditempel plester bening, dan lebam biru di bawah mata kirinya.', next: 'n1_3' }),
+    N({ id: 'n1_3', speaker: 'REN', portrait: 'ren', emotion: 'worried', text: 'Aris... mukamu kenapa?', next: 'n1_4' }),
+    N({ id: 'n1_4', speaker: 'ARIS', portrait: 'aris', emotion: 'worried', text: '(Kaget pelan, langsung menarik napas cemas tanpa menatap Ren) A-ah... gak apa-apa, Ren. Cuma... jatuh di tangga kemarin.', next: 'n1_5' }),
+    N({ id: 'n1_5', speaker: 'REN', portrait: 'ren', emotion: 'worried', text: 'Soal yang kemarin, waktu di lorong—', next: 'n1_6' }),
+    N({ id: 'n1_6', speaker: 'ARIS', portrait: 'aris', emotion: 'worried', text: '(Memotong cepat dengan suara gemetar) Gak papa! Jangan diomongin lagi. Aku... aku mau fokus dengerin Pak Budi aja.', next: 'n1_7' }),
+    N({ id: 'n1_7', speaker: 'REN', portrait: 'ren', emotion: 'tense', text: '(Dia tahu aku ada di sana hari itu. Dia tahu aku berjalan pergi mengabaikannya.)', next: 'n2_1' }),
+
+    // ---- Scene 2: Konfrontasi Siti (perpustakaan, sore) ----
+    N({ id: 'n2_1', speaker: 'NARATOR', portrait: 'narrator', text: 'Perpustakaan sekolah yang sepi, sore hari. Ren sedang mengembalikan buku pelajaran. Siti berdiri dekat rak — sengaja menunggu Ren selesai.', next: 'n2_2' }),
+    N({ id: 'n2_2', speaker: 'SITI', portrait: 'siti', emotion: 'firm', text: 'Kemarin... kamu dari arah tangga belakang kantin, kan?', next: 'n2_3' }),
+    N({ id: 'n2_3', speaker: 'REN', portrait: 'ren', emotion: 'neutral', text: '(Tetap menata buku di rak) Aku cuma lewat, mau ke perpustakaan.', next: 'n2_4' }),
+    N({ id: 'n2_4', speaker: 'SITI', portrait: 'siti', emotion: 'firm', text: 'Aris dihajar sampai catatannya dibakar di belakang kantin. Dia gak berani melapor ke OSIS atau guru karena diancam.', next: 'n2_5' }),
+    N({ id: 'n2_5', speaker: 'REN', portrait: 'ren', emotion: 'neutral', text: 'Lalu? Kenapa kamu ngomong ini ke aku?', next: 'n2_6' }),
+    N({ id: 'n2_6', speaker: 'SITI', portrait: 'siti', emotion: 'firm', text: '(Menatap lurus mata Ren) Karena aku tahu kamu ada di sana, Ren. Kamu lihat mereka nyeret Aris, tapi kamu cuma jalan terus.', next: 'n2_7' }),
+    N({ id: 'n2_7', speaker: 'REN', portrait: 'ren', emotion: 'neutral', text: 'Siti, aku ke sini cuma buat belajar dan lulus. Aku gak punya kewajiban buat urusin masalah orang lain.', next: 'n2_8' }),
+    N({ id: 'n2_8', speaker: 'SITI', portrait: 'siti', emotion: 'dark', text: '(Tersenyum sinis, mengangguk pelan) Pintar. Kamu memang pinter jaga diri. Nilaimu aman, seragammu bersih tanpa noda. Tapi jujur... cara hidupmu dingin banget.', next: 'n3_1' }),
+
+    // ---- Scene 3: Pengabaian Bimo (koridor utama, seminggu kemudian) ----
+    N({ id: 'n3_1', speaker: 'NARATOR', portrait: 'narrator', text: 'Koridor utama sekolah, seminggu kemudian. Ren berpapasan dengan Bimo dan rombongannya. Salah satu anak buahnya berbisik sambil melirik.', next: 'n3_2' }),
+    N({ id: 'n3_2', speaker: 'ORANG GENG', portrait: 'gang', emotion: 'tense', text: 'Boss, itu anak baru yang sekelas sama Aris. Yang nilainya paling tinggi.', next: 'n3_3' }),
+    N({ id: 'n3_3', speaker: 'BIMO', portrait: 'bimo', emotion: 'dark', text: '(Melirik Ren sekilas tanpa menghentikan langkah) Terus kenapa? Dia bikin ulah?', next: 'n3_4' }),
+    N({ id: 'n3_4', speaker: 'ORANG GENG', portrait: 'gang', emotion: 'neutral', text: 'Kagak sih... tiap kita ngacak-ngacak Aris, dia cuma diem aja nunduk.', next: 'n3_5' }),
+    N({ id: 'n3_5', speaker: 'BIMO', portrait: 'bimo', emotion: 'dark', text: '(Kekeh pelan) Ya udah, ngapain diurusin. Cuma penakut lain yang kebetulan pinter. Gak usah buang waktu.', next: 'n3_6' }),
+    N({ id: 'n3_6', speaker: 'REN', portrait: 'ren', emotion: 'tense', text: '(Rencanaku berhasil. Bagi Bimo, aku cuma angin lalu. Aku tidak terseret perkelahian apa pun. Tapi kenapa rasanya makin sesak?)', next: 'n4_1' }),
+
+    // ---- Scene 4: Surat Pengunduran Diri Aris (kelas, pertengahan semester) ----
+    N({ id: 'n4_1', speaker: 'NARATOR', portrait: 'narrator', text: 'Kelas 11-B, pertengahan semester. Bangku di sebelah Ren kosong selama seminggu penuh. Pak Budi melangkah masuk dengan raut wajah muram.', next: 'n4_2' }),
+    N({ id: 'n4_2', speaker: 'PAK BUDI', portrait: 'budi', emotion: 'neutral', text: 'Anak-anak, sekadar informasi. Teman kalian, Aris, resmi mengajukan surat pengunduran diri dari SMA Yuson mulai hari ini — karena alasan kesehatan dan keluarga.', next: 'n4_3' }),
+    N({ id: 'n4_3', speaker: 'NARATOR', portrait: 'narrator', text: 'Suasana kelas tetap dingin. Beberapa murid preman malah terkekeh pelan. Ren menatap bangku kosong di sebelahnya.', next: 'n4_4' }),
+    N({
+      id: 'n4_4',
+      speaker: 'REN',
+      portrait: 'ren',
+      emotion: 'dark',
+      text: '(Aris menyerah. Dia pergi. Dan aku... berhasil mempertahankan nilaiku tanpa tergores sedikit pun.)',
+      effects: [
+        { k: 'chapter', id: 4 },
+        { k: 'beat', id: 'ch4_neutral_grad' },
+        { k: 'quest', id: 'graduation_day', state: 'active' },
+        { k: 'time', minutes: 2880 },
+        { k: 'notify', text: 'Tujuan: Pulang lewat gerbang utama untuk terakhir kali' },
+        { k: 'save' },
+      ],
+      end: true,
+    }),
+
+    // ============================================================
+    // CHAPTER 4 v0.7.0 — RUTE NETRAL: Netral Ending "Lulus Tanpa Nama"
+    // (GDD §Bab 4 Rute Netral). Trigger StoryDirector: zone gate.
+    // ============================================================
+    N({ id: 'ch4_neu_grad_1', speaker: 'NARATOR', portrait: 'narrator', text: 'Gerbang utama SMA Yuson. Beberapa bulan kemudian — hari kelulusan.', next: 'ch4_neu_grad_2' }),
+    N({ id: 'ch4_neu_grad_2', speaker: 'NARATOR', portrait: 'narrator', text: 'Nama Ren berada di urutan pertama dengan nilai rata-rata tertinggi di SMA Yuson. Di halaman, murid-murid lain saling corat-coret seragam, berfoto, dan berpelukan dengan teman geng mereka.', next: 'ch4_neu_grad_3' }),
+    N({ id: 'ch4_neu_grad_3', speaker: 'NARATOR', portrait: 'narrator', text: 'Siti lewat membawa berkas penutupan OSIS. Ia sempat melirik Ren yang berdiri sendirian di dekat gerbang.', next: 'ch4_neu_grad_4' }),
+    N({ id: 'ch4_neu_grad_4', speaker: 'SITI', portrait: 'siti', emotion: 'dark', text: '(Mengangguk dingin — tanpa satu kata pun tentang selamat — lalu berjalan pergi.)', next: 'ch4_neu_grad_5' }),
+    N({ id: 'ch4_neu_grad_5', speaker: 'REN', portrait: 'ren', emotion: 'dark', text: 'Surat pindahku selesai. Nilai lulusku sempurna. Tidak ada bekas luka, tidak ada panggilan kepolisian, dan Bimo bahkan tidak pernah mengingat namaku.', next: 'ch4_neu_grad_6' }),
+    N({
+      id: 'ch4_neu_grad_6',
+      speaker: 'REN',
+      portrait: 'ren',
+      emotion: 'dark',
+      text: 'Target awalku tercapai seratus persen. Tapi saat melangkah keluar melewati gerbang ini sendirian... aku sadar. Aku memang selamat di SMA Yuson, tapi aku keluar dari sini sebagai orang yang kehilangan hatinya.',
+      effects: [
+        { k: 'quest', id: 'graduation_day', state: 'completed' },
+        { k: 'ending' },
+      ],
+      end: true,
+    }),
 
     // ============================================================
     // CHAPTER 3 — Momen Kunci (rooftop proposition)
@@ -452,8 +594,8 @@ export const SPECIAL_NODES = { combat: '__combat__', study: '__study__' };
 // entered from the world. StoryDirector consumes ZONE_FLAVOR; the montage
 // roots + trigger nodes + checkpoints are asserted by test/storyFlow.test.ts
 // so a broken link fails CI instead of dead-ending a playthrough.
-export const MONTAGE_ROOTS = ['ch4_bad_1', 'ch4_res_1'] as const;
-export const STORY_TRIGGER_NODES = ['ch2_intro_1', 'ch3_intro_1', 'ch4_res_alley'] as const;
+export const MONTAGE_ROOTS = ['ch4_bad_1', 'ch4_res_1', 'n1_1'] as const;
+export const STORY_TRIGGER_NODES = ['ch2_intro_1', 'ch3_intro_1', 'ch4_res_alley', 'ch4_neu_grad_1'] as const;
 export const ZONE_FLAVOR: Record<string, string> = {
   field: 'zone_field',
   canteen: 'zone_canteen',
@@ -463,6 +605,6 @@ export const ZONE_FLAVOR: Record<string, string> = {
   classroom: 'zone_classroom',
   warehouse: 'zone_warehouse',
 };
-export const CHECKPOINT_NODES = ['ch2_close', 'ch3_accept_2', 'ch3_reject_2', 'ch4_res_3'] as const;
+export const CHECKPOINT_NODES = ['ch2_close', 'ch2_away_2', 'ch3_accept_2', 'ch3_reject_2', 'ch4_res_3', 'n4_4'] as const;
 
 export const getDialogue = (id: string): DialogueNode | undefined => DIALOGUE[id];

@@ -10,12 +10,22 @@ export const QUESTS: QuestDef[] = [
     chapter: 1,
   },
   {
-    id: 'gate_trouble',
-    title: 'Keributan di Gerbang',
+    // v0.7.0: menggantikan gate_trouble — Bab 2 kini "Kesalahan Kecil Aris"
+    id: 'aris_incident',
+    title: 'Kesalahan Kecil Aris',
     type: 'main',
-    desc: 'Geng dari luar sekolah mulai terlihat di gerbang saat jam istirahat.',
-    objective: 'Periksa gerbang saat istirahat',
+    desc: 'Jam istirahat. Ren mencari tempat makan — tangga belakang menuju kantin adalah jalur terdekat.',
+    objective: 'Lewati tangga belakang menuju kantin saat istirahat',
     chapter: 2,
+  },
+  {
+    // v0.7.0: rute netral — pemicu scene ending di gerbang
+    id: 'graduation_day',
+    title: 'Hari Kelulusan',
+    type: 'main',
+    desc: 'Bulan-bulan berlalu. SMA Yuson akhirnya melepaskan Ren dengan nilai tertinggi di angkatan.',
+    objective: 'Pulang lewat gerbang utama untuk terakhir kali',
+    chapter: 4,
   },
   {
     id: 'rooftop_meeting',
@@ -95,10 +105,15 @@ export const QUESTS: QuestDef[] = [
 export const QUEST_BY_ID: Record<string, QuestDef> = Object.fromEntries(QUESTS.map((q) => [q.id, q]));
 
 export const ENCOUNTERS: Record<string, EncounterDef> = {
-  gate_fight: {
-    id: 'gate_fight',
-    arena: 'gate',
-    enemies: [{ id: 'gang_out_1', name: 'Anak Geng Luar', hp: 60, dmg: 7, speed: 2.1, color: '#b45309' }],
+  // v0.7.0: pertarungan tangga belakang — Ren membela Aris dari dua anak
+  // geng inti Bimo (menggantikan gate_fight dari alur lama).
+  stair_fight: {
+    id: 'stair_fight',
+    arena: 'back_stairs',
+    enemies: [
+      { id: 'gang_core_1', name: 'Anak Geng Inti', hp: 62, dmg: 7, speed: 2.1, color: '#b91c1c' },
+      { id: 'gang_core_2', name: 'Anak Geng Inti', hp: 62, dmg: 7, speed: 2.1, color: '#991b1b' },
+    ],
     onWin: 'ch2_win',
     music: 'tense',
   },

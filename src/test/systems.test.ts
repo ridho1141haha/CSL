@@ -92,6 +92,11 @@ describe('ending resolver (canon routes)', () => {
     expect(e.id).toBe('bitter');
     expect(e.title).toBe('Lulus Tapi Sendirian');
   });
+  it('v0.7.0: neutral route → Lulus Tanpa Nama', () => {
+    const e = resolveEnding({ ...base, route: 'neutral' });
+    expect(e.id).toBe('neutral');
+    expect(e.title).toBe('Lulus Tanpa Nama');
+  });
 });
 
 describe('conditions', () => {

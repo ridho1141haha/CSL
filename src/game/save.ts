@@ -60,6 +60,17 @@ function snapshot(): SaveV2 {
 }
 
 function applySave(d: SaveV2) {
+  // v0.7.0 story rework: normalisasi beat/quest dari save lama.
+  // 'ch2_gate' (fight gerbang) diganti 'ch2_key_error' (Kesalahan Kecil Aris)
+  // — save lama yang sedang berada di tengah bab 2 dipulangkan ke beat
+  // ch1_break supaya pemicu baru di tangga belakang bisa berjalan normal.
+  if ((d.story?.beat as string) === 'ch2_gate') {
+    d.story.beat = 'ch1_break';
+    if (d.quests?.gate_trouble === 'active') {
+      d.quests.gate_trouble = 'completed';
+      d.quests.aris_incident = 'active';
+    }
+  }
   useGame.setState({
     phase: 'play',
     clock: { day: num(d.clock?.day, 0), minutes: num(d.clock?.minutes, 7 * 60 + 12) },

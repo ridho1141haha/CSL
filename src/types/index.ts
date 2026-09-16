@@ -29,16 +29,22 @@ export type GameMode =
 
 export type NpcId = 'aris' | 'siti' | 'bimo' | 'budi';
 
-export type Route = 'none' | 'bad' | 'resistance';
+// Route 'neutral' (v0.7.0): Ren mengabaikan Aris saat insiden tangga belakang —
+// memasuki alur "Dinding Dingin" menuju Netral Ending "Lulus Tanpa Nama".
+export type Route = 'none' | 'bad' | 'resistance' | 'neutral';
 
 export type ChapterId = 1 | 2 | 3 | 4;
 
 export type StoryBeat =
   | 'ch1_explore'
   | 'ch1_break'
-  | 'ch2_gate'
+  // v0.7.0: Bab 2 reworked — "Kesalahan Kecil Aris" replaces the gate fight
+  | 'ch2_key_error'
   | 'ch2_aftermath'
   | 'ch3_rooftop'
+  // v0.7.0: neutral route beats
+  | 'ch3_neutral'        // montage "Dinding Dingin" pending
+  | 'ch4_neutral_grad'   // graduation-day trigger pending (gate)
   | 'ch4_bad_warehouse'
   | 'ch4_bad_aftermath'
   | 'ch4_res_search'

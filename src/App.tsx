@@ -16,7 +16,7 @@ import { input } from './game/input';
 import { audio } from './game/audio';
 import { saveGame } from './game/save';
 import { mobile } from './game/mobile';
-import { OPENING_ROOT, OPENING_ACTORS } from './data/chapters';
+import { OPENING_ROOT, OPENING_ACTORS, SCENE_ACTORS, type StorySpot } from './data/chapters';
 import { PLAYER_SPAWN } from './data/world';
 
 import { World } from './game/world/World';
@@ -318,22 +318,26 @@ function PointerLockHint() {
   );
 }
 
-// Cinematic actor placement (opening bullies, rooftop Bimo, alley gang…).
-// Coordinates follow each scene's local layout (see data/world.ts).
+// Cinematic actor placement. v0.7.0: satu schema Spot { pos, face } untuk
+// OPENING_ACTORS (alur lambat "Minggu Pertama") dan SCENE_ACTORS (bab 2 tangga,
+// montage netral, graduasi). Semua koordinat kampus/interior (data/chapters.ts).
 function CinematicActors() {
   const nodeId = useDialogue((s) => s.nodeId);
   const placements = useMemo(() => {
     const list: { id: string; x: number; z: number; color: string; faceTo?: [number, number] }[] = [];
     if (!nodeId) return list;
-    const open = OPENING_ACTORS[nodeId];
-    if (open) {
-      if (open.bullies[0]) {
-        list.push({ id: 'bully1', x: open.bullies[0] - 0.8, z: open.bullies[1] + 0.4, color: '#57534e', faceTo: [-7, 31.2] });
-        list.push({ id: 'bully2', x: open.bullies[0] + 0.9, z: open.bullies[1] - 0.3, color: '#44403c', faceTo: [-7, 31.2] });
-      }
-      if (open.aris[0]) list.push({ id: 'aris', x: open.aris[0], z: open.aris[1], color: '#3b82f6', faceTo: [-7.6, 29.6] });
-      if (open.siti[0]) list.push({ id: 'siti', x: open.siti[0], z: open.siti[1], color: '#10b981', faceTo: [-7.6, 29.6] });
-      if (open.bimo[0]) list.push({ id: 'bimo', x: open.bimo[0], z: open.bimo[1], color: '#ef4444', faceTo: [24, 4] });
+    const cast = OPENING_ACTORS[nodeId] ?? SCENE_ACTORS[nodeId];
+    if (cast) {
+      const push = (base: string, i: number, spot: StorySpot, color: string) => {
+        list.push({ id: i === 0 ? base : `${base}${i}`, x: spot.pos[0], z: spot.pos[1], color, faceTo: spot.face });
+      };
+      // base id 'gang*' → placedActor('gang') menemukannya untuk shot ORANG
+      // GENG (ch2 & montage netral); opening sendiri tidak punya node BULLY.
+      cast.bullies?.forEach((s, i) => push('gang', i, s, i % 2 ? '#44403c' : '#57534e'));
+      if (cast.aris) push('aris', 0, cast.aris, '#3b82f6');
+      if (cast.siti) push('siti', 0, cast.siti, '#10b981');
+      if (cast.bimo) push('bimo', 0, cast.bimo, '#ef4444');
+      cast.followers?.forEach((s, i) => push('follower', i, s, '#7f1d1d'));
       return list;
     }
     if (nodeId.startsWith('ch3_')) {

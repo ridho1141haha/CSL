@@ -30,21 +30,51 @@ Central question: *"What kind of person will Ren become because of the choices h
 
 ## 4. Story (CANON — do not silently change)
 
-### Chapter 1 — Murid Pindahan & Janji Pada Diri Sendiri
-Opening scenes 1–6 per directive §22: first-person arrival at SMA Yuson (morning, worn walls, students, tension) → environmental storytelling inside → Aris bullied by two students, books knocked down, **Ren hesitates** (first instinct: avoid) → **FIRST CHOICE (mandatory, fixed): [A] Help Aris collect his books / [B] Walk past** → Siti arrives, confronts bullies, they leave → brief interaction with Aris & Siti (STRANGER→ACQUAINTANCE; Siti warns about dangerous areas naturally) → later, Bimo appears: followers, subtle fear; he only *notices* Ren (no fight/recruit/monologue here) → cinematic ends, FP→TP transition, HUD, first objective: **EXPLORE SMA YUSON**.
+> **v0.7.0 rework:** Chapter 1–2 mengikuti GDD dokumen §"Alur yang lebih lambat"
+> dan §"Rute Netral". Rute utama (bad/resistance) dari rooftop ke akhir cerita
+> tidak berubah.
 
-### Chapter 2 — Gesekan Pertama & Pengamatan Bimo
-Geng dari luar sekolah disturbs SMA Yuson; conflict at the school gate; Ren intends to leave, is forced to defend himself → **first real-time combat** (contained). His fighting ability attracts Bimo's attention.
+### Chapter 1 — Minggu Pertama: Pria Tanpa Wajah (slow opening)
+Opening yang lebih lambat, empat scene dengan fade-cut: **Scene 1** gerbang pagi —
+pagar karatan, bau cat semprot, murid menunduk; Ren memegang map merah
+(surat pindahan + nilai hampir sempurna) dan monolog janji pribadinya →
+**Scene 2** kelas 11-B — Ren duduk di sudut belakang, dua murid besar menyenggol
+kursi Aris sampai pulpen jatuh; Ren memilih terus mencatat (canon), lalu Aris
+menyodorkan penghapus dan berkenalan → **Scene 3** lorong istirahat — Siti
+(nametag OSIS) mengenali nilai transfer Ren dan memberi peringatan aturan tak
+tertulis → **Scene 4** kantin sore — dua murid kelas 10 berbisik tentang Bimo
+(insiden parkiran, SMA 4 lari kocar-kacir), lalu keheningan merambat: Bimo masuk
+dengan tiga pengikut, tidak bicara, hanya menatap Ren lebih lama dari yang perlu →
+cinematic ends, FP→TP transition, HUD, first objective: **EXPLORE SMA YUSON**.
 
-### Chapter 3 — Momen Kunci
-Bimo approaches Ren at the rooftop and offers him a place in his gang (use your fists, gain status/power). **Choice: [A] ACCEPT BIMO → BAD ROUTE / [B] REJECT BIMO → RESISTANCE ROUTE**.
+### Chapter 2 — Kesalahan Kecil Aris (route fork)
+Jam istirahat, lorong tangga menuju kantin belakang. Aris tersandung; botol
+minumnya menumpahkan air ke sepatu anak geng inti Bimo; bukunya ditendang sampai
+kotor; dia dicengkeram dan mau diseret ke belakang kantin. **GARIS CABANG RUTE
+(mandatory): [A] Mengabaikan → RUTE NETRAL / [B] Membela Aris → stair fight
+(pertarungan real-time) → Bimo terkesan → alur utama.**
 
-### Chapter 4 — Cabang Cerita & Penentuan Akhir
+### Chapter 3 — Momen Kunci · (netral: Dinding Dingin & Keheningan Kelas)
+- **Rute utama:** Bimo memanggil Ren ke rooftop dan menawarkan tempat di gengnya.
+  **Choice: [A] ACCEPT BIMO → BAD ROUTE / [B] REJECT BIMO → RESISTANCE ROUTE**.
+- **Rute netral (montage):** Scene 1 bangku kosong & kacamata retak (Ais pulang
+  dengan lebam; memotong Ren dengan panik) → Scene 2 konfrontasi Siti di
+  perpustakaan ("cara hidupmu dingin banget") → Scene 3 pengabaian Bimo ("cuma
+  penakut lain yang kebetulan pinter") → Scene 4 surat pengunduran diri Aris
+  dibacakan Pak Budi. Ren tetap aman — dan makin sesak.
+
+### Chapter 4 — Cabang Cerita & Penentuan Akhir · (netral: Lulus Tanpa Nama)
 - **Bad Route:** status/protection/power → comfortable with violence, academics decline, Aris & Siti distance → warehouse gang confrontation as Bimo's enforcer → escalation → police raid → Bimo escapes and shifts blame → Ren arrested, expelled → **BAD ENDING "Rantai Dendam"** (lesson: violence as identity turns you into what you opposed).
 - **Resistance Route:** Bimo retaliates; Aris cornered and beaten outside school; Ren arrives → final moral test → **help** → Siti records the gang's crimes from a safe distance → evidence exposes the gang → **TRUE ENDING "Kebenaran & Solidaritas"** (lesson: strength wins a fight; intelligence, integrity, solidarity change the future) / **walk away** → Aris severely traumatized, leaves school; Siti distances; Ren still graduates and enters university but stands alone on graduation day → **BITTER ENDING "Lulus Tapi Sendirian"** (lesson: you can protect your future and still lose something inside).
+- **Neutral Route:** bulan-bulan berlalu; hari kelulusan di gerbang utama — nilai
+  Ren tertinggi di angkatan, murid lain berpelukan dengan geng masing-masing;
+  Siti berlalu dengan anggukan dingin tanpa ucapan selamat. Ren keluar sebagai
+  orang yang kehilangan hatinya → **NETRAL ENDING "Lulus Tanpa Nama"** (lesson:
+  melindungi diri sampai tidak menyisakan siapa pun di sampingmu adalah cara
+  selamat yang paling sunyi).
 
 ### Ending system
-`EndingResolver(route, academic, focus, violence, diplomacy, relationships, reputation, storyFlags) → { endingId, title, summary, lesson, stats, nextAction }`. Pure function, unit-tested, never called from UI components.
+`EndingResolver(route, academic, focus, violence, diplomacy, relationships, reputation, storyFlags) → { endingId: 'bad' | 'true' | 'bitter' | 'neutral', title, summary, lesson, stats, nextAction }`. Pure function, unit-tested, never called from UI components.
 
 ## 5. Systems
 

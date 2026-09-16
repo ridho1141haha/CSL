@@ -125,8 +125,39 @@ export const CAMERA_POSES: Record<string, CameraPose> = {
   fp_siti: { pos: [-4.8, 1.62, 30.6], look: [-9, 1.4, 29.6] },
   fp_meet: { pos: [-5.6, 1.62, 30], look: [-8.6, 1.3, 29.8] },
   fp_bimo: { pos: [17, 1.62, 14.5], look: [21, 1.5, 10] },
-  fp_bimo_close: { pos: [19.6, 1.62, 12], look: [21.4, 1.45, 10.2] },
   fp_end: { pos: [7, 1.7, 35.5], look: [0, 2.6, 28] },
+  // ---- opening v0.7.0 "Minggu Pertama" (first person, interior shots) ----
+  // Scene 1: map merah di tangan Ren
+  fp_map_red: { pos: [7.6, 1.55, 50.5], look: [7.2, 1.1, 48.2] },
+  // Scene 2: kelas 11-B (interior x -16..-2, z 4..14; meja Aris -4.8,11.3)
+  fp_class: { pos: [-2.9, 1.62, 13.3], look: [-11.5, 1.3, 8.4] },
+  fp_class_desk: { pos: [-4.1, 1.5, 13.1], look: [-4.0, 1.15, 11.2] },
+  fp_class_board: { pos: [-3.4, 1.62, 12.6], look: [-14.5, 1.55, 9.0] },
+  // Scene 3: lorong / hall (z 21..28; Siti dekat loket -3, 23.5)
+  fp_corridor: { pos: [4.2, 1.62, 26.6], look: [-3.2, 1.45, 23.6] },
+  fp_siti_hall: { pos: [2.4, 1.62, 25.2], look: [-3.0, 1.4, 23.5] },
+  fp_siti_hall_close: { pos: [-0.4, 1.55, 24.6], look: [-3.0, 1.4, 23.5] },
+  // Scene 4: kantin (x 22..34, z 2..14; meja Ren 29.5,7; meja bisik 25.5,5)
+  fp_canteen: { pos: [30.7, 1.55, 8.8], look: [25.6, 1.15, 5.2] },
+  fp_canteen_whisper: { pos: [28.2, 1.5, 6.6], look: [25.3, 1.1, 4.7] },
+  fp_bimo_entry: { pos: [28.9, 1.6, 9.6], look: [23.4, 1.45, 10.6] },
+  fp_bimo_close: { pos: [27.1, 1.55, 8.9], look: [28.6, 1.5, 7.3] },
+  // ---- bab 2 "Kesalahan Kecil Aris": halaman belakang, luar pintu tangga ----
+  stairs_wide: { pos: [4.8, 2.2, -7.0], look: [0, 1.3, -2.6] },
+  stairs_close: { pos: [2.4, 1.6, -4.8], look: [-0.3, 1.3, -2.8] },
+  stairs_aris: { pos: [-3.0, 1.5, -4.2], look: [-0.5, 1.1, -2.9] },
+  stairs_away: { pos: [-3.5, 2.0, -6.5], look: [1.5, 1.5, -2.2] },
+  // ---- rute netral: montage interior ----
+  classroom_view: { pos: [-2.5, 2.1, 13.6], look: [-9.8, 1.15, 9.4] },
+  classroom_close: { pos: [-6.6, 1.45, 12.9], look: [-4.0, 1.2, 11.3] },
+  classroom_budi: { pos: [-8.4, 1.6, 12.6], look: [-12.2, 1.45, 11.4] },
+  hall_view: { pos: [4.6, 2.0, 27.4], look: [-3.4, 1.35, 23.4] },
+  hall_close: { pos: [-0.2, 1.5, 25.4], look: [-3.0, 1.4, 23.5] },
+  corridor_view: { pos: [2.2, 1.9, 20.2], look: [-4.2, 1.4, 17.2] },
+  corridor_close: { pos: [-0.6, 1.55, 18.6], look: [-4.0, 1.45, 17.1] },
+  // ---- rute netral: graduasi di gerbang ----
+  grad_gate: { pos: [10.5, 2.1, 49.0], look: [7, 1.5, 42.5] },
+  grad_siti: { pos: [6.2, 1.55, 45.6], look: [8.4, 1.45, 44.4] },
   // ---- third person story beats (campus) ----
   tp_gate: { pos: [13, 4.4, 53], look: [7, 1.4, 45] },
   tp_bimo_watch: { pos: [18, 3, 14.5], look: [21.5, 1.3, 10.2] },

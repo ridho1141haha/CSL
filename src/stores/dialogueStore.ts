@@ -9,8 +9,9 @@ import type { Choice } from '../types';
 
 // Encounter selection by story beat when a dialogue reaches __combat__
 // (exported: asserted by test/storyFlow.test.ts)
+// v0.7.0: ch2_gate → ch2_key_error + stair_fight (Bab 2 "Kesalahan Kecil Aris")
 export const BEAT_ENCOUNTER: Record<string, string> = {
-  ch2_gate: 'gate_fight',
+  ch2_key_error: 'stair_fight',
   ch4_bad_warehouse: 'warehouse_fight',
   ch4_res_alley: 'alley_fight',
 };

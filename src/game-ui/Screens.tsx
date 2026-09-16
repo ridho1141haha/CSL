@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useGame } from '../stores/gameStore';
+import { useStory } from '../stores/storyStore';
 import { usePlayer } from '../stores/playerStore';
 import { useStats } from '../stores/statsStore';
 import { useSocial } from '../stores/socialStore';
@@ -16,7 +17,7 @@ export function LoadingScreen() {
         <p>MEMUAT ASET SEKOLAH…</p>
         <div className="boot-bar"><i /></div>
         <div className="boot-meta">
-          <span className="chip">BUILD 0.5.0</span>
+          <span className="chip">BUILD 0.7.0</span>
           <span className="chip">TEAM CHAOS</span>
           <span className="chip chip-amber">SMA YUSON</span>
         </div>
@@ -43,7 +44,8 @@ export function ChapterTransition() {
   };
 
   if (pending == null) return null;
-  const { title, subtitle } = chapterCardText(pending);
+  // v0.7.0: kartu bab route-aware (rute netral punya judul bab sendiri)
+  const { title, subtitle } = chapterCardText(pending, useStory.getState().route);
   return (
     <div className="chapter-transition" onClick={closeCard}>
       <div>

@@ -1,10 +1,20 @@
 # Project State
 
-Updated: 2026-09-10 (Phase 0 complete)
+Updated: 2026-09-16 (v0.7.0 — slow opening + neutral route)
 
 ## Development state
 
-**PLANNING complete → FOUNDATION in progress** (master directive phase model).
+**v0.7.0** implements the two new GDD document sections into the game:
+the slower opening ("Minggu Pertama — Pria Tanpa Wajah", 4 scenes, 36 nodes)
+and the NEUTRAL route (Bab 2 "Kesalahan Kecil Aris" route fork → montage
+"Dinding Dingin" → Netral Ending "Lulus Tanpa Nama"). Ending total is now 4.
+89 unit tests green; production build passing.
+
+## Story routes (current)
+
+- Opening: gate & map merah → classroom (Aris) → corridor (Siti) → canteen whispers + Bimo entrance.
+- Bab 2 fork at the back stairs: [A] ignore → neutral route; [B] defend Aris → stair_fight → Bimo impressed → rooftop → bad/resistance (unchanged).
+- Neutral: 4-scene montage (bruised Aris, Siti library confrontation, Bimo dismissal, Aris resignation letter) → graduation-day walk to the gate → ending.
 
 ## What already existed (audited 2026-09-10)
 

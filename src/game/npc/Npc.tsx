@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef } from 'react';
 import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
 import { useGame } from '../../stores/gameStore';
+import { useStory } from '../../stores/storyStore';
 import { playerPos, npcPositions, actorPositions } from '../runtime';
 import { mobile } from '../mobile';
 import { Figure, makeAnim } from './Character';
@@ -48,7 +49,15 @@ function Student({ home, wander, color, seed }: { home: [number, number]; wander
 
 // Scheduled main NPCs. Stand at their period waypoint; glide there on change.
 export function Npcs({ hideMain = false }: { hideMain?: boolean }) {
-  const nodes = useMemo(() => NPCS.map((def) => ({ def })), []);
+  // v0.7.0 rute netral: Aris mengundurkan diri di akhir bab 3 (montage n4) —
+  // dari bab 4 dia tidak lagi muncul di sekolah.
+  const route = useStory((s) => s.route);
+  const chapter = useStory((s) => s.chapter);
+  const nodes = useMemo(
+    () =>
+      NPCS.filter((def) => !(def.id === 'aris' && route === 'neutral' && chapter >= 4)).map((def) => ({ def })),
+    [route, chapter],
+  );
   // v0.5.0 mobile tier: halve the ambient crowd on phones (draw-call budget —
   // each figure is ~30 meshes; 14 figures ≈ 420 calls is too much for low GPUs)
   const ambient = useMemo(

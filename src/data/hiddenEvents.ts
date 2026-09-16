@@ -71,7 +71,9 @@ export const HIDDEN_EVENTS: HiddenEventDef[] = [
     title: 'Goresan di Bangku',
     trigger: { k: 'zone' },
     zone: 'classroom',
-    reqs: { k: 'flag', id: 'helped_aris' },
+    // v0.7.0: helped_aris (pilihan opening lama) sudah tidak ada — diganti
+    // defended_aris (pilihan membela Aris di tangga belakang, bab 2).
+    reqs: { k: 'flag', id: 'defended_aris' },
     dialogue: 'he_classroom_1',
   },
   {

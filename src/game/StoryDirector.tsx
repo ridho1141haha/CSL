@@ -87,6 +87,13 @@ export function StoryDirector() {
       (game.mode === 'GAMEPLAY' || game.mode === 'CINEMATIC') &&
       !dialogue.nodeId;
 
+    // ---------- neutral route: montage "Dinding Dingin" after ignoring Aris ----------
+    if (montageReady && story.beat === 'ch3_neutral' && story.route === 'neutral' && !story.flags.includes('neu_montage_done')) {
+      story.setFlag('neu_montage_done');
+      dialogue.open('n1_1', true);
+      return;
+    }
+
     // ---------- bad route: montage after accepting ----------
     if (montageReady && story.beat === 'ch4_bad_warehouse' && story.route === 'bad' && !story.flags.includes('bad_montage_done')) {
       story.setFlag('bad_montage_done');
@@ -102,6 +109,20 @@ export function StoryDirector() {
     }
 
     if (game.mode !== 'GAMEPLAY') return;
+
+    // ---------- neutral route: graduation day at the main gate ----------
+    if (
+      game.scene === 'campus' &&
+      game.currentZone === 'gate' &&
+      story.chapter === 4 &&
+      story.route === 'neutral' &&
+      story.beat === 'ch4_neutral_grad' &&
+      !story.flags.includes('grad_scene_done')
+    ) {
+      story.setFlag('grad_scene_done');
+      dialogue.open('ch4_neu_grad_1', true);
+      return;
+    }
 
     // ---------- rooftop: start the chapter 3 proposition ----------
     if (game.scene === 'rooftop' && story.chapter === 3 && story.beat === 'ch3_rooftop' && !story.flags.includes('ch3_rooftop_started')) {
@@ -198,19 +219,38 @@ export function StoryDirector() {
         // advance clock to break time (10:05)
         const delta = (10 * 60 + 5 - game.clock.minutes + 1440) % 1440;
         game.advanceTime(delta || 1440);
-        quests.setState('gate_trouble', 'active');
+        // v0.7.0: bab 2 kini "Kesalahan Kecil Aris" — aktif lewat tangga belakang
+        quests.setState('aris_incident', 'active');
         story.setBeat('ch1_break');
         game.notify('Quest selesai: Jelajahi SMA Yuson', 'quest');
-        game.notify('Bel istirahat. Sesuatu terlihat di gerbang...', 'info');
+        game.notify('Bel istirahat. Ren mencari tempat makan...', 'info');
         saveGame('auto');
         return;
       }
     }
 
-    // ---------- chapter 2: gate trouble ----------
-    if (story.beat === 'ch1_break' && quests.quests.gate_trouble === 'active' && game.currentZone === 'gate') {
-      story.setBeat('ch2_gate');
-      quests.setState('gate_trouble', 'completed');
+    // ---------- chapter 2: Kesalahan Kecil Aris (tangga belakang, saat istirahat) ----------
+    // Dua fase: (1) tampilkan kartu BAB II lalu (2) setelah kartu ditutup,
+    // buka scene-nya. Kedua fase pakai flag guard agar tidak terpicu ulang.
+    if (
+      story.beat === 'ch1_break' &&
+      quests.quests.aris_incident === 'active' &&
+      game.currentZone === 'back_stairs' &&
+      !story.flags.includes('ch2_scene_started')
+    ) {
+      story.setFlag('ch2_scene_started');
+      applyEffects([{ k: 'chapter', id: 2 }]); // kartu BAB II + beat ch2_key_error
+      return;
+    }
+    if (
+      story.beat === 'ch2_key_error' &&
+      quests.quests.aris_incident === 'active' &&
+      game.currentZone === 'back_stairs' &&
+      game.mode === 'GAMEPLAY' &&
+      !dialogue.nodeId &&
+      !story.flags.includes('ch2_scene_opened')
+    ) {
+      story.setFlag('ch2_scene_opened');
       dialogue.open('ch2_intro_1');
       return;
     }

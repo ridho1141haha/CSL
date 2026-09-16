@@ -56,7 +56,8 @@ export function applyEffect(e: Effect) {
       if (useStory.getState().chapter !== e.id) {
         useStory.getState().setChapter(e.id);
         // default beat per chapter (can be overridden by an explicit beat effect)
-        const beat: Record<number, StoryBeat> = { 1: 'ch1_explore', 2: 'ch2_gate', 3: 'ch3_rooftop', 4: 'ch4_res_search' };
+        // v0.7.0: chapter 2 → ch2_key_error ("Kesalahan Kecil Aris")
+        const beat: Record<number, StoryBeat> = { 1: 'ch1_explore', 2: 'ch2_key_error', 3: 'ch3_rooftop', 4: 'ch4_res_search' };
         useStory.getState().setBeat(beat[e.id] ?? 'ch1_explore');
         game.requestChapterCard(e.id);
       }
@@ -111,9 +112,14 @@ export function applyEffect(e: Effect) {
   }
 }
 
-export function chapterCardText(id: number) {
+// v0.7.0: kartu bab kini route-aware — rute netral punya judul bab sendiri
+// (GDD §Bab 3/4 Rute Netral).
+export function chapterCardText(id: number, route?: string) {
   const c = CHAPTERS[id as 1 | 2 | 3 | 4];
-  return c ? { title: c.title, subtitle: c.subtitle } : { title: `BAB ${id}`, subtitle: '' };
+  if (!c) return { title: `BAB ${id}`, subtitle: '' };
+  if (route === 'neutral' && id === 3) return { title: c.title, subtitle: 'Dinding Dingin & Keheningan Kelas' };
+  if (route === 'neutral' && id === 4) return { title: c.title, subtitle: 'Netral Ending — Lulus Tanpa Nama' };
+  return { title: c.title, subtitle: c.subtitle };
 }
 
 const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);

@@ -75,6 +75,34 @@ describe('story flow: route + ending reachability (canon)', () => {
     expect(choice('ch3_choice', 'reject_bimo').effects).toContainEqual({ k: 'route', id: 'resistance' });
   });
 
+  it('v0.7.0: ignoring Aris at the stairs locks the neutral route + montage beat', () => {
+    const c = choice('ch2_choice', 'ignore_aris');
+    expect(c.effects).toContainEqual({ k: 'route', id: 'neutral' });
+    // ch2_away_1 (first node after the choice) flows into ch2_away_2 which
+    // carries the montage beat + chapter 3 card
+    expect(DIALOGUE[c.next!].next).toBe('ch2_away_2');
+    expect(effectsOf('ch2_away_2')).toContainEqual({ k: 'beat', id: 'ch3_neutral' });
+    expect(effectsOf('ch2_away_2')).toContainEqual({ k: 'chapter', id: 3 });
+    // and the montage ends by handing the player the graduation trigger beat
+    expect(effectsOf('n4_4')).toContainEqual({ k: 'beat', id: 'ch4_neutral_grad' });
+    expect(effectsOf('n4_4')).toContainEqual({ k: 'chapter', id: 4 });
+  });
+
+  it('v0.7.0: defending Aris wires into the main route (fight → Bimo impressed)', () => {
+    const c = choice('ch2_choice', 'defend_aris');
+    expect(c.effects).toContainEqual({ k: 'flag', id: 'defended_aris' });
+    expect(DIALOGUE[c.next!].next).toBe('ch2_fight_2');
+    expect(DIALOGUE['ch2_fight_2'].next).toBe(SPECIAL_NODES.combat);
+    expect(DIALOGUE['ch2_win_3'].effects).toContainEqual({ k: 'flag', id: 'bimo_impressed' });
+  });
+
+  it('v0.7.0: NEUTRAL ending fires from the graduation chain', () => {
+    expect(hasEffect(effectsOf('ch4_neu_grad_6'), 'ending')).toBe(true);
+    // graduation quest gates the walk to the gate and completes on the ending node
+    expect(effectsOf('n4_4')).toContainEqual({ k: 'quest', id: 'graduation_day', state: 'active' });
+    expect(effectsOf('ch4_neu_grad_6')).toContainEqual({ k: 'quest', id: 'graduation_day', state: 'completed' });
+  });
+
   it('each route sets its montage beat so StoryDirector can open the montage', () => {
     // montage blocks fire on beat ch4_bad_warehouse / ch4_res_search
     expect(effectsOf('ch3_accept_2')).toContainEqual({ k: 'beat', id: 'ch4_bad_warehouse' });
@@ -90,8 +118,8 @@ describe('story flow: route + ending reachability (canon)', () => {
         `beat ${beat} maps to unknown encounter ${encounterId}`,
       ).toBe(true);
     }
-    // and every combat-entry beat is covered by it (no accidental gate_fight fallback)
-    expect(Object.keys(BEAT_ENCOUNTER).sort()).toEqual(['ch2_gate', 'ch4_bad_warehouse', 'ch4_res_alley']);
+    // and every combat-entry beat is covered by it (no accidental fallback)
+    expect(Object.keys(BEAT_ENCOUNTER).sort()).toEqual(['ch2_key_error', 'ch4_bad_warehouse', 'ch4_res_alley']);
   });
 
   it('BAD ending fires from the warehouse raid chain', () => {

@@ -20,7 +20,7 @@
 6. **Tab/R/M/I/J/P/O** status / relationships / map / inventory / quests / phone / save-load
 7. **Esc** pause
 
-Three endings (BAD / TRUE / BITTER) depending on Chapter 3 choice + Chapter 4 final test.
+Three endings (BAD / TRUE / BITTER) depending on Chapter 3 choice + Chapter 4 final test. **v0.7.0 adds the 4th:** NEUTRAL ("Lulus Tanpa Nama") from ignoring Aris at the back stairs.
 
 ---
 
@@ -81,14 +81,17 @@ CSL/
 
 ---
 
-## 🎭 Story (canon — 4 chapters, 3 endings)
+## 🎭 Story (canon — 4 chapters, 4 endings)
+
+**v0.7.0** — opening baru yang lebih lambat ("Minggu Pertama — Pria Tanpa Wajah")
+dan rute ketiga (NETRAL) dari GDD §"Alur yang lebih lambat" + §"Rute Netral".
 
 | Chapter | Title | Key Beat |
 |---------|-------|----------|
-| **I** | Murid Pindahan & Janji Pada Diri Sendiri | FP arrival → Aris bullied → **mandatory first choice [A] Bantu / [B] Lewati** → Siti intervention → Bimo notices Ren |
-| **II** | Gesekan Pertama & Pengamatan Bimo | Gang disturbs SMA Yuson → **first real-time combat** at the gate → Bimo impressed |
-| **III** | Momen Kunci | Rooftop proposition → **[A] ACCEPT BIMO → Bad Route / [B] REJECT → Resistance Route** |
-| **IV** | Cabang Cerita & Penentuan Akhir | Branch finale → ending resolver |
+| **I** | Minggu Pertama — Pria Tanpa Wajah | Slower 4-scene opening: gerbang & map merah → kelas (Aris) → lorong (Siti warning) → kantin: bisik-bisik + Bimo notices Ren |
+| **II** | Kesalahan Kecil Aris | Aris menumpahkan air ke sepatu anak geng Bimo → **route fork: [A] Mengabaikan → NEUTRAL / [B] Membela → stair fight → Bimo impressed** |
+| **III** | Momen Kunci · (netral: Dinding Dingin & Keheningan Kelas) | Main: rooftop proposition → **[A] ACCEPT BIMO → Bad / [B] REJECT → Resistance**. Netral: 4-scene montage — bangku kosong, konfrontasi Siti, pengabaian Bimo, surat pengunduran diri Aris |
+| **IV** | Cabang Cerita & Penentuan Akhir · (netral: Lulus Tanpa Nama) | Branch finale → ending resolver. Netral: hari kelulusan di gerbang utama |
 
 ### Endings (canon)
 
@@ -97,6 +100,7 @@ CSL/
 | BAD | "Rantai Dendam" | Accept Bimo | Violence as identity turns you into what you opposed |
 | TRUE | "Kebenaran & Solidaritas" | Reject + help Aris in final test | Strength wins fights; intelligence + integrity + solidarity change the future |
 | BITTER | "Lulus Tapi Sendirian" | Reject + walk away from Aris | You can protect your future and still lose something inside |
+| NEUTRAL | "Lulus Tanpa Nama" | Ignore Aris at the back stairs (Bab 2) | Protecting yourself until no one is left beside you is the quietest way to survive |
 
 `EndingResolver` is a pure function (unit-tested) — never called from UI components.
 

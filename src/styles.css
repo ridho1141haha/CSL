@@ -850,6 +850,8 @@ kbd, .key {
 .ending-screen.ending-true h1 { color: var(--green); }
 .ending-screen.ending-bitter h1 { color: var(--amber); }
 .ending-screen.ending-bad h1 { color: var(--red); }
+/* v0.7.0: Netral Ending — abu-abu pudar: "lulus tanpa nama" */
+.ending-screen.ending-neutral h1 { color: #9aa7b4; }
 .ending-summary { max-width: 62ch; color: var(--dim); line-height: 1.8; font-size: clamp(13px, 1.2vw, 16px); }
 .ending-lesson {
   max-width: 60ch; color: var(--text); font-style: italic;

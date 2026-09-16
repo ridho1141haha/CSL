@@ -1,5 +1,55 @@
 # Changelog
 
+## 0.7.0 — 2026-09-16 (slow opening rework + NEUTRAL route)
+
+Implementasi dua bagian GDD baru: **§"Alur yang lebih lambat"** (opening baru)
+dan **§"Rute Netral"** (Bab 3–4 netral + Netral Ending). Total ending kini 4:
+BAD / TRUE / BITTER / **NEUTRAL**.
+
+### Added — slow opening "Minggu Pertama: Pria Tanpa Wajah" (replaces o1–o7)
+- Opening sinematik first-person yang lebih lambat: 4 scene terpisah dengan
+  fade-cut antar scene (36 node vs 24 sebelumnya) — Gerbang & Map Merah →
+  Meja Baris Belakang (kenalan Aris, penghapus) → Peringatan Pertama di
+  Lorong (Siti) → Bisik-Bisik Kantin (gosip SMA 4) & kemunculan Bimo +
+  tiga pengikutnya.
+- Kamera FP baru per beat: `fp_map_red`, `fp_class*`, `fp_siti_hall*`,
+  `fp_canteen*`, `fp_bimo_entry` — termasuk shot interior kelas, lorong,
+  dan kantin yang selama ini belum pernah dipakai cinematic.
+- OPENING_ACTORS dirombak ke schema Spot `{ pos, face }` + slot `followers`
+  (rombongan Bimo) — aktor kini punya arah hadap per node.
+- NODE_FX `fade-in` di awal tiap scene untuk ritme lambat.
+
+### Added — NEUTRAL route ("Dinding Dingin" → "Lulus Tanpa Nama")
+- Bab 2 dirombak jadi **"Kesalahan Kecil Aris"** (GDD §Bab 2): Aris menumpahkan
+  air ke sepatu anak geng inti Bimo di tangga belakang → garis cabang rute:
+  - **[A] Mengabaikan** → `route: neutral` → montage 4 scene "Dinding Dingin &
+    Keheningan Kelas" (bangku kosong, konfrontasi Siti, pengabaian Bimo,
+    surat pengunduran diri Aris) → hari kelulusan di gerbang →
+    **Netral Ending "Lulus Tanpa Nama"**.
+  - **[B] Membela Aris** → encounter `stair_fight` (2 anak geng inti) →
+    Bimo impressed → rooftop → rute bad/resistance (tidak berubah).
+- StoryBeat baru: `ch2_key_error`, `ch3_neutral`, `ch4_neutral_grad`.
+- Trigger StoryDirector: kartu BAB II dua-fase (card → scene), montage netral,
+  dan pemicu graduasi saat pemain kembali ke gerbang.
+- `chapterCardText` kini route-aware (BAB III/IV punya judul versi netral).
+- EndingScreen punya varian `ending-neutral` (abu-abu pudar).
+- Callback NPC rute netral: `bimo_neu_*` dan `siti_neu_*` (chapter ≥ 3).
+- Aris tidak lagi muncul sebagai NPC di bab 4 rute netral (sudah pindah sekolah).
+- Quest baru: `aris_incident` (bab 2), `graduation_day` (bab 4 netral).
+- hidden event "Goresan di Bangku" kini bergantung flag `defended_aris`.
+
+### Changed
+- Quest `gate_trouble` dan encounter `gate_fight` diganti `aris_incident` /
+  `stair_fight` (arena back_stairs, dua musuh).
+- `ch2_win*` ditulis ulang untuk konteks pertarungan tangga belakang.
+- Save lama dengan beat `ch2_gate` dinormalisasi ke `ch1_break` saat load —
+  tanpa version bump (aman untuk save 0.6.x).
+- Versi build chip: BUILD 0.7.0.
+
+### Tests
+- storyFlow: 4 test baru (cabang netral, cabang utama, rantai ending netral,
+  peta BEAT_ENCOUNTER). Semua 89 test hijau.
+
 ## 0.6.0 — 2026-09-12 (dialogue overhaul — mentor feedback P0+P1)
 
 Mentor feedback addressed: (1) natural dialogue, (2) dialogue camera framing the
