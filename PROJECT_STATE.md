@@ -1,20 +1,32 @@
 # Project State
 
-Updated: 2026-09-16 (v0.7.0 — slow opening + neutral route)
+Updated: 2026-09-16 (v0.8.0 — Gedung B bertingkat + perpustakaan)
 
 ## Development state
 
-**v0.7.0** implements the two new GDD document sections into the game:
-the slower opening ("Minggu Pertama — Pria Tanpa Wajah", 4 scenes, 36 nodes)
-and the NEUTRAL route (Bab 2 "Kesalahan Kecil Aris" route fork → montage
-"Dinding Dingin" → Netral Ending "Lulus Tanpa Nama"). Ending total is now 4.
-89 unit tests green; production build passing.
+**v0.8.0** adds two campus buildings on top of v0.7.0's story work:
+**Gedung B** — a 3-storey classroom block (x 24..44, z -16..-2) whose
+floors are all reachable via a real walkable switchback stair core
+(first multi-storey building with true vertical traversal; `zoneAt` is
+now y-aware so L2/L3 zones resolve separately) — and the
+**Perpustakaan** (x 23..39, z 16..24) with full interior (shelves,
+reading tables, counter), which now hosts the neutral-route Siti
+confrontation shots and Siti's after-school schedule. 91 unit tests
+green; production build passing.
 
 ## Story routes (current)
 
 - Opening: gate & map merah → classroom (Aris) → corridor (Siti) → canteen whispers + Bimo entrance.
 - Bab 2 fork at the back stairs: [A] ignore → neutral route; [B] defend Aris → stair_fight → Bimo impressed → rooftop → bad/resistance (unchanged).
-- Neutral: 4-scene montage (bruised Aris, Siti library confrontation, Bimo dismissal, Aris resignation letter) → graduation-day walk to the gate → ending.
+- Neutral: 4-scene montage (bruised Aris, Siti library confrontation — now framed inside the real library —, Bimo dismissal, Aris resignation letter) → graduation-day walk to the gate → ending.
+
+## Campus landmarks (current)
+
+- Main building (accessible ground floor: hall, corridor, classroom, teacher room) + stair shaft → rooftop scene.
+- **Gedung B (v0.8.0):** 3 floors, north open-air corridor, switchback stair, Kelas 10-A / 12-A / 12-B + Ruang OSIS / UKS / Loker, per-floor zones with y windows. Room doors (swung open) + lintels on every floor.
+- Main-building classroom & teacher room also have doors (v0.8.0 `Door` component in props.tsx).
+- **Perpustakaan (v0.8.0):** shelves, reading tables, loket; library zone, hidden events, Siti's `after` spot. Findable via the courtyard directional signpost (Perpustakaan/Kantin/Gedung B/Lapangan), facade sign, and the Indonesian-labeled map node.
+- Canteen (accessible interior), parking, field, back alley, rear yard, warehouse exterior (+ warehouse interior scene).
 
 ## What already existed (audited 2026-09-10)
 

@@ -69,6 +69,13 @@ export type ZoneId =
   | 'hall'
   | 'classroom'
   | 'teacher_room'
+  // v0.8.0: Gedung B (3-storey classroom building) + library
+  | 'gedung_b'
+  | 'kelas_10a'
+  | 'kelas_12a'
+  | 'kelas_12b'
+  | 'ruang_osis'
+  | 'library'
   // rooftop scene
   | 'rooftop'
   | 'rooftop_door'
@@ -265,4 +272,8 @@ export type ZoneDef = {
   center: [number, number];
   radius: number;
   map?: [number, number]; // optional legacy minimap coords (MapPanel derives from bounds)
+  // v0.8.0: optional vertical window [minY, maxY] — multi-storey buildings
+  // reuse the same (x, z) footprint per floor, so upper-floor zones only
+  // match when the player's y is inside the range (see zoneAt).
+  y?: [number, number];
 };

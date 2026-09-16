@@ -69,6 +69,22 @@ describe('world v2 — zoneAt is scene-aware', () => {
     // campus gate coords are meaningless on the rooftop
     expect(zoneAt(7, 44.5, 'rooftop')).toBeNull();
   });
+
+  it('finds the v0.8.0 buildings (library + Gedung B)', () => {
+    expect(zoneAt(31, 20, 'campus')?.id).toBe('library');
+    expect(zoneAt(30, -14.8, 'campus')?.id).toBe('gedung_b');
+    expect(zoneAt(30, -7.8, 'campus', 1)?.id).toBe('kelas_10a');
+    expect(zoneAt(40, -7.8, 'campus', 0.5)?.id).toBe('ruang_osis');
+  });
+
+  it('resolves upper floors of Gedung B via the y window (v0.8.0)', () => {
+    // same (x, z) footprint on every floor — y disambiguates
+    expect(zoneAt(30, -7.8, 'campus', 1)?.id).toBe('kelas_10a');
+    expect(zoneAt(30, -7.8, 'campus', 4.2)?.id).toBe('kelas_12a');
+    expect(zoneAt(30, -7.8, 'campus', 7.6)?.id).toBe('kelas_12b');
+    // without a y the y-windowed floors are skipped (ground zone wins)
+    expect(zoneAt(30, -7.8, 'campus')?.id).toBe('kelas_10a');
+  });
 });
 
 describe('world v2 — NPC placement', () => {
@@ -118,6 +134,10 @@ describe('world v2 — zone registries', () => {
   it('splits interior zones from legacy outdoor ids', () => {
     const campusIds = CAMPUS_ZONES.map((z) => z.id);
     for (const id of ['hall', 'classroom', 'teacher_room']) expect(campusIds).toContain(id);
+    // v0.8.0: Gedung B + library zones registered on campus
+    for (const id of ['gedung_b', 'kelas_10a', 'kelas_12a', 'kelas_12b', 'ruang_osis', 'library']) {
+      expect(campusIds).toContain(id);
+    }
     expect(ROOFTOP_ZONES.map((z) => z.id)).toEqual(['rooftop', 'rooftop_door']);
     expect(WAREHOUSE_ZONES.map((z) => z.id)).toEqual(['warehouse_in', 'warehouse_door']);
   });

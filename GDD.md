@@ -115,6 +115,16 @@ WebAudio procedural synth buses: MASTER/MUSIC/SFX/UI/AMBIENT. Hooks: footsteps, 
 
 Playable grounds around the school model: **Main Gate, Courtyard, Main Building (exterior), Canteen area, Field, Back Area/Alley, Parking**. Outside (street/park edge) accessible; Warehouse = Bad Route finale arena (fog + props). Small but dense; every area has purpose + landmark. Areas load as one scene (single area), spawn zones + fog for atmosphere; warehouse/outside scenes are simple set-dressed variants.
 
+**v0.8.0 landmarks:**
+- **Gedung B** (kelas bertingkat, timur halaman belakang): 3 lantai, lorong
+  terbuka sisi utara, tangga switchback beton yang bisa dinaiki ke semua
+  lantai. Kelas 10-A (L1), Ruang OSIS (L1), Kelas 12-A (L2), Ruang UKS (L2),
+  Kelas 12-B (L3), Ruang Loker (L3). Zona per lantai (y-aware).
+- **Perpustakaan** (antara gedung utama dan parkir): rak buku, meja baca,
+  loket pustaka. Lokasi konfrontasi Siti pada rute netral (Bab 3, "Dinding
+  Dingin" scene 2) — shot cinematic memakai interior asli; Siti berada di
+  perpustakaan pada periode selepas sekolah.
+
 ## 7. UI
 
 Cinematic school-life + tactical combat. Palette: charcoal `#141a21`, off-white, amber (objective), crimson (danger/combat), cyan (focus/info), green (positive/social). Normal gameplay HUD is minimal (REN, HP, FOCUS, day/time, objective, [E] INTERACT). Dashboards live in menus. Dialogue: speaker, portrait, typewriter, skip, keyboard nav; ≤ ~40% screen. Queued notifications. Menus fully keyboard navigable (arrows/WASD, Enter, Esc). Responsive via clamp()/relative sizing.

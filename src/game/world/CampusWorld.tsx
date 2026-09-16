@@ -2,13 +2,16 @@ import { useEffect, useRef } from 'react';
 import * as THREE from 'three';
 import { RigidBody, CuboidCollider } from '@react-three/rapier';
 import { registerOccluders } from '../runtime';
-import { WallMeshes, WallColliders, Blockers, Tree, LampPost, Bench, Planter, SchoolSign, type Seg } from './props';
+import { WallMeshes, WallColliders, Blockers, Tree, LampPost, Bench, Planter, SchoolSign, Door, type Seg } from './props';
 import { Pbr } from './pbr';
 import { CampusInterior } from './CampusInterior';
+import { GedungB } from './GedungB';
+import { Library } from './Library';
 
 // SMA Yuson campus — rebuilt from scratch (no school GLB). Grounds, main
 // building with accessible interior, canteen, field, parking, back alley,
-// rear yard and the old warehouse exterior. Colliders mirror every wall.
+// rear yard, the old warehouse exterior, the 3-storey Gedung B (all floors
+// walkable) and the library. Colliders mirror every wall.
 
 const GRASS = '#5f7a52';
 const GRASS_D = '#546c4a';
@@ -46,6 +49,12 @@ const MAIN_SHELL: Seg[] = [
   // room dividers x=±2 (z 4..14)
   { x: -2, z: 9, w: 0.25, d: 10, color: '#ded5c2' },
   { x: 2, z: 9, w: 0.25, d: 10, color: '#ded5c2' },
+];
+
+// v0.8.0: lintels above the classroom / teacher-room door gaps (visual only)
+const MAIN_LINTELS: Seg[] = [
+  { x: -8.75, z: 14, w: 1.7, d: 0.25, h: 0.78, y0: 2.52, color: WALL_CREAM },
+  { x: 8.75, z: 14, w: 2.6, d: 0.25, h: 0.78, y0: 2.52, color: WALL_CREAM },
 ];
 
 // Second-floor facade bands + roof (visual only, above reachable space)
@@ -162,6 +171,20 @@ function Ground() {
         <planeGeometry args={[5, 9]} />
         <Pbr name="pavers" repeat={[2, 3]} roughness={0.94} />
       </mesh>
+      {/* v0.8.0: library plaza + approach from the main building */}
+      <mesh position={[31, 0.016, 20]} rotation={[-Math.PI / 2, 0, 0]} receiveShadow>
+        <planeGeometry args={[18, 10.5]} />
+        <Pbr name="pavers" repeat={[6, 3]} roughness={0.92} envMapIntensity={0.35} />
+      </mesh>
+      <mesh position={[19.4, 0.015, 20]} rotation={[-Math.PI / 2, 0, 0]} receiveShadow>
+        <planeGeometry args={[7.6, 4]} />
+        <Pbr name="pavers" repeat={[2, 1]} color="#b0b2b4" roughness={0.94} />
+      </mesh>
+      {/* v0.8.0: Gedung B approach path (rear yard → corridor entrance) */}
+      <mesh position={[17.5, 0.015, -14.8]} rotation={[-Math.PI / 2, 0, 0]} receiveShadow>
+        <planeGeometry args={[14, 3.6]} />
+        <Pbr name="concrete" repeat={[5, 1]} color="#b4afa6" roughness={0.95} />
+      </mesh>
     </group>
   );
 }
@@ -227,6 +250,10 @@ function MainBuilding() {
     <group ref={g}>
       <WallMeshes segs={MAIN_SHELL} color={WALL_CREAM} />
       <WallColliders segs={MAIN_SHELL} />
+      {/* v0.8.0: classroom & teacher-room doors, swung open into the rooms */}
+      <WallMeshes segs={MAIN_LINTELS} color={WALL_CREAM} />
+      <Door x={-8.75} z={14} w={1.5} open={-1} hinge={-1} />
+      <Door x={8.75} z={14} w={2.4} open={-1} hinge={1} />
       {/* second floor + roof */}
       <WallMeshes segs={UPPER_FACADE} color={WALL_CREAM} />
       {/* blue trim band between floors */}
@@ -610,17 +637,22 @@ function Greenery() {
       <Tree x={-9} z={41} s={0.95} />
       <Tree x={21} z={40} s={1.05} />
       <Tree x={17} z={30} s={0.9} />
-      <Tree x={26} z={22} s={1.15} />
+      {/* v0.8.0: trees at (26,22)/(36,20) replaced by the library; (30,-8)
+          replaced by Gedung B — replanted around the new buildings */}
       <Tree x={-20} z={40} s={1.2} />
-      <Tree x={36} z={20} s={1} />
       <Tree x={-38} z={36} s={1.1} />
+      <Tree x={20} z={27.5} s={1.1} />
+      <Tree x={44} z={1} s={1} />
+      <Tree x={20.5} z={13} s={0.95} tint="#517a42" />
+      <Tree x={26} z={-20} s={1.05} />
+      <Tree x={41} z={-21} s={1.1} />
       <Tree x={14} z={-10} s={1} tint="#517a42" />
       <Tree x={-12} z={-14} s={1.15} tint="#517a42" />
-      <Tree x={30} z={-8} s={1.05} tint="#5c8148" />
       <Tree x={-30} z={-10} s={1.1} />
       <Planter x={0} z={33} />
       <Planter x={14} z={33} />
       <Planter x={2} z={41.5} w={3} />
+      <Planter x={22.8} z={27} w={2} d={1} />
     </group>
   );
 }
@@ -661,8 +693,51 @@ function StreetFurniture() {
 // Small sign helper moved to props.tsx (shared with other scenes).
 
 // ---------------------------------------------------------------------------
-// Campus root
+// v0.8.0: directional signpost in the main courtyard (user request: make the
+// new buildings findable). Pole + labelled arrow boards pointing at the
+// library, canteen, Gedung B and the field. ry maps local +X to the pointing
+// direction: ry = atan2(-pz, px).
 // ---------------------------------------------------------------------------
+const SIGNPOST_BOARDS: { text: string; ry: number; y: number; color: string }[] = [
+  { text: 'PERPUSTAKAAN', ry: Math.PI / 4, y: 2.35, color: '#ffd34d' },
+  { text: 'KANTIN', ry: Math.PI / 3, y: 1.95, color: '#dfe7f0' },
+  { text: 'GEDUNG B', ry: Math.PI / 2, y: 1.55, color: '#dfe7f0' },
+  { text: 'LAPANGAN', ry: Math.PI, y: 1.95, color: '#dfe7f0' },
+];
+
+function Signpost() {
+  return (
+    <group position={[11.5, 0, 34.5]}>
+      <mesh position={[0, 0.09, 0]} receiveShadow castShadow>
+        <boxGeometry args={[1.1, 0.18, 1.1]} />
+        <Pbr name="concrete" repeat={[1, 1]} color="#9fa2a5" roughness={0.9} />
+      </mesh>
+      <mesh position={[0, 1.45, 0]} castShadow>
+        <cylinderGeometry args={[0.055, 0.07, 2.7, 10]} />
+        <meshStandardMaterial color="#5d646b" roughness={0.5} metalness={0.5} />
+      </mesh>
+      {SIGNPOST_BOARDS.map((b) => (
+        <group key={b.text} position={[0, b.y, 0]} rotation={[0, b.ry, 0]}>
+          <mesh position={[0.9, 0, 0]} castShadow>
+            <boxGeometry args={[1.75, 0.3, 0.07]} />
+            <meshStandardMaterial color="#1f3a5c" roughness={0.6} />
+          </mesh>
+          {/* arrow head at the far end of the board */}
+          <mesh position={[1.92, 0, 0]} rotation={[0, 0, -Math.PI / 2]} castShadow>
+            <coneGeometry args={[0.15, 0.26, 4]} />
+            <meshStandardMaterial color="#1f3a5c" roughness={0.6} />
+          </mesh>
+          <SchoolSign position={[0.9, 0.01, 0.045]} text={b.text} size={0.17} color={b.color} />
+          <SchoolSign position={[0.9, 0.01, -0.045]} text={b.text} size={0.17} color={b.color} rotY={Math.PI} />
+        </group>
+      ))}
+      <RigidBody type="fixed" colliders={false}>
+        <CuboidCollider args={[0.2, 1.4, 0.2]} position={[0, 1.4, 0]} />
+      </RigidBody>
+    </group>
+  );
+}
+
 export function CampusWorld() {
   const bldg = useRef<THREE.Group>(null);
   const canteen = useRef<THREE.Group>(null);
@@ -695,8 +770,11 @@ export function CampusWorld() {
       <Alley />
       <RearYard />
       <Greenery />
+      <Signpost />
       <StreetFurniture />
       <CampusInterior />
+      <GedungB />
+      <Library />
     </group>
   );
 }

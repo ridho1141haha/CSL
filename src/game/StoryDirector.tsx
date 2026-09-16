@@ -143,8 +143,8 @@ export function StoryDirector() {
       return;
     }
 
-    // ---------- zone discovery + flavor (scene-aware) ----------
-    const zone = zoneAt(playerPos.x, playerPos.z, game.scene);
+    // ---------- zone discovery + flavor (scene-aware, y-aware for Gedung B) ----------
+    const zone = zoneAt(playerPos.x, playerPos.z, game.scene, playerPos.y);
     if (zone) {
       if (game.currentZone !== zone.id) {
         game.setCurrentZone(zone.id);

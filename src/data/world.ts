@@ -11,9 +11,11 @@ import type { ZoneDef, CameraPose, SceneId } from '../types';
 //   courtyard   z 28..44   (paved plaza)
 //   main bldg   x -16..16, z 4..28  (accessible interior: hall, corridor,
 //               classroom, teacher room; stair shaft on the north side)
+//   library     x 23..39, z 16..24  (v0.8.0, accessible interior)
 //   canteen     x 22..34, z 2..14   (accessible interior)
 //   parking     x 26..42, z 26..42
 //   field       x -46..-20, z 0..30
+//   gedung B    x 24..44, z -16..-2 (v0.8.0, 3 floors, all reachable)
 //   stair shaft x -4..4, z -2..4   (rooftop access → rooftop scene)
 //   rear yard   z -8..4
 //   back alley  x -6..18, z -30..-12
@@ -44,8 +46,15 @@ export const CAMPUS_ZONES: ZoneDef[] = [
   { id: 'classroom', label: 'Kelas 1-X', center: [-9, 9], radius: 5.5 },
   { id: 'teacher_room', label: 'Ruang Guru', center: [9, 9], radius: 5.5 },
   { id: 'canteen', label: 'Kantin', center: [28, 8], radius: 5.5 },
+  { id: 'library', label: 'Perpustakaan', center: [31, 20], radius: 4 },
   { id: 'parking', label: 'Area Parkir', center: [34, 34], radius: 7 },
   { id: 'field', label: 'Lapangan', center: [-33, 15], radius: 12 },
+  { id: 'gedung_b', label: 'Gedung Kelas B', center: [34, -9], radius: 13 },
+  // v0.8.0: upper floors reuse the same footprint — y windows disambiguate
+  { id: 'kelas_10a', label: 'Kelas 10-A', center: [30, -7.8], radius: 4.5 },
+  { id: 'ruang_osis', label: 'Ruang OSIS', center: [40, -7.8], radius: 3.5 },
+  { id: 'kelas_12a', label: 'Kelas 12-A (Lantai 2)', center: [30, -7.8], radius: 4.5, y: [3.4, 6.9] },
+  { id: 'kelas_12b', label: 'Kelas 12-B (Lantai 3)', center: [30, -7.8], radius: 4.5, y: [6.9, 10.4] },
   { id: 'back_stairs', label: 'Tangga Belakang', center: [0, 1], radius: 4.5 },
   { id: 'back_alley', label: 'Gang Belakang', center: [6, -21], radius: 8 },
   { id: 'warehouse', label: 'Gudang Tua', center: [-36, -27], radius: 8 },
@@ -95,17 +104,31 @@ export const ZONE_BY_ID: Record<string, ZoneDef> = Object.fromEntries(
 );
 
 // Zone lookup is scene-aware: each scene has its own local coordinates.
-export function zoneAt(x: number, z: number, scene: SceneId = 'campus'): ZoneDef | null {
+// v0.8.0: y-aware — when the caller passes a y, zones with a `y` window that
+// contains it take priority (floor-specific zones beat floor-agnostic ones,
+// e.g. Kelas 12-A on L2 vs the shared Gedung B shell); zones with a y window
+// never match when no y is given (legacy/ground behavior).
+export function zoneAt(x: number, z: number, scene: SceneId = 'campus', y?: number): ZoneDef | null {
   const zones = SCENES[scene]?.zones ?? CAMPUS_ZONES;
   let best: ZoneDef | null = null;
   let bestD = Infinity;
+  let bestFloor: ZoneDef | null = null;
+  let bestFloorD = Infinity;
   for (const zn of zones) {
     const d = Math.hypot(x - zn.center[0], z - zn.center[1]);
+    if (zn.y) {
+      if (y !== undefined && y >= zn.y[0] && y <= zn.y[1] && d <= zn.radius && d < bestFloorD) {
+        bestFloor = zn;
+        bestFloorD = d;
+      }
+      continue;
+    }
     if (d <= zn.radius && d < bestD) {
       best = zn;
       bestD = d;
     }
   }
+  if (y !== undefined && bestFloor) return bestFloor;
   return best;
 }
 
@@ -151,6 +174,11 @@ export const CAMERA_POSES: Record<string, CameraPose> = {
   classroom_view: { pos: [-2.5, 2.1, 13.6], look: [-9.8, 1.15, 9.4] },
   classroom_close: { pos: [-6.6, 1.45, 12.9], look: [-4.0, 1.2, 11.3] },
   classroom_budi: { pos: [-8.4, 1.6, 12.6], look: [-12.2, 1.45, 11.4] },
+  // v0.8.0: the Siti confrontation now frames the real library interior
+  library_wide: { pos: [36.8, 2.35, 22.8], look: [27.5, 1.25, 19.2] },
+  library_shelf: { pos: [33.2, 1.6, 21.9], look: [30.4, 1.3, 19.6] },
+  library_close: { pos: [31.9, 1.5, 21.3], look: [29.6, 1.35, 19.7] },
+  library_pull: { pos: [26.2, 2.2, 22.6], look: [33.5, 1.3, 18.8] },
   hall_view: { pos: [4.6, 2.0, 27.4], look: [-3.4, 1.35, 23.4] },
   hall_close: { pos: [-0.2, 1.5, 25.4], look: [-3.0, 1.4, 23.5] },
   corridor_view: { pos: [2.2, 1.9, 20.2], look: [-4.2, 1.4, 17.2] },

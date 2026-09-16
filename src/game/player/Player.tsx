@@ -74,7 +74,7 @@ export function Player() {
       if (Math.abs(lv.x) > 0.01 || Math.abs(lv.z) > 0.01 || lv.y > 0.01) {
         rb.setLinvel({ x: 0, y: Math.min(lv.y, 0) * 0.5, z: 0 }, true);
       }
-      syncFrom(t.x, t.z, 0, 0);
+      syncFrom(t.x, t.y, t.z, 0, 0);
       updateAnim(dt, 0, false);
       return;
     }
@@ -88,7 +88,7 @@ export function Player() {
         // combat resolving: freeze gently
         rb.setLinvel({ x: 0, y: lv.y, z: 0 }, true);
       }
-      syncFrom(t.x, t.z, lv.x, lv.z);
+      syncFrom(t.x, t.y, t.z, lv.x, lv.z);
       return;
     }
 
@@ -158,13 +158,15 @@ export function Player() {
     }
 
     updateAnim(dt, hSpeed, run);
-    syncFrom(t.x, t.z, nvx, nvz);
+    syncFrom(t.x, t.y, t.z, nvx, nvz);
   });
 
-  const syncFrom = (x: number, z: number, vx: number, vz: number) => {
+  const syncFrom = (x: number, y: number, z: number, vx: number, vz: number) => {
     playerPos.x = x;
     playerPos.z = z;
-    playerPos.y = 0;
+    // v0.8.0: true feet height (capsule center − 0.75). Ground floors read ~0,
+    // Gedung B L2 ≈ 3.5 / L3 ≈ 7.0 — drives y-aware zoneAt (upper-floor zones).
+    playerPos.y = y - 0.75;
     playerPos.vx = vx;
     playerPos.vz = vz;
     playerPos.speed = Math.hypot(vx, vz);

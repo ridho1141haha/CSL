@@ -93,6 +93,23 @@ export const HIDDEN_EVENTS: HiddenEventDef[] = [
     reqs: { k: 'chapterMin', id: 2 },
     dialogue: 'he_bimo_alley_1',
   },
+  // v0.8.0: library + Gedung B exploration
+  {
+    id: 'he_library_note',
+    title: 'Foto di Rak Tahunan',
+    trigger: { k: 'zone' },
+    zone: 'library',
+    reqs: { k: 'chapterMin', id: 2 },
+    dialogue: 'he_library_1',
+  },
+  {
+    id: 'he_osis_guest',
+    title: 'Buku Tamu Ruang OSIS',
+    trigger: { k: 'zone' },
+    zone: 'ruang_osis',
+    reqs: { k: 'chapterMin', id: 2 },
+    dialogue: 'he_osis_1',
+  },
 ];
 
 // Event ids ARE their persistence flag ids (they already carry the `he_`

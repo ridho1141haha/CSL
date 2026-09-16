@@ -17,7 +17,7 @@ export function LoadingScreen() {
         <p>MEMUAT ASET SEKOLAH…</p>
         <div className="boot-bar"><i /></div>
         <div className="boot-meta">
-          <span className="chip">BUILD 0.7.0</span>
+          <span className="chip">BUILD 0.8.0</span>
           <span className="chip">TEAM CHAOS</span>
           <span className="chip chip-amber">SMA YUSON</span>
         </div>

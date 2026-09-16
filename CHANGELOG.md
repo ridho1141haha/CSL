@@ -1,5 +1,69 @@
 # Changelog
 
+## 0.8.0 — 2026-09-16 (Gedung Kelas B bertingkat + Perpustakaan)
+
+Dua bangunan kampus baru sesuai permintaan: **Gedung B** (kelas bertingkat
+3 lantai, semua lantai bisa dinaiki lewat tangga beton sungguhan) dan
+**Perpustakaan** (interior lengkap — sekaligus menepati lokasi konfrontasi
+Siti di rute netral yang sebelumnya hanya narasi).
+
+### Added — Gedung B (gedung kelas 3 lantai, x 24..44, z -16..-2)
+- Gedung prosedural 3 lantai dengan **lorong terbuka utara + tangga
+  switchback internal yang benar-benar walkable** (kollider langkah/landasan/
+  lantai per lantai) — gedung bertingkat pertama di game ini yang bisa
+  dinaiki, bukan sekadar fasad.
+- Tiap lantai: 1 kelas penuh (papan tulis, 12 meja siswa, meja guru, jam,
+  lampu) + 1 ruang ekskul (L1 Ruang OSIS dengan papan buletin, L2 Ruang UKS,
+  L3 Ruang Loker) + loker lorong + tanaman pot.
+- Zona per lantai: `gedung_b` (selubung), `kelas_10a` (L1), `ruang_osis` (L1),
+  `kelas_12a` (L2), `kelas_12b` (L3). **`zoneAt` kini y-aware** — zona dengan
+  jendela `y` diprioritaskan ketika y pemain cocok, sehingga lantai 2/3
+  punya label HUD sendiri meskipun footprint (x, z) identik.
+- Trim biru antar lantai, jendela fasad selatan per lantai, plang "GEDUNG B"
+  menghadap halaman belakang, plang "LANTAI n" + nama ruang per lantai.
+- Flavor zone `zone_gedung_b` + hidden event **"Buku Tamu Ruang OSIS"**
+  (`he_osis_guest`, chapter ≥ 2, Fokus +3).
+
+### Added — Perpustakaan (x 23..39, z 16..24)
+- Bangunan 1 lantai dengan interior lengkap: 6 rak buku (2 deret × 3 baris,
+  gang menyilang di poros pintu), 3 meja baca + kursi, karpet, loket pustaka
+  bertanda "LOKET", kotak pengembalian, papan buletin, tanaman sudut,
+  pintu dobel terbuka + kanopi, jendela 3 sisi, plang "PERPUSTAKAAN".
+- Zona `library` + flavor `zone_library` + hidden event
+  **"Foto di Rak Tahunan"** (`he_library_note`, chapter ≥ 2, Diplomasi +1) —
+  foreshadowing masa lalu Bimo.
+- **Rute netral kini bersetting di perpustakaan sungguhan**: shot cinematic
+  scene 2 montage "Dinding Dingin" (n2_1..n2_8) dialihkan dari lorong ke
+  pose interior perpustakaan baru (`library_wide/shelf/close/pull`); Siti
+  kini dijadwalkan di perpustakaan pada periode `after`.
+- Plaza paving + jalur pendekatan dari gedung utama; jalur beton ke pintu
+  lorong Gedung B; 3 pohon dipindah/replanting sesuai footprint baru;
+  2 siswa ambient baru (area baca perpustakaan, lorong Gedung B).
+- **Papan penunjuk arah (signpost) di halaman utama** (11.5, 34.5), dekat
+  spawn — papan panah berlabel "PERPUSTAKAAN / KANTIN / GEDUNG B / LAPANGAN"
+  dengan teks dua sisi + kepala panah, kollider tiang, agar bangunan baru
+  langsung ketahuan arahnya sejak spawn (feedback: "perpustakaan nya dimana?").
+- **Pintu ruang kelas** (feedback: "ruang kelas nya dikasih pintu"): komponen
+  `Door` reusable di `props.tsx` — dedaungan pintu terbuka ±109° menempel
+  ke arah daun pintu sehingga celah tetap full walkable — dipasang di: kelas
+  1-X & ruang guru (gedung utama, plus lintel visual di atas celah), dan
+  seluruh pintu Kelas 10-A/12-A/12-B + Ruang OSIS/UKS/Loker (Gedung B, 3
+  lantai, lintel kini terpasang di semua lantai). Perpustakaan & pintu masuk
+  gedung utama sebelumnya sudah berpintu dobel terbuka.
+
+### Changed
+- `ZoneDef` bertambah field opsional `y?: [min, max]`; `zoneAt(x, z, scene, y?)`
+  dua-tahap (zona lantai spesifik menang atas zona umum). Pemanggil
+  (StoryDirector, playerInZone) kini meneruskan `playerPos.y`.
+- Map panel kini menampilkan **label zona Indonesia** (`zone.label`, mis.
+  "PERPUSTAKAAN", "KELAS 10-A (LANTAI 2)") alih-alih id teknis zona.
+- README, GDD, PROJECT_STATE diperbarui; versi 0.8.0.
+
+### Verified
+- 91 unit tests hijau (termasuk 3 spesifikasi baru: zona gedung baru,
+  resolusi lantai via y-window, registri zona); `tsc -b` bersih;
+  build produksi sukses.
+
 ## 0.7.0 — 2026-09-16 (slow opening rework + NEUTRAL route)
 
 Implementasi dua bagian GDD baru: **§"Alur yang lebih lambat"** (opening baru)

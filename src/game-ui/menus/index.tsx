@@ -291,7 +291,10 @@ export function InventoryPanel() {
 // Map — implementasi mockup Stitch "07-map" (SCHEMATIC CAMPUS OVERVIEW):
 // header dengan tag MAP // GND, grid node, panel samping target & statistik.
 export function MapPanel() {
-  const player = usePlayer((s) => ({ x: s.x, z: s.z }));
+  // zustand v5: object-literal selectors create a new snapshot every poll and
+  // crash React with "Maximum update depth exceeded" — select primitives.
+  const px = usePlayer((s) => s.x);
+  const pz = usePlayer((s) => s.z);
   const sceneId = useGame((s) => s.scene);
   const visited = useGame((s) => s.visitedZones);
   const quests = useQuests((s) => s.quests);
@@ -318,9 +321,9 @@ export function MapPanel() {
           {activeQuest && <div className="map-objective">OBJEKTIF: {activeQuest.objective}</div>}
           {def.zones.map((zone) => {
             const [left, top] = toMap(zone.center[0], zone.center[1]);
-            return <span key={zone.id} className={`node ${visited.includes(zone.id) ? '' : 'unvisited'}`} style={{ left, top }}>{zone.id.replace(/_/g, ' ').toUpperCase()}</span>;
+            return <span key={zone.id} className={`node ${visited.includes(zone.id) ? '' : 'unvisited'}`} style={{ left, top }}>{zone.label.toUpperCase()}</span>;
           })}
-          <div className="map-player" style={{ left: toMap(player.x, player.z)[0], top: toMap(player.x, player.z)[1] }} />
+          <div className="map-player" style={{ left: toMap(px, pz)[0], top: toMap(px, pz)[1] }} />
         </div>
       </section>
       <aside className="map-side">
@@ -331,7 +334,7 @@ export function MapPanel() {
         <div className="panel-cut">
           <span className="ms-title">// VEKTOR NAVIGASI</span>
           <div className="ms-row"><span>SCENE</span><b>{def.label.toUpperCase()}</b></div>
-          <div className="ms-row"><span>POSISI REN</span><b>X {Math.round(player.x)} · Z {Math.round(player.z)}</b></div>
+          <div className="ms-row"><span>POSISI REN</span><b>X {Math.round(px)} · Z {Math.round(pz)}</b></div>
           <div className="ms-row"><span>ZONA DIKUNJUNGI</span><b>{visited.length} / {def.zones.length}</b></div>
         </div>
         <div className="panel-cut">

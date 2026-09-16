@@ -167,6 +167,67 @@ export function Wrapper({ children }: { children: ReactNode }) {
   return <>{children}</>;
 }
 
+// ---------------------------------------------------------------------------
+// Door — swung-open door leaf + frame for a doorway (v0.8.0: "ruang kelas
+// dikasih pintu"). The leaf opens ~109° from closed, leaning back toward the
+// hinge-side wall segment, so the passage stays fully walkable (visual only,
+// same approach as the library's open double doors).
+//
+// Local frame: the wall runs along local X, the gap spans local -w/2..w/2,
+// `open` picks the side of the wall the leaf swings to (local ±Z). rotY
+// orients that frame in the world: wall along world X → rotY 0, wall along
+// world Z → rotY ±Math.PI/2. hinge: -1 = left jamb, +1 = right jamb.
+// ---------------------------------------------------------------------------
+const DOOR_OPEN = 1.9; // rad from the closed position — past perpendicular
+
+export function Door({
+  x, z, y0 = 0, w = 1.4, rotY = 0, open = 1, hinge = -1,
+  frame = '#31547a', leaf = '#4a6a8a',
+}: {
+  x: number; z: number; y0?: number; w?: number; rotY?: number;
+  open?: 1 | -1; hinge?: 1 | -1; frame?: string; leaf?: string;
+}) {
+  const h = 2.45;
+  const len = w - 0.12;
+  const dx = -hinge * Math.cos(DOOR_OPEN);
+  const dz = open * Math.sin(DOOR_OPEN);
+  const hx = hinge * (w / 2 - 0.06);
+  const ry = Math.atan2(-dz, dx);
+  return (
+    <group position={[x, y0, z]} rotation={[0, rotY, 0]}>
+      {/* frame: jambs lining the gap + header above the leaf */}
+      {[-1, 1].map((s) => (
+        <mesh key={s} position={[s * (w / 2 - 0.05), (h + 0.1) / 2, 0]} castShadow>
+          <boxGeometry args={[0.1, h + 0.1, 0.34]} />
+          <meshStandardMaterial color={frame} roughness={0.55} />
+        </mesh>
+      ))}
+      <mesh position={[0, h + 0.07, 0]} castShadow>
+        <boxGeometry args={[w + 0.24, 0.14, 0.34]} />
+        <meshStandardMaterial color={frame} roughness={0.55} />
+      </mesh>
+      {/* leaf, rotated open around the hinge jamb */}
+      <group position={[hx + dx * (len / 2), h / 2, dz * (len / 2)]} rotation={[0, ry, 0]}>
+        <mesh castShadow>
+          <boxGeometry args={[len, h, 0.07]} />
+          <meshStandardMaterial color={leaf} roughness={0.5} metalness={0.15} />
+        </mesh>
+        {/* vision slot + handles on both faces */}
+        <mesh position={[0, 0.55, 0.045]}>
+          <boxGeometry args={[0.5, 0.35, 0.02]} />
+          <meshStandardMaterial color="#9fb6c4" roughness={0.2} metalness={0.5} />
+        </mesh>
+        {[-1, 1].map((s) => (
+          <mesh key={s} position={[len / 2 - 0.16, -0.25, s * 0.06]}>
+            <boxGeometry args={[0.12, 0.03, 0.03]} />
+            <meshStandardMaterial color="#c8ccd0" roughness={0.35} metalness={0.7} />
+          </mesh>
+        ))}
+      </group>
+    </group>
+  );
+}
+
 // 3D text sign helper shared by every scene. Font is served LOCALLY
 // (public/fonts/carlito-regular.ttf) — troika's default Roboto lives on a
 // CDN, another mobile-network failure point we removed.

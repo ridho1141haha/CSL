@@ -573,6 +573,10 @@ export const DIALOGUE: Record<string, DialogueNode> = Object.fromEntries(
     N({ id: 'he_hall_1', speaker: 'REN', portrait: 'ren', emotion: 'neutral', text: 'Papan OSIS. Di antara lomba dan jadwal, satu lembar polos: "Melihat sesuatu? Catat. Kami memproses tanpa nama." — tanda tangan: S.', effects: [{ k: 'flag', id: 'osis_notice' }, { k: 'notify', text: 'Info: kanal pelaporan anonim OSIS' }], end: true }),
     N({ id: 'he_bimo_alley_1', speaker: 'BIMO', portrait: 'bimo', emotion: 'dark', text: 'Ren.', next: 'he_bimo_alley_2' }),
     N({ id: 'he_bimo_alley_2', speaker: 'BIMO', portrait: 'bimo', emotion: 'dark', text: 'Anak-anakku ronda malam. Kalau kamu lewat, mereka akan mengingat wajahmu. Jangan beri mereka alasan mengingat lebih lama.', effects: [{ k: 'flag', id: 'bimo_warning' }, { k: 'notify', text: 'Info: peringatan langsung dari Bimo' }], end: true }),
+    // v0.8.0: library + Gedung B exploration
+    N({ id: 'he_library_1', speaker: 'NARATOR', portrait: 'narrator', text: 'Rak tahunan, pojok perpustakaan. Foto angkatan lama terkelupas: satu anak kelas 10 berdiri paling pinggir, wajahnya sudah mulai tampak seperti Bimo. Namanya dicoret hitam.', next: 'he_library_2' }),
+    N({ id: 'he_library_2', speaker: 'REN', portrait: 'ren', emotion: 'worried', text: 'Nama yang dicoret. Tahun itu, satu-satunya. Entah kenapa aku tidak ingin tahu ke mana dia pergi.', effects: [{ k: 'flag', id: 'library_yearbook' }, { k: 'stat', stat: 'diplomacy', delta: 1 }, { k: 'notify', text: 'Info: foto tahunan Bimo tercatat' }], end: true }),
+    N({ id: 'he_osis_1', speaker: 'REN', portrait: 'ren', emotion: 'neutral', text: 'Buku tamu Ruang OSIS, lantai satu Gedung B. Baris demi baris nama rapi. Di halaman terakhir, satu baris kosong — hanya coretan kecil: "menunggu yang berani".', effects: [{ k: 'flag', id: 'osis_guestbook' }, { k: 'stat', stat: 'focus', delta: 3 }, { k: 'notify', text: 'Info: buku tamu OSIS tercatat (Fokus +3)' }], end: true }),
 
     // ============================================================
     // Zone flavor (short one-shots when exploring, once per zone)
@@ -584,6 +588,8 @@ export const DIALOGUE: Record<string, DialogueNode> = Object.fromEntries(
     N({ id: 'zone_street', speaker: 'REN', portrait: 'ren', text: 'Jalan depan. Seharusnya tempat paling aman di Yuson. "Seharusnya" sedang melakukan kerja berat.', end: true }),
     N({ id: 'zone_classroom', speaker: 'REN', portrait: 'ren', text: 'Kelas 1-X. Bangkuku di dekat jendela. Dari sini, halaman terlihat damai — dari jarak yang tepat.', end: true }),
     N({ id: 'zone_warehouse', speaker: 'REN', portrait: 'ren', emotion: 'tense', text: 'Gudang tua. Pintu besinya tertutup rapat. Suara di dalamnya tidak diundang.', end: true }),
+    N({ id: 'zone_library', speaker: 'REN', portrait: 'ren', text: 'Perpustakaan. Sepi, dingin, rapi. Tempat paling aman di sekolah ini — dan paling mudah membuatku merasa sedang diawasi.', end: true }),
+    N({ id: 'zone_gedung_b', speaker: 'REN', portrait: 'ren', text: 'Gedung Kelas B. Tiga lantai, lorong terbuka, tangga beton. Dari lantai atas, seluruh sekolah terlihat lebih kecil dari yang dikatakan orang.', end: true }),
   ].map((n) => [n.id, n]),
 );
 
@@ -604,6 +610,9 @@ export const ZONE_FLAVOR: Record<string, string> = {
   street: 'zone_street',
   classroom: 'zone_classroom',
   warehouse: 'zone_warehouse',
+  // v0.8.0: new buildings
+  library: 'zone_library',
+  gedung_b: 'zone_gedung_b',
 };
 export const CHECKPOINT_NODES = ['ch2_close', 'ch2_away_2', 'ch3_accept_2', 'ch3_reject_2', 'ch4_res_3', 'n4_4'] as const;
 

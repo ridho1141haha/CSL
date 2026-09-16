@@ -42,7 +42,7 @@ export const NPCS: NpcDef[] = [
       class2: [-7, 10.5],
       lunch: [30, 6],
       class3: [-7, 10.5],
-      after: [12, 32],
+      after: [30, 20], // v0.8.0: Siti selepas sekolah di perpustakaan (sesuai alur netral)
     },
     dialogueRoot: 'npc_siti',
   },
@@ -105,4 +105,6 @@ export const AMBIENT_STUDENTS: { pos: [number, number]; wander: number; color: s
   { pos: [33, 32], wander: 3, color: '#57534e' },       // parking
   { pos: [9, 49], wander: 2.5, color: '#6b7280' },      // street
   { pos: [4, -18], wander: 3, color: '#7c6f64' },       // alley mouth
+  { pos: [29.3, 20.2], wander: 1.2, color: '#64748b' }, // v0.8.0: library reading area
+  { pos: [30, -14.8], wander: 1.5, color: '#7c6f64' },  // v0.8.0: Gedung B corridor
 ];

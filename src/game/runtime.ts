@@ -27,3 +27,8 @@ export const actorPositions: Record<string, { x: number; z: number }> = {};
 export function requestShake(mag: number) {
   camState.shake = Math.max(camState.shake, mag);
 }
+
+// TEMP DEBUG (remove before release): expose runtime + key stores on window.
+if (typeof window !== 'undefined') {
+  (window as unknown as Record<string, unknown>).__csl = { playerPos, camState };
+}

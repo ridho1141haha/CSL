@@ -1,6 +1,6 @@
 import { Component, Suspense, useCallback, useEffect, useMemo, useState, type ReactNode } from 'react';
 import { Canvas } from '@react-three/fiber';
-import { Physics, RigidBody } from '@react-three/rapier';
+import { Physics, RigidBody, useRapier } from '@react-three/rapier';
 import * as THREE from 'three';
 import { useGame } from './stores/gameStore';
 import { useStory } from './stores/storyStore';
@@ -226,6 +226,7 @@ export default function App() {
               {mode === 'CINEMATIC' && <CinematicActors />}
             </>
           )}
+          <PhysicsProbe />
           <CameraRig />
         </Physics>
       </Canvas>
@@ -377,6 +378,19 @@ function CinematicActors() {
 // cleanup. Wheel is untouched (explicit consume in CameraRig, which runs last).
 function InputJanitor() {
   useFrame(() => input.endFrame());
+  return null;
+}
+
+// TEMP DEBUG (remove before release): expose the live Rapier world so the
+// console can verify collider registration.
+function PhysicsProbe() {
+  const { world } = useRapier();
+  useEffect(() => {
+    (window as unknown as Record<string, unknown>).__cslWorld = world;
+    (window as unknown as Record<string, unknown>).__cslInput = input;
+    (window as unknown as Record<string, unknown>).__cslGame = useGame;
+    (window as unknown as Record<string, unknown>).__cslPlayer = usePlayer;
+  }, [world]);
   return null;
 }
 

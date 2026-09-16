@@ -49,5 +49,5 @@ export function evalCondition(c: Condition | undefined, ctx: ConditionContext): 
 // right now (center-radius, scene-aware)?
 export function playerInZone(zoneId: string): boolean {
   const g = useGame.getState();
-  return zoneAt(playerPos.x, playerPos.z, g.scene)?.id === zoneId;
+  return zoneAt(playerPos.x, playerPos.z, g.scene, playerPos.y)?.id === zoneId;
 }

@@ -113,7 +113,7 @@ dan rute ketiga (NETRAL) dari GDD §"Alur yang lebih lambat" + §"Rute Netral".
 - **Combat:** Real-time manual — light/heavy/block/dodge; player FSM + enemy FSM (idle/approach/windup/strike/recover/hurt/stagger/ko); hit pause ~60ms; camera shake; Focus-gated heavy/dodge
 - **School life:** Day/hour/minute clock with 6 periods (arrival/class/break/lunch/after); NPC schedules per period
 - **Quests:** MAIN/SIDE/EVENT with states LOCKED→AVAILABLE→ACTIVE→COMPLETED/FAILED
-- **World:** fully procedural, multi-scene map (no school GLB) — campus with accessible interior (hall, classroom, teacher room, canteen), plus rooftop & warehouse as on-demand scenes with fade transitions and save-aware positioning
+- **World:** fully procedural, multi-scene map (no school GLB) — campus with accessible interior (hall, classroom, teacher room, canteen), the 3-storey **Gedung B** with a fully walkable switchback stair (all floors reachable, y-aware zones) and the **Perpustakaan** (full interior, neutral-route scene location), plus rooftop & warehouse as on-demand scenes with fade transitions and save-aware positioning
 - **Inventory:** 7 categories (ALL/CONSUMABLE/QUEST/KEY/MISC) with usable consumables
 - **Save:** Versioned localStorage (`csl-save-v2`), v1→v2 migration, 4 slots (auto/1/2/3), per-field validation
 - **Audio:** WebAudio procedural synth (MASTER/MUSIC/SFX/UI/AMBIENT buses), graceful no-op fallback
