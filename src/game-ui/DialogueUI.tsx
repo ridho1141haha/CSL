@@ -34,6 +34,7 @@ export function DialogueUI({ cinematic }: { cinematic: boolean }) {
   const node = nodeId ? getDialogue(nodeId) : undefined;
   const [shown, setShown] = useState(0);
   const cps = useSettings((s) => s.typewriterCps);
+  const subtitleScale = useSettings((s) => s.subtitleScale); // v0.10.0
   const typing = useRef<number | null>(null);
 
   const text = node?.text ?? '';
@@ -130,7 +131,7 @@ export function DialogueUI({ cinematic }: { cinematic: boolean }) {
           <span className="speaker">{speaker}</span>
           <span className="chip dlg-tag">{role.toUpperCase()}</span>
         </div>
-        <p>{text.slice(0, shown)}{shown < text.length ? '▌' : ''}</p>
+        <p className="dlg-text" style={{ fontSize: `${subtitleScale}em` }}>{text.slice(0, shown)}{shown < text.length ? '▌' : ''}</p>
         {!awaitingChoice ? (
           shown >= text.length && <button className="dlg-next">LANJUT ▸</button>
         ) : (

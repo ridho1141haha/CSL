@@ -5,6 +5,10 @@ export type Settings = {
   camDistance: number;
   camMin: number;
   camMax: number;
+  /** v0.10.0: mouse/touch look speed multiplier (1 = default feel) */
+  sensitivity: number;
+  /** v0.10.0: flip vertical camera look */
+  invertY: boolean;
   master: number;
   music: number;
   sfx: number;
@@ -14,6 +18,8 @@ export type Settings = {
   screenShake: boolean;
   typewriterCps: number;
   uiScale: number;
+  /** v0.10.0: dialogue text size multiplier (1 = default) */
+  subtitleScale: number;
   /** v0.9.0: graphics quality (auto resolves from device tier) */
   quality: Quality;
 };
@@ -27,6 +33,8 @@ const DEFAULTS: Settings = {
   camDistance: 4.6,
   camMin: 2.6,
   camMax: 8,
+  sensitivity: 1,
+  invertY: false,
   master: 0.8,
   music: 0.6,
   sfx: 0.9,
@@ -36,6 +44,7 @@ const DEFAULTS: Settings = {
   screenShake: true,
   typewriterCps: 34,
   uiScale: 1,
+  subtitleScale: 1,
   quality: 'auto',
 };
 

@@ -1,13 +1,16 @@
 import { useEffect, useRef } from 'react';
+import { useFrame, useThree } from '@react-three/fiber';
 import { Sky, Environment, Lightformer } from '@react-three/drei';
 import * as THREE from 'three';
 import { mobile } from '../mobile';
 import { useSettings } from '../../stores/settingsStore';
 import { qualityConfig } from '../quality';
 import { useGame } from '../../stores/gameStore';
+import { skyStateFor, freeRoamStep, FREE_ROAM_STEP_SEC } from '../daynight';
 import { CampusWorld } from './CampusWorld';
 import { RooftopWorld } from './RooftopWorld';
 import { WarehouseWorld } from './WarehouseWorld';
+import { ObjectiveWaypoint } from './Waypoint';
 
 // SceneRoot: mounts exactly one scene bundle (campus / rooftop / warehouse).
 // Scenes are small procedural geometry, so "load on demand" is achieved by
@@ -15,28 +18,47 @@ import { WarehouseWorld } from './WarehouseWorld';
 // driven by gameStore.requestScene() (fade out → swap → fade in).
 //
 // v0.9.0: fog range, <Sky> and shadow-map resolution follow the selected
-// graphics quality preset (see game/quality.ts). The sun light syncs its
-// shadow map size reactively — stale shadow buffers are disposed on change.
+// graphics quality preset (see game/quality.ts).
+// v0.10.0: campus & rooftop skies are DAY/NIGHT — sun position, light colors
+// and fog tint chase the school clock (game/daynight.ts). Free-roam walking
+// drifts the clock forward without ever crossing a period boundary
+// (TimeFlow), so period-gated quest windows keep working.
 
-function SunLight({
-  position,
-  intensity,
-  color,
+function DayNightRig({
   far,
   area,
+  hemiGround,
+  turbidity,
+  rayleigh,
 }: {
-  position: [number, number, number];
-  intensity: number;
-  color: string;
   far: number;
   area: number;
+  hemiGround: string;
+  turbidity: number;
+  rayleigh: number;
 }) {
-  const ref = useRef<THREE.DirectionalLight>(null);
+  const { scene } = useThree();
+  const sunRef = useRef<THREE.DirectionalLight>(null);
+  const ambRef = useRef<THREE.AmbientLight>(null);
+  const hemiRef = useRef<THREE.HemisphereLight>(null);
   const quality = useSettings((s) => s.quality);
   const cfg = qualityConfig(quality, mobile.tier);
+  // clock.minutes re-renders this component only when the STORY (or TimeFlow)
+  // moves time — the smooth per-frame chase below does the in-between work.
+  const minutes = useGame((s) => s.clock.minutes);
 
+  // chased state: what the lights currently show (lerps toward the target).
+  // Colors are chased as real RGB (THREE.Color.lerp) — lerping the packed hex
+  // integer would bleed bits across channels.
+  const cur = useRef<{ sun: [number, number, number]; sunIntensity: number; ambient: number; hemi: number } | null>(null);
+  const sunColor = useRef(new THREE.Color(0xfff7ea));
+  const bgColor = useRef(new THREE.Color(0xa8c2d6));
+  const fogColor = useRef(new THREE.Color(0xb6c8d6));
+  const scratch = useRef(new THREE.Color());
+
+  // quality-driven shadow-map resize (stale buffers disposed on change)
   useEffect(() => {
-    const l = ref.current;
+    const l = sunRef.current;
     if (!l) return;
     const size = cfg.shadowMapSize;
     if (l.shadow.mapSize.x !== size) {
@@ -47,22 +69,80 @@ function SunLight({
     }
   }, [cfg]);
 
+  useFrame((_, deltaRaw) => {
+    const dt = Math.min(deltaRaw, 0.05);
+    const target = skyStateFor(useGame.getState().clock.minutes);
+    if (!cur.current) cur.current = { sun: [...target.sun] as [number, number, number], sunIntensity: target.sunIntensity, ambient: target.ambient, hemi: target.hemi };
+    const c = cur.current;
+    const k = 1 - Math.exp(-1.8 * dt); // ~0.5s chase — no visible popping
+    c.sun[0] += (target.sun[0] - c.sun[0]) * k;
+    c.sun[1] += (target.sun[1] - c.sun[1]) * k;
+    c.sun[2] += (target.sun[2] - c.sun[2]) * k;
+    c.sunIntensity += (target.sunIntensity - c.sunIntensity) * k;
+    c.ambient += (target.ambient - c.ambient) * k;
+    c.hemi += (target.hemi - c.hemi) * k;
+    sunColor.current.lerp(scratch.current.setHex(target.sunColor), k);
+    bgColor.current.lerp(scratch.current.setHex(target.bg), k);
+    fogColor.current.lerp(scratch.current.setHex(target.fog), k);
+
+    const sun = sunRef.current;
+    if (sun) {
+      sun.position.set(c.sun[0], c.sun[1], c.sun[2]);
+      sun.intensity = c.sunIntensity;
+      sun.color.copy(sunColor.current);
+    }
+    if (ambRef.current) ambRef.current.intensity = c.ambient;
+    if (hemiRef.current) hemiRef.current.intensity = c.hemi;
+    if (scene.background instanceof THREE.Color) scene.background.copy(bgColor.current);
+    else scene.background = bgColor.current.clone();
+    if (scene.fog && 'color' in scene.fog) (scene.fog as THREE.Fog).color.copy(fogColor.current);
+  });
+
+  const sky = skyStateFor(minutes);
   return (
-    <directionalLight
-      ref={ref}
-      position={position}
-      intensity={intensity}
-      color={color}
-      castShadow={cfg.shadows}
-      shadow-mapSize={[cfg.shadowMapSize, cfg.shadowMapSize]}
-      shadow-camera-near={1}
-      shadow-camera-far={far}
-      shadow-camera-left={-area}
-      shadow-camera-right={area}
-      shadow-camera-top={area}
-      shadow-camera-bottom={-area}
-    />
+    <>
+      <directionalLight
+        ref={sunRef}
+        position={sky.sun}
+        intensity={sky.sunIntensity}
+        color={sky.sunColor}
+        castShadow={cfg.shadows}
+        shadow-mapSize={[cfg.shadowMapSize, cfg.shadowMapSize]}
+        shadow-camera-near={1}
+        shadow-camera-far={far}
+        shadow-camera-left={-area}
+        shadow-camera-right={area}
+        shadow-camera-top={area}
+        shadow-camera-bottom={-area}
+      />
+      <ambientLight ref={ambRef} intensity={sky.ambient} />
+      <hemisphereLight ref={hemiRef} args={['#dbeafe', hemiGround, sky.hemi]} />
+      {cfg.sky && <Sky distance={4500} sunPosition={sky.sun} turbidity={turbidity} rayleigh={rayleigh} mieCoefficient={0.006} mieDirectionalG={0.85} />}
+    </>
   );
+}
+
+// Free-roam clock drift: +1 game minute every FREE_ROAM_STEP_SEC of active
+// walking, clamped to the current period's end (game/daynight.ts). Story
+// effects remain the only way to cross a period boundary, so period-gated
+// quest windows (canteen_teh='lunch', field_training='after', hidden events)
+// keep working exactly as before.
+function TimeFlow() {
+  const acc = useRef(0);
+  useFrame((_, deltaRaw) => {
+    // clamp at 0.25s: tab-switch stalls must not fast-forward the clock, but
+    // genuinely slow renderers (low-end phones ~15fps, SwiftShader QA) still
+    // accumulate real time — a 0.05 clamp would freeze drift below ~20fps.
+    const dt = Math.min(deltaRaw, 0.25);
+    const game = useGame.getState();
+    if (game.mode !== 'GAMEPLAY') return;
+    acc.current += dt;
+    if (acc.current < FREE_ROAM_STEP_SEC) return;
+    acc.current = 0;
+    const step = freeRoamStep(game.clock.minutes);
+    if (step > 0) game.advanceTime(step);
+  });
+  return null;
 }
 
 export function World() {
@@ -77,13 +157,13 @@ function CampusScene() {
   const cfg = qualityConfig(quality, mobile.tier);
   return (
     <>
-      <color attach="background" args={['#a8c2d6']} />
+      {/* background/fog COLOR is owned by DayNightRig; this <fog> keeps the
+          quality-driven near/far range (color overwritten per-frame) */}
       <fog attach="fog" args={['#b6c8d6', cfg.fogNear, cfg.fogFar]} />
-      {cfg.sky && <Sky distance={4500} sunPosition={[-40, 48, 60]} turbidity={5} rayleigh={1.4} mieCoefficient={0.006} mieDirectionalG={0.85} />}
-      <ambientLight intensity={0.62} />
-      <hemisphereLight args={['#dbeafe', '#4b5f45', 0.5]} />
-      <SunLight position={[-40, 55, 60]} intensity={2.5} color="#fff3dd" far={240} area={75} />
+      <DayNightRig far={240} area={75} hemiGround="#4b5f45" turbidity={5} rayleigh={1.4} />
       <CampusWorld />
+      <ObjectiveWaypoint />
+      <TimeFlow />
       {/* Local env map (generated in-scene, NO network fetch). The previous
           <Environment preset="city"> downloaded an HDR from a CDN at runtime;
           on mobile networks that fetch failed and crashed the whole Canvas
@@ -104,12 +184,8 @@ function RooftopScene() {
   const cfg = qualityConfig(quality, mobile.tier);
   return (
     <>
-      <color attach="background" args={['#9fc0d8']} />
       <fog attach="fog" args={['#aecbdd', Math.max(40, cfg.fogNear - 15), Math.min(cfg.fogFar, 320)]} />
-      {cfg.sky && <Sky distance={4500} sunPosition={[60, 55, -35]} turbidity={4} rayleigh={1.1} mieCoefficient={0.005} mieDirectionalG={0.85} />}
-      <ambientLight intensity={0.72} />
-      <hemisphereLight args={['#dbeafe', '#5a6a72', 0.55]} />
-      <SunLight position={[55, 60, -35]} intensity={2.9} color="#fff7e6" far={180} area={45} />
+      <DayNightRig far={180} area={45} hemiGround="#5a6a72" turbidity={4} rayleigh={1.1} />
       <RooftopWorld />
       {/* local env for metal/glass reflections — no CDN fetch */}
       <Environment frames={1} resolution={64} environmentIntensity={0.5}>

@@ -101,11 +101,17 @@ export default function App() {
       if (g.phase !== 'play') return;
       const inGameplay = g.mode === 'GAMEPLAY';
       if (e.code === 'Escape') {
-        if (['GAMEPLAY', 'PAUSE', 'STATUS_MENU', 'RELATIONSHIP_MENU', 'QUEST_MENU', 'INVENTORY_MENU', 'MAP_MENU', 'PHONE_MENU', 'SAVELOAD_MENU', 'SETTINGS', 'STUDY'].includes(g.mode)) {
+        // v0.10.0 map-fix: Escape ALWAYS closes an overlay back to gameplay.
+        // Previously menu modes fell through to setMode('PAUSE') here while
+        // FullMenu's own onClose went to GAMEPLAY — the winner depended on
+        // listener order, so Esc from the map could pop the pause menu open
+        // instead of closing it. Both handlers now agree on the target mode.
+        if (g.mode === 'GAMEPLAY') {
           e.preventDefault();
-          if (g.mode === 'PAUSE' || g.mode === 'SETTINGS' || g.mode === 'STUDY') g.setMode('GAMEPLAY');
-          else if (g.mode === 'GAMEPLAY') g.setMode('PAUSE');
-          else g.setMode('PAUSE');
+          g.setMode('PAUSE');
+        } else if (['PAUSE', 'STATUS_MENU', 'RELATIONSHIP_MENU', 'QUEST_MENU', 'INVENTORY_MENU', 'MAP_MENU', 'PHONE_MENU', 'SAVELOAD_MENU', 'SETTINGS', 'STUDY'].includes(g.mode)) {
+          e.preventDefault();
+          g.setMode('GAMEPLAY');
         }
         return;
       }

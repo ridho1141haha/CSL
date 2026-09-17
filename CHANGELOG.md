@@ -1,5 +1,65 @@
 # Changelog
 
+## 0.10.0 — 2026-09-17 (Siang–malam, waypoint misi, perbaikan peta, setelan kontrol)
+
+Empat permintaan sekaligus: siklus siang–malam, penunjuk objektif, setelan
+kontrol & aksesibilitas, dan perbaikan fitur map.
+
+### Added — siklus siang–malam (permintaan user #1)
+- Langit kampus & atap kini mengikuti jam sekolah: fajar oranye (05:30) →
+  pagi biru → siang putih terang → sore keemasan → golden hour "Pulang
+  Sekolah" → maghrib ungu → malam berbulan. Posisi matahari, warna cahaya,
+  intensitas ambient/hemisphere, warna langit & fog semuanya di-interpolasi
+  halus (chase ~0.5s) oleh `DayNightRig` (file baru `src/game/daynight.ts` —
+  keyframe murni, unit-tested). Gudang tetap gelap (interior).
+- Waktu mengalir pelan saat menjelajah: `TimeFlow` menambah +1 menit game per
+  3 detik di mode GAMEPLAY, **dengan batas keras di akhir periode jam
+  sekolah** (mis. istirahat tak akan melewati 11:00). Pemicu quest yang
+  bergantung periode (teh untuk Siti butuh 'istirahat siang', latihan senja
+  butuh 'pulang sekolah') tetap aman — hanya efek cerita yang bisa
+  memotong periode. Cap 19:30 untuk periode pulang agar golden hour
+  terkejar tapi tidak gelap gulita.
+
+### Added — waypoint objektif + tracker jarak (permintaan user #2)
+- `ObjectiveWaypoint` (file baru `src/game/world/Waypoint.tsx`): marker
+  berlian + berkas cahaya melayang di atas zona target misi aktif, terlihat
+  **menembus dinding** (depthTest off), memantul lembut, hilang saat 3.5 m
+  sebelum target atau saat mode sinematik.
+- Pemetaan quest → lokasi di `src/game/waypoint.ts` (murni, unit-tested):
+  12 quest punya target; "Jelajahi SMA Yuson" menunjuk ke landmark terdekat
+  yang belum dikunjungi (halaman/kantin/lapangan/gang).
+- Kartu misi HUD kini menampilkan jarak hidup: "Jelajahi SMA Yuson // 30m"
+  ("// DI SINI" saat sampai). Polling 400 ms via getState — tanpa
+  re-render per frame.
+
+### Fixed — fitur map (permintaan user #3)
+- **Hitungan zona dikunjungi kini per-scene** — sebelumnya global lintas
+  scene (di atap bisa muncul "20 / 2").
+- **Node zona yang berbagi pusat tidak lagi bertumpuk tak terbaca** —
+  Kelas 10-A / 12-A / 12-B Gedung B kini tersusun vertikal rapi dengan chip
+  lantai L1/L2/L3.
+- Marker **◆ TUJUAN** misi aktif di peta (sejalan dengan waypoint dunia) +
+  panel TARGET AKTIF menampilkan lokasi & jarak ("KANTIN · 30 M").
+- Zona yang sedang diinjak disorot emas; panah arah hadap Ren di marker
+  pemain; tag header mengikuti scene (MAP // GND / ROOF / GUDANG).
+- **Bug UX: ESC dari peta (dan semua menu overlay) kini selalu menutup
+  overlay** — sebelumnya balapan dengan handler lain sehingga ESC dari peta
+  bisa membuka menu JEDA, bukan menutup peta (`App.tsx`).
+
+### Added — setelan kontrol & aksesibilitas (permintaan user #4)
+- PENGATURAN kini punya: **SENSITIVITAS KAMERA** (0.4–2×), **INVERT Y**,
+  **KECEPATAN TEKS DIALOG** (10–80 karakter/detik), **UKURAN SUBTITLE**
+  (0.85–1.5×) — semuanya live-apply dan tersimpan di localStorage.
+  Diterapkan di ketiga jalur kamera: pointer-lock, drag-look, dan sentuh.
+
+### QA
+- `scripts/qa-nav.mjs` (baru): verifikasi headless end-to-end — waypoint
+  HUD 30 m, peta (TUJUAN, DIKUNJUNGI per-scene, chip L2/L3, sorot zona,
+  panah hadap), ESC menutup peta, 4 kontrol setelan baru, TimeFlow
+  menggeser jam, load sore 17:30 bersih tanpa console error.
+- 119 unit test hijau (20 baru: daynight 11 + waypoint 9); build produksi
+  bersih; qa-mentor regression PASS.
+
 ## 0.9.0 — 2026-09-17 (Optimasi render: kualitas grafik, culling, loading screen)
 
 Tiga permintaan optimasi sekaligus: grafik bisa diturunkan, yang tak terlihat

@@ -108,10 +108,13 @@ export function CameraRig() {
     const onMove = (e: MouseEvent) => {
       const game = useGame.getState();
       if (game.mode !== 'GAMEPLAY' && game.mode !== 'COMBAT' && game.mode !== 'PAUSE') return;
+      // v0.10.0: user-tunable look feel (settings persist to localStorage)
+      const { sensitivity, invertY } = useSettings.getState();
+      const inv = invertY ? -1 : 1;
       // Pointer-lock mode: raw mouse movement (no button needed)
       if (document.pointerLockElement != null) {
-        yaw.current -= e.movementX * 0.0026;
-        pitch.current = THREE.MathUtils.clamp(pitch.current + e.movementY * 0.0018, 0.06, 0.85);
+        yaw.current -= e.movementX * 0.0026 * sensitivity;
+        pitch.current = THREE.MathUtils.clamp(pitch.current + e.movementY * 0.0018 * sensitivity * inv, 0.06, 0.85);
         return;
       }
       // Drag-look: hold ANY mouse button and move to orbit
@@ -120,8 +123,8 @@ export function CameraRig() {
         const dy = e.clientY - lastY;
         lastX = e.clientX;
         lastY = e.clientY;
-        yaw.current -= dx * 0.008;
-        pitch.current = THREE.MathUtils.clamp(pitch.current + dy * 0.005, 0.06, 0.85);
+        yaw.current -= dx * 0.008 * sensitivity;
+        pitch.current = THREE.MathUtils.clamp(pitch.current + dy * 0.005 * sensitivity * inv, 0.06, 0.85);
       }
     };
     const onDown = (e: MouseEvent) => {
@@ -168,8 +171,9 @@ export function CameraRig() {
     if (game.mode === 'GAMEPLAY' || game.mode === 'COMBAT') {
       const look = input.consumeLook();
       if (look.dx || look.dy) {
-        yaw.current -= look.dx * 0.0042;
-        pitch.current = THREE.MathUtils.clamp(pitch.current + look.dy * 0.0028, 0.06, 0.85);
+        const inv = settings.invertY ? -1 : 1;
+        yaw.current -= look.dx * 0.0042 * settings.sensitivity;
+        pitch.current = THREE.MathUtils.clamp(pitch.current + look.dy * 0.0028 * settings.sensitivity * inv, 0.06, 0.85);
       }
     } else {
       // wheel is explicit-consume only since the input janitor took over

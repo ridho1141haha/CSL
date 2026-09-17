@@ -11,13 +11,14 @@ import { QUALITY_LABELS } from '../../game/quality';
 import { QUESTS } from '../../data/quests';
 import { ITEM_BY_ID } from '../../data/items';
 import { NPCS } from '../../data/npcs';
-import { SCENES } from '../../data/world';
+import { SCENES, ZONE_BY_ID } from '../../data/world';
 import { STUDY_QUESTIONS } from '../../data/chapters';
 import { HIDDEN_EVENTS } from '../../data/hiddenEvents';
 import { isDiscovered, HIDDEN_EVENT_COUNT } from '../../game/systems/hiddenEvents';
 import { relLabel } from '../../game/systems/relationship';
 import { repLabel } from '../../game/systems/reputation';
 import { clockLabel, DAYS, formatHhmm } from '../../game/systems/time';
+import { pickActiveQuest, questTargetFor, distanceToTarget } from '../../game/waypoint';
 import { saveGame, loadGame, deleteSave, hasSave, slotInfo, SAVE_SLOTS, type SlotId } from '../../game/save';
 import { applyEffects } from '../../game/systems/effects';
 import { audio } from '../../game/audio';
@@ -290,58 +291,127 @@ export function InventoryPanel() {
 }
 
 // Map — implementasi mockup Stitch "07-map" (SCHEMATIC CAMPUS OVERVIEW):
-// header dengan tag MAP // GND, grid node, panel samping target & statistik.
+// header dengan tag scene, grid node, panel samping target & statistik.
+// v0.10.0 fixes (feedback "fix fitur map"):
+//   - hitungan zona dikunjungi kini PER-SCENE (dulu global — di atap bisa
+//     muncul "20 / 2" karena visitedZones mencampur zona lintas scene)
+//   - node zona yang berbagi titik pusat (Kelas 10-A / 12-A / 12-B Gedung B)
+//     ditumpuk rapi dengan chip lantai, bukan menimpa satu sama lain
+//   - marker TUJUAN mision aktif (sejalan dengan waypoint dunia) + sorotan
+//     zona yang sedang diinjak + panah arah hadap Ren
+//   - tag header mengikuti scene (GND / ROOF / GUDANG), bukan statis GND
+const SCENE_TAG: Record<string, string> = { campus: 'GND', rooftop: 'ROOF', warehouse: 'GUDANG' };
+const MAP_FLOOR_RX = /\s*\(Lantai (\d+)\)$/;
+
 export function MapPanel() {
   // zustand v5: object-literal selectors create a new snapshot every poll and
   // crash React with "Maximum update depth exceeded" — select primitives.
   const px = usePlayer((s) => s.x);
   const pz = usePlayer((s) => s.z);
+  const facing = usePlayer((s) => s.facing);
   const sceneId = useGame((s) => s.scene);
   const visited = useGame((s) => s.visitedZones);
+  const currentZone = useGame((s) => s.currentZone);
   const quests = useQuests((s) => s.quests);
-  const activeQuest = QUESTS.find((q) => quests[q.id] === 'active');
   const def = SCENES[sceneId] ?? SCENES.campus;
   const b = def.bounds;
+
+  const activeQuest = pickActiveQuest(quests);
+  const target = activeQuest && sceneId === 'campus'
+    ? questTargetFor(activeQuest, { visited, px, pz })
+    : null;
+  const targetDist = target ? Math.round(distanceToTarget(target, px, pz)) : 0;
+
   // scene-local coords → map panel coords (top = minZ / north)
   const toMap = (x: number, z: number): [string, string] => [
     `${50 + ((x - (b.minX + b.maxX) / 2) / (b.maxX - b.minX)) * 46}%`,
     `${50 + ((z - (b.minZ + b.maxZ) / 2) / (b.maxZ - b.minZ)) * 44}%`,
   ];
+
+  // group zones that share a center so stacked floors don't overlap:
+  // each extra member is offset vertically around the shared point
+  const zoneGroups: { zone: (typeof def.zones)[number]; offset: number }[][] = [];
+  const groupIndex = new Map<string, number>();
+  def.zones.forEach((zone) => {
+    const key = `${zone.center[0]}|${zone.center[1]}`;
+    let gi = groupIndex.get(key);
+    if (gi === undefined) {
+      gi = zoneGroups.length;
+      groupIndex.set(key, gi);
+      zoneGroups.push([]);
+    }
+    zoneGroups[gi].push({ zone, offset: 0 });
+  });
+  zoneGroups.forEach((members) => {
+    members.forEach((m, idx) => {
+      m.offset = (idx - (members.length - 1) / 2) * 19; // px, ± around center
+    });
+  });
+
+  const visitedInScene = def.zones.filter((z) => visited.includes(z.id)).length;
+  // facing = atan2(dx, dz) (model forward +z) → compass clockwise from north(-z)
+  const headingDeg = (Math.atan2(Math.sin(facing), -Math.cos(facing)) * 180) / Math.PI;
+
   return (
     <div className="map-wrap">
       <section className="map-panel panel-cut">
         <div className="map-head">
-          <span className="mh-tag">MAP // GND</span>
+          <span className="mh-tag">MAP // {SCENE_TAG[sceneId] ?? 'GND'}</span>
           <b>{sceneId === 'campus' ? 'BLUEPRINT LINGKUNGAN SEKOLAH' : def.label.toUpperCase()}</b>
           <span className="right">
             <span className="chip">ZONA: {def.zones.length}</span>
-            <span className="chip chip-cyan">DIKUNJUNGI: {visited.length}</span>
+            <span className="chip chip-cyan">DIKUNJUNGI: {visitedInScene}</span>
           </span>
         </div>
         <div className="map-grid">
           {activeQuest && <div className="map-objective">OBJEKTIF: {activeQuest.objective}</div>}
-          {def.zones.map((zone) => {
+          {zoneGroups.flat().map(({ zone, offset }) => {
             const [left, top] = toMap(zone.center[0], zone.center[1]);
-            return <span key={zone.id} className={`node ${visited.includes(zone.id) ? '' : 'unvisited'}`} style={{ left, top }}>{zone.label.toUpperCase()}</span>;
+            const fl = zone.label.match(MAP_FLOOR_RX);
+            const name = zone.label.replace(MAP_FLOOR_RX, '');
+            const isCurrent = zone.id === currentZone;
+            const isTarget = target?.zoneId === zone.id;
+            return (
+              <span
+                key={zone.id}
+                className={`node ${visited.includes(zone.id) ? '' : 'unvisited'} ${isCurrent ? 'current' : ''} ${isTarget ? 'target' : ''}`}
+                style={{ left, top, transform: `translate(-50%, calc(-50% + ${offset}px))` }}
+              >
+                {name.toUpperCase()}
+                {fl && <em className="fl">L{fl[1]}</em>}
+              </span>
+            );
           })}
-          <div className="map-player" style={{ left: toMap(px, pz)[0], top: toMap(px, pz)[1] }} />
+          {target && (
+            <div className="map-target" style={{ left: toMap(target.pos[0], target.pos[1])[0], top: toMap(target.pos[0], target.pos[1])[1] }}>
+              ◆ TUJUAN
+            </div>
+          )}
+          <div className="map-player" style={{ left: toMap(px, pz)[0], top: toMap(px, pz)[1] }}>
+            <i className="map-heading" style={{ transform: `rotate(${headingDeg}deg)` }} />
+          </div>
         </div>
       </section>
       <aside className="map-side">
         <div className="panel-cut">
           <span className="ms-title">// TARGET AKTIF</span>
           <div className="ms-target">{activeQuest ? activeQuest.title : 'JELAJAHI SEKOLAH'}</div>
+          {target && (
+            <div className="ms-target-loc">{target.label.toUpperCase()} · {targetDist} M</div>
+          )}
         </div>
         <div className="panel-cut">
           <span className="ms-title">// VEKTOR NAVIGASI</span>
           <div className="ms-row"><span>SCENE</span><b>{def.label.toUpperCase()}</b></div>
           <div className="ms-row"><span>POSISI REN</span><b>X {Math.round(px)} · Z {Math.round(pz)}</b></div>
-          <div className="ms-row"><span>ZONA DIKUNJUNGI</span><b>{visited.length} / {def.zones.length}</b></div>
+          <div className="ms-row"><span>ZONA DIKUNJUNGI</span><b>{visitedInScene} / {def.zones.length}</b></div>
+          {currentZone && <div className="ms-row"><span>SEDANG DI</span><b>{ZONE_BY_ID[currentZone]?.label.toUpperCase() ?? '—'}</b></div>}
         </div>
         <div className="panel-cut">
           <span className="ms-title">// LEGENDA</span>
           <div className="map-legend">
             <span className="chip chip-amber">POSISI REN</span>
+            <span className="chip chip-amber">◆ TUJUAN MISI</span>
             <span className="chip chip-cyan">ZONA DIKUNJUNGI</span>
             <span className="chip">BELUM DIJELAJAH</span>
           </div>
@@ -393,11 +463,14 @@ export function SettingsPanel() {
   const s = useSettings();
   const rows: [keyof typeof s, string, number, number, number][] = [
     ['camDistance', 'CAMERA DISTANCE', 2.6, 8, 0.1],
+    ['sensitivity', 'SENSITIVITAS KAMERA', 0.4, 2, 0.05],
     ['master', 'MASTER VOLUME', 0, 1, 0.05],
     ['music', 'MUSIC', 0, 1, 0.05],
     ['sfx', 'SFX', 0, 1, 0.05],
     ['ui', 'UI', 0, 1, 0.05],
     ['ambient', 'AMBIENT', 0, 1, 0.05],
+    ['typewriterCps', 'KECEPATAN TEKS DIALOG', 10, 80, 2],
+    ['subtitleScale', 'UKURAN SUBTITLE', 0.85, 1.5, 0.05],
   ];
   return (
     <div className="settings-panel">
@@ -431,6 +504,7 @@ export function SettingsPanel() {
           />
         </label>
       ))}
+      <label><span>INVERT Y</span><input type="checkbox" checked={s.invertY} onChange={(e) => s.set('invertY', e.target.checked)} /></label>
       <label><span>REDUCED MOTION</span><input type="checkbox" checked={s.reducedMotion} onChange={(e) => s.set('reducedMotion', e.target.checked)} /></label>
       <label><span>SCREEN SHAKE</span><input type="checkbox" checked={s.screenShake} onChange={(e) => s.set('screenShake', e.target.checked)} /></label>
       <p>CONTROLS: WASD MOVE · SHIFT RUN · SPACE JUMP · MOUSE CAMERA · WHEEL ZOOM · LMB ATTACK · Q HEAVY · RMB BLOCK · E INTERACT</p>

@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useGame } from '../stores/gameStore';
 import { usePlayer } from '../stores/playerStore';
 import { useCombat } from '../stores/combatStore';
@@ -8,6 +8,37 @@ import { QUESTS } from '../data/quests';
 import { DAYS, formatHhmm, periodFor } from '../game/systems/time';
 import { ZONE_BY_ID } from '../data/world';
 import { notifySound } from '../game/audio';
+import { pickActiveQuest, questTargetFor, distanceToTarget, type WaypointTarget } from '../game/waypoint';
+
+// v0.10.0: live objective distance for the HUD mission card. Polls (400ms,
+// getState-based) instead of per-frame store subscriptions — position changes
+// every frame but the readout only needs meter-ish resolution.
+export function useObjective(): { target: WaypointTarget | null; dist: number } {
+  const [state, setState] = useState<{ target: WaypointTarget | null; dist: number }>({ target: null, dist: 0 });
+  useEffect(() => {
+    let alive = true;
+    const tick = () => {
+      if (!alive) return;
+      const quests = useQuests.getState().quests;
+      const game = useGame.getState();
+      const { x, z } = usePlayer.getState();
+      const q = pickActiveQuest(quests);
+      const target = q && game.scene === 'campus' ? questTargetFor(q, { visited: game.visitedZones, px: x, pz: z }) : null;
+      setState((prev) => {
+        const dist = Math.round(distanceToTarget(target, x, z));
+        if (prev.target === target && prev.dist === dist) return prev; // avoid churn
+        return { target, dist };
+      });
+    };
+    tick();
+    const id = window.setInterval(tick, 400);
+    return () => {
+      alive = false;
+      window.clearInterval(id);
+    };
+  }, []);
+  return state;
+}
 
 function Meter({ label, value, color, width }: { label: string; value: string; color: 'red' | 'amber' | 'cyan' | 'green'; width: string }) {
   return (
@@ -29,10 +60,11 @@ export function Hud() {
   const zone = useGame((s) => s.currentZone);
   const interactTarget = useGame((s) => s.interactTarget);
   const chapter = useStory((s) => s.chapter);
-  const quests = useQuests((s) => s.quests);
-  const activeQuest = QUESTS.find((q) => q.type === 'main' && quests[q.id] === 'active');
   const lastHit = useCombat((s) => s.lastPlayerHitAt);
   const hurtFlash = Date.now() - lastHit < 400;
+  // v0.10.0: waypoint-backed mission card — title, objective AND live distance
+  const { target, dist } = useObjective();
+  const activeQuest = target ? QUESTS.find((q) => q.id === target.questId) ?? null : null;
 
   return (
     <div className={`minimal-hud ${hurtFlash ? 'hurt' : ''}`}>
@@ -60,9 +92,12 @@ export function Hud() {
       <div className="obj-card">
         <div className="obj-marker">M</div>
         <div className="obj-body">
-          <b>MISI UTAMA</b>
+          <b>{activeQuest?.type === 'side' ? 'MISI SAMPINGAN' : 'MISI UTAMA'}</b>
           <strong>{activeQuest ? activeQuest.objective : 'Ikuti alur cerita'}</strong>
-          <span>{activeQuest ? activeQuest.title : 'PROLOG SMA YUSON'}</span>
+          <span>
+            {activeQuest ? activeQuest.title : 'PROLOG SMA YUSON'}
+            {target && <i className="obj-dist">{dist > 4 ? ` // ${dist}m` : ' // DI SINI'}</i>}
+          </span>
         </div>
       </div>
 

@@ -1,8 +1,26 @@
 # Project State
 
-Updated: 2026-09-17 (v0.9.0 — render optimization: quality presets, culling, real loading screen)
+Updated: 2026-09-17 (v0.10.0 — day/night cycle, objective waypoints, map fixes, control settings)
 
 ## Development state
+
+**v0.10.0** adds atmosphere and navigation on top of v0.9.0's render work:
+(1) **day/night cycle** — campus & rooftop skies chase the school clock
+through 7 keyframes (dawn→noon→golden hour→night) via `DayNightRig` +
+`src/game/daynight.ts`; `TimeFlow` drifts the clock +1 min/3s while roaming,
+hard-clamped to the current period end so period-gated quest triggers stay
+intact (cap 19:30 in 'after' for reachable golden hour); (2) **objective
+waypoints** — `src/game/waypoint.ts` maps every quest to a zone target,
+`ObjectiveWaypoint` floats a wall-piercing diamond+beam over it in-world, and
+the HUD mission card shows live distance (poll 400ms, no per-frame renders);
+(3) **map fixes** — per-scene visited count (was global across scenes), same-
+center zone nodes stacked with floor chips (Kelas 10-A/12-A/12-B), ◆ TUJUAN
+marker, current-zone highlight, player heading arrow, scene-aware header tag,
+and ESC now always closes overlays (map no longer race-opens PAUSE);
+(4) **control/accessibility settings** — camera sensitivity, invert Y,
+dialogue text speed, subtitle size (persisted, live-applied on all camera
+input paths). 119 unit tests green; qa-nav smoke PASS (no console errors);
+production build passing.
 
 **v0.9.0** is a render-optimization pass on top of v0.8.0's buildings:
 (1) **graphics quality presets** (auto/high/medium/low in Settings, persisted
@@ -15,8 +33,7 @@ library, greenery, props — hundreds of meshes dropped per sweep, throttled
 desktop devices prewarm the world during boot/menu and the bar tracks asset
 progress + world-first-frame readiness (`WorldReadyProbe`/`BootGate`, fail-open
 on dead render loops). Also fixed a v0.3-era bug where root Canvas lights and
-per-scene lights both ran — shadow maps rendered twice. 99 unit tests green;
-qa-mentor smoke PASS; production build passing.
+per-scene lights both ran — shadow maps rendered twice.
 
 **v0.8.0** adds two campus buildings on top of v0.7.0's story work:
 **Gedung B** — a 3-storey classroom block (x 24..44, z -16..-2) whose
