@@ -91,9 +91,23 @@ describe('story flow: route + ending reachability (canon)', () => {
   it('v0.7.0: defending Aris wires into the main route (fight → Bimo impressed)', () => {
     const c = choice('ch2_choice', 'defend_aris');
     expect(c.effects).toContainEqual({ k: 'flag', id: 'defended_aris' });
-    expect(DIALOGUE[c.next!].next).toBe('ch2_fight_2');
+    // GARIS MERAH: dialog FIGHT 1 memanjang — rantai ch2_fight_1 → 1b → 1c → 2
+    expect(DIALOGUE[c.next!].next).toBe('ch2_fight_1b');
+    expect(DIALOGUE['ch2_fight_1b'].next).toBe('ch2_fight_1c');
+    expect(DIALOGUE['ch2_fight_1c'].next).toBe('ch2_fight_2');
     expect(DIALOGUE['ch2_fight_2'].next).toBe(SPECIAL_NODES.combat);
-    expect(DIALOGUE['ch2_win_3'].effects).toContainEqual({ k: 'flag', id: 'bimo_impressed' });
+    expect(DIALOGUE['ch2_win_6'].effects).toContainEqual({ k: 'flag', id: 'bimo_impressed' });
+  });
+
+  it('v0.11.0 GARIS MERAH: bab 3 dibuka montase OSIS → sergapan parkiran → rooftop', () => {
+    // ch2_close menyerahkan kendali ke montase OSIS (bukan langsung rooftop)
+    expect(effectsOf('ch2_close')).toContainEqual({ k: 'beat', id: 'ch3_osis' });
+    // akhir montase OSIS mengaktifkan sergapan parkiran
+    expect(effectsOf('ch3_osis_6')).toContainEqual({ k: 'beat', id: 'ch3_parking' });
+    expect(effectsOf('ch3_osis_6')).toContainEqual({ k: 'quest', id: 'gang_ambush', state: 'active' });
+    // setelah FIGHT 2, rooftop_meeting baru aktif
+    expect(DIALOGUE['ch3_f2_3'].next).toBe(SPECIAL_NODES.combat);
+    expect(effectsOf('ch3_f2_win_3')).toContainEqual({ k: 'quest', id: 'rooftop_meeting', state: 'active' });
   });
 
   it('v0.7.0: NEUTRAL ending fires from the graduation chain', () => {
@@ -119,21 +133,40 @@ describe('story flow: route + ending reachability (canon)', () => {
       ).toBe(true);
     }
     // and every combat-entry beat is covered by it (no accidental fallback)
-    expect(Object.keys(BEAT_ENCOUNTER).sort()).toEqual(['ch2_key_error', 'ch4_bad_warehouse', 'ch4_res_alley']);
+    expect(Object.keys(BEAT_ENCOUNTER).sort()).toEqual([
+      'ch2_key_error',
+      'ch3_parking',
+      'ch4_bad_warehouse',
+      'ch4_res_alley',
+      'ch4_res_bimo',
+    ]);
   });
 
-  it('BAD ending fires from the warehouse raid chain', () => {
-    expect(hasEffect(effectsOf('ch4_bad_raid_5'), 'ending')).toBe(true);
+  it('v0.11.0 GARIS MERAH: BAD ENDING 1 "Tunduk Pada Kekuasaan" fires from the graduation chain', () => {
+    // rute bad: montase eksekutor → gudang → kelulusan (bukan razia polisi)
+    expect(
+      effectsOf('ch4_bad_warehouse').some((e) => e.k === 'scene' && (e as { id: string }).id === 'warehouse'),
+    ).toBe(true);
+    expect(effectsOf('ch4_bad_after_2')).toContainEqual({ k: 'beat', id: 'ch4_bad_grad' });
+    expect(effectsOf('ch4_bad_grad_3')).toContainEqual({ k: 'quest', id: 'graduation_day', state: 'completed' });
+    expect(hasEffect(effectsOf('ch4_bad_grad_3'), 'ending')).toBe(true);
   });
 
-  it('TRUE ending: helping Aris in the alley sets the resolver flag + ending', () => {
-    expect(choice('ch4_res_choice', 'help_aris_final').effects).toContainEqual({ k: 'flag', id: 'helped_aris_final' });
-    expect(hasEffect(effectsOf('ch4_res_win_4'), 'ending')).toBe(true);
+  it('v0.11.0 GARIS MERAH: CHOICE 3 — menahan emosi → GOOD "Lulus Bersama"', () => {
+    // FINAL BOSS Bimo dulu: alley_fight → goons_win (set beat bimo) → bimo_fight → choice
+    expect(DIALOGUE['ch4_res_goons_win'].effects).toContainEqual({ k: 'beat', id: 'ch4_res_bimo' });
+    expect(DIALOGUE['ch4_res_goons_win_2'].next).toBe(SPECIAL_NODES.combat);
+    const c = choice('ch4_res_choice', 'restrain_bimo');
+    expect(c.effects).toContainEqual({ k: 'flag', id: 'restrained_bimo' });
+    expect(effectsOf('ch4_good_4')).toContainEqual({ k: 'beat', id: 'ch4_good_grad' });
+    expect(hasEffect(effectsOf('ch4_good_grad_5'), 'ending')).toBe(true);
   });
 
-  it('BITTER ending: walking away ends the story without the TRUE flag', () => {
-    expect(choice('ch4_res_choice', 'walk_away_final').effects).toContainEqual({ k: 'flag', id: 'ignored_aris_final' });
-    expect(hasEffect(effectsOf('ch4_res_away_2'), 'ending')).toBe(true);
+  it('v0.11.0 GARIS MERAH: CHOICE 3 — brutal → BAD 2 "Rantai Dendam"', () => {
+    const c = choice('ch4_res_choice', 'brutal_bimo');
+    expect(c.effects).toContainEqual({ k: 'flag', id: 'brutal_bimo' });
+    expect(effectsOf('ch4_bad2_3')).toContainEqual({ k: 'flag', id: 'expelled' });
+    expect(hasEffect(effectsOf('ch4_bad2_5'), 'ending')).toBe(true);
   });
 });
 

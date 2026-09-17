@@ -113,12 +113,13 @@ export function applyEffect(e: Effect) {
 }
 
 // v0.7.0: kartu bab kini route-aware — rute netral punya judul bab sendiri
-// (GDD §Bab 3/4 Rute Netral).
+// (GDD §Bab 3/4 Rute Netral). v0.11.0 GARIS MERAH: rute bad juga.
 export function chapterCardText(id: number, route?: string) {
   const c = CHAPTERS[id as 1 | 2 | 3 | 4];
   if (!c) return { title: `BAB ${id}`, subtitle: '' };
   if (route === 'neutral' && id === 3) return { title: c.title, subtitle: 'Dinding Dingin & Keheningan Kelas' };
   if (route === 'neutral' && id === 4) return { title: c.title, subtitle: 'Netral Ending — Lulus Tanpa Nama' };
+  if (route === 'bad' && id === 4) return { title: c.title, subtitle: 'Tunduk Pada Kekuasaan' };
   return { title: c.title, subtitle: c.subtitle };
 }
 

@@ -2,12 +2,13 @@ import type { ChapterDef, ChapterId } from '../types';
 
 export const CHAPTERS: Record<ChapterId, ChapterDef> = {
   // v0.7.0 — bab 1 & 2 mengikuti alur lambat baru (GDD §"Alur yang lebih lambat").
-  // Subtitle bab 3/4 bisa berbeda per rute (lihat chapterCardText di effects.ts):
-  // netral → "Dinding Dingin & Keheningan Kelas" / "Lulus Tanpa Nama".
+  // v0.11.0 GARIS MERAH: bab 3/4 default = rute aksi; variasi per rute
+  // dilihat di chapterCardText (effects.ts): netral → "Dinding Dingin" /
+  // "Lulus Tanpa Nama", bad → "Tunduk Pada Kekuasaan".
   1: { id: 1, title: 'BAB I', subtitle: 'Minggu Pertama — Pria Tanpa Wajah' },
   2: { id: 2, title: 'BAB II', subtitle: 'Kesalahan Kecil Aris' },
-  3: { id: 3, title: 'BAB III', subtitle: 'Momen Kunci' },
-  4: { id: 4, title: 'BAB IV', subtitle: 'Cabang Cerita & Penentuan Akhir' },
+  3: { id: 3, title: 'BAB III', subtitle: 'Penawaran di Rooftop' },
+  4: { id: 4, title: 'BAB IV', subtitle: 'Klimaks Gang Belakang' },
 };
 
 // Camera pose (see data/world.ts) shown while each opening node displays.
@@ -27,6 +28,7 @@ export const CAM_BY_NODE: Record<string, string> = {
   o2_1: 'fp_class',
   o2_2: 'fp_class',
   o2_3: 'fp_class_desk',
+  o2_3b: 'fp_class_desk',
   o2_4: 'fp_class_board',
   o2_5: 'fp_class_desk',
   o2_6: 'fp_class_desk',
@@ -66,8 +68,16 @@ export const CAM_BY_NODE: Record<string, string> = {
   ch2_choice: 'stairs_aris',
   ch2_away_1: 'stairs_away',
   ch2_away_2: 'stairs_away',
-  ch2_fight_1: 'stairs_close',
+  ch2_fight_1: 'stairs_wide',
+  ch2_fight_1b: 'stairs_close',
+  ch2_fight_1c: 'stairs_close',
   ch2_fight_2: 'stairs_close',
+  ch2_win: 'stairs_wide',
+  ch2_win_2: 'stairs_close',
+  ch2_win_3: 'stairs_aris',
+  ch2_win_4: 'stairs_aris',
+  ch2_win_5: 'stairs_wide',
+  ch2_win_6: 'stairs_close',
   // ---- rute netral: Dinding Dingin (montage) ----
   n1_1: 'classroom_view',
   n1_2: 'classroom_close',
@@ -102,7 +112,21 @@ export const CAM_BY_NODE: Record<string, string> = {
   ch4_neu_grad_4: 'grad_siti',
   ch4_neu_grad_5: 'grad_gate',
   ch4_neu_grad_6: 'grad_gate',
-  // rooftop & late-story cinematics (alur utama, tidak berubah)
+  // rooftop & late-story cinematics (GARIS MERAH)
+  // ---- bab 3 rute aksi: pendekatan OSIS + sergapan parkiran ----
+  ch3_osis_1: 'corridor_view',
+  ch3_osis_2: 'corridor_close',
+  ch3_osis_3: 'corridor_close',
+  ch3_osis_4: 'corridor_close',
+  ch3_osis_5: 'corridor_close',
+  ch3_osis_6: 'corridor_view',
+  ch3_f2_1: 'pk_ambush',
+  ch3_f2_2: 'pk_close',
+  ch3_f2_3: 'pk_close',
+  ch3_f2_win: 'pk_ambush',
+  ch3_f2_win_2: 'pk_close',
+  ch3_f2_win_3: 'pk_ambush',
+  // ---- rooftop: penawaran Bimo (CHOICE 2) ----
   ch3_intro_1: 'rooftop',
   ch3_intro_2: 'rooftop_close',
   ch3_intro_3: 'rooftop_close',
@@ -113,30 +137,46 @@ export const CAM_BY_NODE: Record<string, string> = {
   ch3_accept_2: 'rooftop_close',
   ch3_reject_1: 'rooftop_close',
   ch3_reject_2: 'rooftop_close',
-  ch4_bad_1: 'alley_wide',
-  ch4_bad_2: 'alley_wide',
-  ch4_bad_3: 'warehouse_close',
+  ch4_bad_1: 'corridor_view',
+  ch4_bad_2: 'classroom_close',
+  ch4_bad_3: 'classroom_view',
   ch4_bad_4: 'warehouse_close',
+  ch4_bad_4b: 'warehouse_close',
   ch4_bad_warehouse: 'whin',
-  ch4_bad_raid: 'whin',
-  ch4_bad_raid_2: 'whin_close',
-  ch4_bad_raid_3: 'whin_close',
-  ch4_bad_raid_4: 'whin_close',
-  ch4_bad_raid_5: 'whin',
+  ch4_bad_after: 'whin_close',
+  ch4_bad_after_2: 'whin',
+  // ---- bad ending 1: kelulusan (GARIS MERAH) ----
+  ch4_bad_grad_1: 'grad_gate',
+  ch4_bad_grad_2: 'grad_gate',
+  ch4_bad_grad_3: 'grad_gate',
+  // ---- resistance: penyanderaan + FINAL BOSS + CHOICE 3 ----
   ch4_res_1: 'alley_wide',
   ch4_res_2: 'courtyard_view',
   ch4_res_3: 'courtyard_view',
   ch4_res_4: 'alley_wide',
-  ch4_res_alley: 'alley_close',
+  ch4_res_alley: 'alley_wide',
+  ch4_res_alley_2: 'alley_close',
+  ch4_res_alley_3: 'alley_wide',
+  ch4_res_alley_4: 'alley_close',
+  ch4_res_goons_win: 'alley_wide',
+  ch4_res_goons_win_2: 'alley_close',
   ch4_res_choice: 'alley_close',
-  ch4_res_help_1: 'alley_close',
-  ch4_res_help_2: 'alley_close',
-  ch4_res_win: 'alley_close',
-  ch4_res_win_2: 'alley_close',
-  ch4_res_win_3: 'alley_wide',
-  ch4_res_win_4: 'alley_close',
-  ch4_res_away_1: 'alley_wide',
-  ch4_res_away_2: 'courtyard_view',
+  // ---- good ending: penangkapan + kelulusan (GARIS MERAH) ----
+  ch4_good_1: 'alley_close',
+  ch4_good_2: 'alley_wide',
+  ch4_good_3: 'alley_close',
+  ch4_good_4: 'alley_wide',
+  ch4_good_grad_1: 'grad_gate',
+  ch4_good_grad_2: 'grad_siti',
+  ch4_good_grad_3: 'grad_siti',
+  ch4_good_grad_4: 'grad_gate',
+  ch4_good_grad_5: 'grad_gate',
+  // ---- bad ending 2: rantai dendam (GARIS MERAH) ----
+  ch4_bad2_1: 'alley_close',
+  ch4_bad2_2: 'alley_wide',
+  ch4_bad2_3: 'alley_wide',
+  ch4_bad2_4: 'alley_wide',
+  ch4_bad2_5: 'alley_close',
 };
 
 // Extra world-side effects fired when a node's dialogue completes.
@@ -152,9 +192,15 @@ export const NODE_FX: Record<string, { fx: 'fp-to-tp' | 'fade-out' | 'fade-in' |
   n3_1: { fx: 'fade-in' },
   n4_1: { fx: 'fade-in' },
   ch4_neu_grad_1: { fx: 'fade-in' },
+  // GARIS MERAH: montase OSIS/resistansi + cut scene kelulusan/penangkapan
+  ch3_osis_1: { fx: 'fade-in' },
+  ch4_res_1: { fx: 'fade-in' },
+  ch4_res_alley: { fx: 'fade-in' },
+  ch4_bad_grad_1: { fx: 'fade-in' },
+  ch4_good_grad_1: { fx: 'fade-in' },
+  ch4_bad2_1: { fx: 'fade-in' },
   // alur utama (tidak berubah)
   ch4_bad_warehouse: { fx: 'fade-out' },
-  ch4_res_alley: { fx: 'fade-in' },
   ch3_intro_2: { fx: 'fade-in' },
   ch2_intro_1: { fx: 'fade-in' },
 };
@@ -200,6 +246,13 @@ export const OPENING_ACTORS: Record<string, OpeningCast> = {
       { pos: [-6.6, 12.9], face: [-9.5, 9.0] },
     ],
     aris: arisDesk,
+  },
+  o2_3b: {
+    bullies: [
+      { pos: [-7.4, 12.6], face: [-9.5, 9.0] },
+      { pos: [-6.6, 12.9], face: [-9.5, 9.0] },
+    ],
+    aris: { pos: [-4.0, 11.3], face: [-6.5, 11.2] },
   },
   o2_5: { aris: { pos: [-4.0, 11.3], face: [-3.9, 12.4] } },
   o2_6: { aris: arisDesk },
@@ -262,7 +315,7 @@ export const OPENING_ACTORS: Record<string, OpeningCast> = {
   },
 };
 
-// Story actors untuk scene NON-opening (bab 2 tangga, montage netral, graduasi).
+// Story actors untuk scene NON-opening (bab 2 tangga, montase, kelulusan).
 // Keyed per node → placements (dipakai CinematicActors di App.tsx).
 // Bab 2 bermain di halaman belakang tepat di luar pintu tangga (z ≈ -2.7),
 // supaya bingkai kamera lega dan tidak menabrak dinding lorong tangga.
@@ -271,6 +324,28 @@ const gangStairs: StorySpot[] = [
   { pos: [2.5, -3.3], face: [-1.5, -3.1] },
 ];
 const arisSpill: StorySpot = { pos: [-0.5, -2.7], face: [1.4, -2.8] };
+// GARIS MERAH: pengaturan aktor berulang (Siti koridor, letnan parkiran,
+// penyanderaan gang, kelulusan good/bad).
+const sitiHall: StorySpot = { pos: [-3.0, 23.5], face: [3, 26] };
+const parkingLieutenants: StorySpot[] = [
+  { pos: [33.2, 33.0], face: [30.5, 31.0] },
+  { pos: [35.2, 34.6], face: [31.0, 32.0] },
+];
+// gang belakang: sandera di tengah, dua anak buah membentuk lingkaran,
+// Bimo berdiri sedikit di belakang (zona back_alley ≈ x 6, z -21).
+const arisHostage: StorySpot = { pos: [6.0, -22.0], face: [6.0, -19.0] };
+const alleyCircle: StorySpot[] = [
+  { pos: [4.5, -20.5], face: [6.0, -22.0] },
+  { pos: [7.5, -20.6], face: [6.0, -22.0] },
+];
+const bimoAlley: StorySpot = { pos: [8.4, -22.8], face: [6.0, -21.5] };
+const sitiHidden: StorySpot = { pos: [12.5, -22.0], face: [6.0, -22.0] };
+const gradAris: StorySpot = { pos: [7.2, 43.4], face: [6.4, 44.6] };
+const gradSiti: StorySpot = { pos: [8.4, 44.4], face: [6.8, 43.2] };
+const gradFollowers: StorySpot[] = [
+  { pos: [6.2, 43.8], face: [7.0, 42.0] },
+  { pos: [8.6, 43.2], face: [7.0, 42.0] },
+];
 export const SCENE_ACTORS: Record<string, OpeningCast> = {
   // Bab 2 — tangga belakang: Aris + dua anak geng inti
   ch2_intro_1: { bullies: gangStairs },
@@ -280,6 +355,43 @@ export const SCENE_ACTORS: Record<string, OpeningCast> = {
   ch2_intro_5: { bullies: gangStairs, aris: arisSpill },
   ch2_intro_6: { bullies: gangStairs, aris: arisSpill },
   ch2_choice: { bullies: gangStairs, aris: arisSpill },
+  // GARIS MERAH — pendekatan OSIS (Siti koridor)
+  ch3_osis_1: { siti: sitiHall },
+  ch3_osis_2: { siti: sitiHall },
+  ch3_osis_3: { siti: sitiHall },
+  ch3_osis_4: { siti: sitiHall },
+  ch3_osis_5: { siti: sitiHall },
+  ch3_osis_6: { siti: sitiHall },
+  // GARIS MERAH — sergapan letnan di parkiran
+  ch3_f2_1: { bullies: parkingLieutenants },
+  ch3_f2_2: { bullies: parkingLieutenants },
+  ch3_f2_3: { bullies: parkingLieutenants },
+  ch3_f2_win: { bullies: parkingLieutenants },
+  ch3_f2_win_2: { bullies: parkingLieutenants },
+  ch3_f2_win_3: { bullies: parkingLieutenants },
+  // GARIS MERAH — montase bad: Aris menjauh (kelas)
+  ch4_bad_3: { aris: { pos: [-4.0, 11.3], face: [-9, 8.6] } },
+  // GARIS MERAH — kelulusan bad: pengikut geng baru
+  ch4_bad_grad_1: { followers: gradFollowers },
+  ch4_bad_grad_2: { followers: gradFollowers },
+  ch4_bad_grad_3: { followers: gradFollowers },
+  // GARIS MERAH — penyanderaan + FINAL BOSS + CHOICE 3 (gang belakang)
+  ch4_res_alley: { aris: arisHostage, bimo: bimoAlley, followers: alleyCircle },
+  ch4_res_alley_2: { aris: arisHostage, bimo: bimoAlley, followers: alleyCircle },
+  ch4_res_alley_3: { aris: arisHostage, bimo: bimoAlley, followers: alleyCircle },
+  ch4_res_alley_4: { aris: arisHostage, bimo: bimoAlley, followers: alleyCircle },
+  ch4_res_goons_win: { aris: arisHostage, bimo: bimoAlley },
+  ch4_res_goons_win_2: { aris: arisHostage, bimo: bimoAlley },
+  ch4_res_choice: { aris: arisHostage, bimo: bimoAlley },
+  // GARIS MERAH — good: penangkapan + kelulusan bersama
+  ch4_good_1: { aris: arisHostage },
+  ch4_good_2: { aris: arisHostage, siti: sitiHidden },
+  ch4_good_3: { aris: arisHostage, siti: sitiHidden },
+  ch4_good_grad_1: { aris: gradAris, siti: gradSiti },
+  ch4_good_grad_2: { aris: gradAris, siti: gradSiti },
+  ch4_good_grad_3: { aris: gradAris, siti: gradSiti },
+  ch4_good_grad_4: { aris: gradAris, siti: gradSiti },
+  ch4_good_grad_5: { aris: gradAris, siti: gradSiti },
   // Rute netral — montage
   n1_1: {},
   n1_2: { aris: { pos: [-4.0, 11.3], face: [-9, 8.6] } },

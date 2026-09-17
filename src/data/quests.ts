@@ -36,19 +36,29 @@ export const QUESTS: QuestDef[] = [
     chapter: 3,
   },
   {
+    // v0.11.0 GARIS MERAH: teror fisik letnan geng sebelum rooftop [FIGHT 2]
+    id: 'gang_ambush',
+    title: 'Teror di Parkiran',
+    type: 'main',
+    desc: 'Anak-anak geng mulai panas karena keberanian Ren. Siti sempat memperingatkan — parkiran adalah jalur paling sepi.',
+    objective: 'Lewati area parkir setelah jam pelajaran',
+    chapter: 3,
+  },
+  {
     id: 'warehouse_call',
     title: 'Panggilan Gudang',
     type: 'main',
-    desc: 'Bimo membutuhkan "tenaga" Ren untuk urusan di gudang tua.',
+    desc: 'Bimo membutuhkan "tenaga" Ren untuk urusan di gudang tua. Bukan permintaan.',
     objective: 'Ikuti Bimo ke gudang',
     chapter: 4,
   },
   {
+    // v0.11.0 GARIS MERAH: penyanderaan Aris — pemicu klimaks gang belakang
     id: 'find_aris',
     title: 'Aris Tidak Pulang',
     type: 'main',
-    desc: 'Aris tidak muncul sejak pulang sekolah. Pesan terakhirnya aneh.',
-    objective: 'Cari Aris di sekitar gang / jalan pulang',
+    desc: 'Aris tidak muncul sejak pulang sekolah. Pesan terakhirnya, jam tiga pagi: "maaf ya".',
+    objective: 'Cari Aris — mulai dari gang belakang kantin',
     chapter: 4,
   },
   {
@@ -117,6 +127,17 @@ export const ENCOUNTERS: Record<string, EncounterDef> = {
     onWin: 'ch2_win',
     music: 'tense',
   },
+  // v0.11.0 GARIS MERAH: teror fisik letnan geng di parkiran [FIGHT 2]
+  parking_fight: {
+    id: 'parking_fight',
+    arena: 'parking',
+    enemies: [
+      { id: 'letnan_1', name: 'Letnan Geng', hp: 66, dmg: 8, speed: 2.2, color: '#b91c1c' },
+      { id: 'letnan_2', name: 'Letnan Geng', hp: 66, dmg: 8, speed: 2.2, color: '#991b1b' },
+    ],
+    onWin: 'ch3_f2_win',
+    music: 'tense',
+  },
   warehouse_fight: {
     id: 'warehouse_fight',
     arena: 'warehouse',
@@ -124,7 +145,7 @@ export const ENCOUNTERS: Record<string, EncounterDef> = {
       { id: 'rival_1', name: 'Anak Geng Rival', hp: 70, dmg: 9, speed: 2.3, color: '#7c3aed' },
       { id: 'rival_boss', name: 'Tuan Geng Rival', hp: 110, dmg: 12, speed: 2.6, color: '#4c1d95', scale: 1.15 },
     ],
-    onWin: 'ch4_bad_raid',
+    onWin: 'ch4_bad_after',
     music: 'dark',
   },
   alley_fight: {
@@ -134,7 +155,17 @@ export const ENCOUNTERS: Record<string, EncounterDef> = {
       { id: 'gang_bimo_1', name: 'Anak Bimo', hp: 75, dmg: 9, speed: 2.4, color: '#b91c1c' },
       { id: 'gang_bimo_2', name: 'Anak Bimo', hp: 75, dmg: 9, speed: 2.4, color: '#991b1b' },
     ],
-    onWin: 'ch4_res_win',
+    onWin: 'ch4_res_goons_win',
+    music: 'dark',
+  },
+  // v0.11.0 GARIS MERAH: FIGHT 3 — FINAL BOSS, satu lawan satu vs Bimo
+  bimo_fight: {
+    id: 'bimo_fight',
+    arena: 'back_alley',
+    enemies: [
+      { id: 'bimo_boss', name: 'Bimo', hp: 150, dmg: 11, speed: 2.7, color: '#7f1d1d', scale: 1.12 },
+    ],
+    onWin: 'ch4_res_choice',
     music: 'dark',
   },
 };

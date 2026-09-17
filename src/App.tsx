@@ -393,23 +393,13 @@ function CinematicActors() {
       cast.followers?.forEach((s, i) => push('follower', i, s, '#7f1d1d'));
       return list;
     }
-    if (nodeId.startsWith('ch3_')) {
+    if (nodeId.startsWith('ch3_') && !nodeId.startsWith('ch3_osis') && !nodeId.startsWith('ch3_f2')) {
       // rooftop scene (local coords): Bimo at the north parapet
       list.push({ id: 'bimo', x: 0.3, z: -5.6, color: '#ef4444', faceTo: [0, -10] });
       return list;
     }
-    if (['ch4_res_alley', 'ch4_res_choice', 'ch4_res_help_1', 'ch4_res_help_2', 'ch4_res_win', 'ch4_res_win_2'].includes(nodeId)) {
-      list.push({ id: 'aris', x: 8, z: -20.5, color: '#3b82f6', faceTo: [6, -22] });
-      list.push({ id: 'gang1', x: 5.5, z: -19.5, color: '#7f1d1d', faceTo: [8, -20.5] });
-      list.push({ id: 'gang2', x: 10, z: -19, color: '#991b1b', faceTo: [8, -20.5] });
-      if (['ch4_res_win_2'].includes(nodeId)) list.push({ id: 'siti', x: 12.5, z: -22, color: '#10b981', faceTo: [6, -22] });
-      return list;
-    }
-    if (nodeId.startsWith('ch4_bad_raid')) {
-      // warehouse scene (local coords)
-      list.push({ id: 'gang1', x: -2.5, z: -2.5, color: '#7f1d1d', faceTo: [0, 7] });
-      return list;
-    }
+    // v0.11.0 GARIS MERAH: aktor gang/kelulusan kini dipasok data
+    // SCENE_ACTORS (chapters.ts) — tidak ada lagi hardcode di sini.
     if (['ch4_res_1', 'ch4_res_2', 'ch4_res_3', 'ch4_res_4'].includes(nodeId)) {
       list.push({ id: 'aris', x: 6, z: 33, color: '#3b82f6' });
       list.push({ id: 'siti', x: 4.5, z: 34.5, color: '#10b981' });

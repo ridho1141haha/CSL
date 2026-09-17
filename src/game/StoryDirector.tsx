@@ -94,6 +94,13 @@ export function StoryDirector() {
       return;
     }
 
+    // ---------- chapter 3 GARIS MERAH: montase pendekatan OSIS ----------
+    if (montageReady && story.beat === 'ch3_osis' && story.chapter === 3 && !story.flags.includes('osis_montage_done')) {
+      story.setFlag('osis_montage_done');
+      dialogue.open('ch3_osis_1', true);
+      return;
+    }
+
     // ---------- bad route: montage after accepting ----------
     if (montageReady && story.beat === 'ch4_bad_warehouse' && story.route === 'bad' && !story.flags.includes('bad_montage_done')) {
       story.setFlag('bad_montage_done');
@@ -110,6 +117,21 @@ export function StoryDirector() {
 
     if (game.mode !== 'GAMEPLAY') return;
 
+    // ---------- chapter 3 GARIS MERAH: sergapan letnan di parkiran [FIGHT 2] ----------
+    if (
+      game.scene === 'campus' &&
+      game.currentZone === 'parking' &&
+      story.chapter === 3 &&
+      story.beat === 'ch3_parking' &&
+      quests.quests.gang_ambush === 'active' &&
+      !dialogue.nodeId &&
+      !story.flags.includes('ch3_parking_started')
+    ) {
+      story.setFlag('ch3_parking_started');
+      dialogue.open('ch3_f2_1', true);
+      return;
+    }
+
     // ---------- neutral route: graduation day at the main gate ----------
     if (
       game.scene === 'campus' &&
@@ -121,6 +143,35 @@ export function StoryDirector() {
     ) {
       story.setFlag('grad_scene_done');
       dialogue.open('ch4_neu_grad_1', true);
+      return;
+    }
+
+    // ---------- GARIS MERAH: bad ending 1 — kelulusan sebagai pemimpin geng ----------
+    if (
+      game.scene === 'campus' &&
+      game.currentZone === 'gate' &&
+      story.chapter === 4 &&
+      story.route === 'bad' &&
+      story.beat === 'ch4_bad_grad' &&
+      !story.flags.includes('bad_grad_done')
+    ) {
+      story.setFlag('bad_grad_done');
+      dialogue.open('ch4_bad_grad_1', true);
+      return;
+    }
+
+    // ---------- GARIS MERAH: good ending — kelulusan bersama Aris & Siti ----------
+    if (
+      game.scene === 'campus' &&
+      game.currentZone === 'gate' &&
+      story.chapter === 4 &&
+      story.route === 'resistance' &&
+      story.beat === 'ch4_good_grad' &&
+      story.flags.includes('restrained_bimo') &&
+      !story.flags.includes('good_grad_done')
+    ) {
+      story.setFlag('good_grad_done');
+      dialogue.open('ch4_good_grad_1', true);
       return;
     }
 

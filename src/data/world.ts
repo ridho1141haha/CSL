@@ -200,4 +200,7 @@ export const CAMERA_POSES: Record<string, CameraPose> = {
   // ---- warehouse scene interior (local) ----
   whin: { pos: [0, 6.5, 9], look: [0, 1.5, -4] },
   whin_close: { pos: [2.8, 2.3, -1.2], look: [0, 1.4, -4] },
+  // v0.11.0 GARIS MERAH: sergapan letnan di area parkir (zona parking ≈ x 34, z 34)
+  pk_ambush: { pos: [29.5, 2.4, 29.5], look: [34.0, 1.4, 33.5] },
+  pk_close: { pos: [31.8, 1.6, 31.6], look: [34.2, 1.45, 33.6] },
 };

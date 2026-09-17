@@ -1,8 +1,30 @@
 # Project State
 
-Updated: 2026-09-17 (v0.10.0 — day/night cycle, objective waypoints, map fixes, control settings)
+Updated: 2026-09-17 (v0.11.0 — GARIS MERAH final script: 3 choice points, 4 endings, team credits)
 
 ## Development state
+
+**v0.11.0** integrates the final **GARIS MERAH** script (the team's narrative
+canon for the final project demo): dialogue rewritten in the casual
+school-kid register (Ren gue / Siti lu / Bimo lo / Aris aku-kamu) exactly
+per the approved draft; story restructured around **three choice points**
+and **four endings**. Chapter 3 (action route) now opens with the OSIS
+approach montage (Siti corridor talk) and the **parking ambush FIGHT 2**
+(new `parking_fight` encounter + `gang_ambush` quest + waypoint), before the
+rooftop proposition (CHOICE 2, final wording). The **bad route** no longer
+ends in a police raid — Ren becomes the gang's executor (extortion montage +
+warehouse job), Aris starts fearing him, and he **graduates as the new gang
+leader**: BAD ENDING 1 "Tunduk Pada Kekuasaan". The **resistance route**
+climaxes with Aris's hostage situation in the back alley (Siti secretly
+recording evidence), the goons fight, then the **FINAL BOSS duel vs Bimo**
+(new `bimo_fight`, HP 150) and **CHOICE 3**: restrain → police + principal
+arrive with the OSIS recording, Bimo's gang arrested, graduation photo with
+Aris (new glasses) & Siti and the tea box → GOOD ENDING "Lulus Bersama";
+brutal → Bimo critical in hospital, Ren reported/expelled/arrested → BAD
+ENDING 2 "Rantai Dendam". Neutral route keeps "Lulus Tanpa Nama". The main
+menu KREDIT button now opens a team-roles overlay (Ridho / Naufal / Fadlan /
+Marcell) per the final project report. 120 unit tests green; tsc clean;
+production build passing.
 
 **v0.10.0** adds atmosphere and navigation on top of v0.9.0's render work:
 (1) **day/night cycle** — campus & rooftop skies chase the school clock
@@ -44,11 +66,32 @@ now y-aware so L2/L3 zones resolve separately) — and the
 reading tables, counter), which now hosts the neutral-route Siti
 confrontation shots and Siti's after-school schedule.
 
-## Story routes (current)
+## Story routes (current — canon GARIS MERAH, v0.11.0)
 
-- Opening: gate & map merah → classroom (Aris) → corridor (Siti) → canteen whispers + Bimo entrance.
-- Bab 2 fork at the back stairs: [A] ignore → neutral route; [B] defend Aris → stair_fight → Bimo impressed → rooftop → bad/resistance (unchanged).
-- Neutral: 4-scene montage (bruised Aris, Siti library confrontation — now framed inside the real library —, Bimo dismissal, Aris resignation letter) → graduation-day walk to the gate → ending.
+- Opening (bab 1, first person): gate & map merah → classroom (Aris + bully
+  line) → corridor (Siti warning, lu-register) → canteen whispers + Bimo
+  entrance.
+- **CHOICE 1** (bab 2, back stairs, water spill): [A] ignore Aris → neutral
+  route; [B] help Aris → FIGHT 1 (stair fight) → Bimo impressed.
+- Action route (bab 3): OSIS montage (Siti offers gang-violation data) →
+  `gang_ambush` quest → **FIGHT 2** at the parking (`parking_fight`) →
+  rooftop call → **CHOICE 2**: [A] accept → bad route; [B] reject →
+  resistance route.
+- Bad route (bab 4): executor montage (extortion, Aris fear) → warehouse
+  job (`warehouse_fight`) → walk to the gate → **BAD ENDING 1 "Tunduk Pada
+  Kekuasaan"** (graduates as the new gang leader).
+- Resistance route (bab 4): retaliation montage (Siti promises to record) →
+  `find_aris` → hostage scene in the back alley (Siti recording) → goons
+  fight (`alley_fight`) → **FINAL BOSS Bimo** (`bimo_fight`) → **CHOICE 3**:
+  [A] restrain → arrest scene → gate graduation with Aris & Siti → **GOOD
+  ENDING "Lulus Bersama"**; [B] brutal → arrest & expulsion → **BAD ENDING 2
+  "Rantai Dendam"**.
+- Neutral route (bab 3-4): 4-scene montage (bruised Aris — cold "lo" register,
+  Siti library confrontation inside the real library, Bimo dismissal, Aris
+  resignation letter) → graduation-day walk to the gate → **NEUTRAL ENDING
+  "Lulus Tanpa Nama"**.
+- 4 endings total, resolved by `endingResolver` (route + CHOICE 3 flags
+  `restrained_bimo` / `brutal_bimo`).
 
 ## Campus landmarks (current)
 

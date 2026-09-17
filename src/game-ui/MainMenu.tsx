@@ -1,7 +1,16 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useGame } from '../stores/gameStore';
 import { hasSave, slotInfo } from '../game/save';
 import { audio } from '../game/audio';
+
+// Kredit tim (v0.11.0): panel overlay dari laporan final project —
+// pembagian peran resmi TEAM CHAOS untuk demo/presentasi.
+const TEAM_CREDITS: { name: string; role: string; detail: string }[] = [
+  { name: 'RIDHO', role: 'Lead Programmer / Integrator', detail: 'Integrasi sistem game, struktur project, gameplay, debugging, koordinasi pengembangan' },
+  { name: 'NAUFAL', role: 'Game Designer / Narrative Designer', detail: 'Alur cerita GARIS MERAH, karakter, konflik, pilihan pemain, percabangan & ending' },
+  { name: 'FADLAN', role: 'UI/UX Designer', detail: 'Desain antarmuka game — HUD, menu, status, inventory — dengan Stitch AI' },
+  { name: 'MARCELL', role: 'Game/Level Support & Testing', detail: 'Pengembangan & pengujian game, masukan gameplay/level/fitur' },
+];
 
 // Main menu — implementasi mockup Stitch "01-main-menu":
 // judul gradient amber, daftar menu Indonesia dengan sub-label mono,
@@ -10,6 +19,7 @@ export function MainMenu({ onStart, onLoad }: { onStart: () => void; onLoad: () 
   const ref = useRef<HTMLDivElement>(null);
   const auto = hasSave('auto');
   const info = slotInfo('auto');
+  const [credits, setCredits] = useState(false);
 
   useEffect(() => {
     const el = ref.current;
@@ -36,7 +46,7 @@ export function MainMenu({ onStart, onLoad }: { onStart: () => void; onLoad: () 
     <div className="menu" ref={ref}>
       <div className="menu-top">
         <span className="chip chip-amber">CHAOS SCHOOL LIFE</span>
-        <span className="chip">BUILD 0.10.0 <i>//</i> TEAM CHAOS</span>
+        <span className="chip">BUILD 0.11.0 <i>//</i> TEAM CHAOS</span>
         <span className="spacer" />
         <span className="chip">SLOT STATUS <i>//</i> {auto ? `BAB ${info.chapter}` : 'KOSONG'}</span>
         <span className="chip chip-green">{auto ? 'TERSINKRON' : 'MULAI BARU'}</span>
@@ -64,9 +74,9 @@ export function MainMenu({ onStart, onLoad }: { onStart: () => void; onLoad: () 
               <strong>PENGATURAN</strong>
               <small>GRAFIS · AUDIO · KONTROL</small>
             </button>
-            <button onClick={() => { audio.click(); useGame.getState().notify('CHAOS SCHOOL LIFE — dibuat sebagai proyek PKL. Cerita & karakter orisinal.', 'info'); }}>
+            <button onClick={() => { audio.click(); setCredits(true); }}>
               <strong>KREDIT</strong>
-              <small>TIM CHAOS STUDIO</small>
+              <small>TIM CHAOS — PEMBAGIAN PERAN</small>
             </button>
           </nav>
         </div>
@@ -92,7 +102,30 @@ export function MainMenu({ onStart, onLoad }: { onStart: () => void; onLoad: () 
         <span className="key">[↑↓]</span> NAVIGASI
         <span className="key">[ENTER]</span> PILIH
       </div>
-      <div className="menu-version">BUILD 0.10.0 <span className="menu-input-note">KEYBOARD + MOUSE / SENTUH</span> <span>CHAOS SCHOOL LIFE © 2025</span></div>
+      <div className="menu-version">BUILD 0.11.0 <span className="menu-input-note">KEYBOARD + MOUSE / SENTUH</span> <span>CHAOS SCHOOL LIFE © 2025</span></div>
+
+      {credits && (
+        <div className="credits-overlay" onClick={() => setCredits(false)}>
+          <div className="credits-panel panel-cut brackets" onClick={(e) => e.stopPropagation()}>
+            <div className="pc-head">KREDIT <span className="right">TEAM CHAOS</span></div>
+            <div className="credits-body">
+              <p className="credits-note">CHAOS SCHOOL LIFE — proyek final: game naratif aksi 3D "GARIS MERAH" (web, React-Three-Fiber).</p>
+              {TEAM_CREDITS.map((m) => (
+                <div className="credits-row" key={m.name}>
+                  <b>{m.name}</b>
+                  <div>
+                    <span className="credits-role">{m.role}</span>
+                    <small>{m.detail}</small>
+                  </div>
+                </div>
+              ))}
+            </div>
+            <div className="ending-actions">
+              <button onClick={() => { audio.click(); setCredits(false); }}>TUTUP</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -41,15 +41,23 @@ export type StoryBeat =
   // v0.7.0: Bab 2 reworked — "Kesalahan Kecil Aris" replaces the gate fight
   | 'ch2_key_error'
   | 'ch2_aftermath'
+  // v0.11.0 GARIS MERAH: bab 3 dibuka montase OSIS, lalu sergapan parkiran,
+  // lalu rooftop. Rute bad berakhir di kelulusan; rute resistance berakhir
+  // di FINAL BOSS Bimo → CHOICE 3 → kelulusan (good) / penangkapan (bad 2).
+  | 'ch3_osis'          // montase pendekatan OSIS pending
+  | 'ch3_parking'       // sergapan parkiran [FIGHT 2] pending
   | 'ch3_rooftop'
   // v0.7.0: neutral route beats
   | 'ch3_neutral'        // montage "Dinding Dingin" pending
   | 'ch4_neutral_grad'   // graduation-day trigger pending (gate)
   | 'ch4_bad_warehouse'
   | 'ch4_bad_aftermath'
+  | 'ch4_bad_grad'       // GARIS MERAH: bad ending 1 di gerbang
   | 'ch4_res_search'
   | 'ch4_res_alley'
   | 'ch4_res_aftermath'
+  | 'ch4_res_bimo'       // GARIS MERAH: FINAL BOSS Bimo
+  | 'ch4_good_grad'      // GARIS MERAH: good ending di gerbang
   | 'done';
 
 export type Clock = { day: number; minutes: number };

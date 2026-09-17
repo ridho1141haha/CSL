@@ -75,22 +75,22 @@ describe('study scoring', () => {
   });
 });
 
-describe('ending resolver (canon routes)', () => {
+describe('ending resolver (canon GARIS MERAH)', () => {
   const base = { flags: [], stats: { academic: 70, violence: 5, diplomacy: 8, reputation: 20 }, focus: 50, relationships: {} };
-  it('bad route → Rantai Dendam', () => {
+  it('bad route → Tunduk Pada Kekuasaan', () => {
     const e = resolveEnding({ ...base, route: 'bad' });
     expect(e.id).toBe('bad');
-    expect(e.title).toBe('Rantai Dendam');
+    expect(e.title).toBe('Tunduk Pada Kekuasaan');
   });
-  it('resistance + helped → True', () => {
-    const e = resolveEnding({ ...base, route: 'resistance', flags: ['helped_aris_final'] });
+  it('resistance + restrained_bimo → True (Lulus Bersama)', () => {
+    const e = resolveEnding({ ...base, route: 'resistance', flags: ['restrained_bimo'] });
     expect(e.id).toBe('true');
-    expect(e.title).toBe('Kebenaran & Solidaritas');
+    expect(e.title).toBe('Lulus Bersama');
   });
-  it('resistance + walked away → Bitter', () => {
-    const e = resolveEnding({ ...base, route: 'resistance', flags: ['ignored_aris_final'] });
+  it('resistance + brutal_bimo → Bitter (Rantai Dendam)', () => {
+    const e = resolveEnding({ ...base, route: 'resistance', flags: ['brutal_bimo'] });
     expect(e.id).toBe('bitter');
-    expect(e.title).toBe('Lulus Tapi Sendirian');
+    expect(e.title).toBe('Rantai Dendam');
   });
   it('v0.7.0: neutral route → Lulus Tanpa Nama', () => {
     const e = resolveEnding({ ...base, route: 'neutral' });

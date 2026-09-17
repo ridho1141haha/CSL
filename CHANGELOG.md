@@ -1,5 +1,79 @@
 # Changelog
 
+## 0.11.0 — 2026-09-17 (Naskah final "GARIS MERAH" — 3 pilihan, 4 ending, panel kredit)
+
+Integrasi lengkap naskah cerita final **GARIS MERAH** (laporan final project):
+dialog bergaya anak sekolah (gue/lu) sesuai draf Naufal, struktur **tiga titik
+pilihan** dan **empat ending**, plus satu pertarungan baru dan panel kredit tim.
+
+### Changed — struktur cerita (kanon GARIS MERAH)
+- **CHOICE 1 (tangga belakang)**: abaikan Aris → rute netral / tolong Aris →
+  rute aksi. Dialog FIGHT 1 memakai naskah final ("Lepasin dia." → "Siapa lagi
+  nih? Anak baru sok pahlawan?" → "Belagu lo!"), plus dialog pasca-menang
+  ("Awas lo ya… kita laporin Bimo!") dan kalimat Ren ke Aris
+  ("Catatanmu berguna buat gue.").
+- **BAB 3 baru — Pendekatan OSIS + Teror di Parkiran [FIGHT 2]**: Siti
+  menghadang Ren di koridor (menawarkan data OSIS), lalu dua letnan geng
+  menyergap di area parkir. Encounter baru `parking_fight`, quest baru
+  `gang_ambush` (waypoint menunjuk parkiran), kamera baru `pk_ambush`/
+  `pk_close`, montase terpicu via beat `ch3_osis` → `ch3_parking`.
+- **CHOICE 2 (rooftop)**: tawaran Bimo memakai naskah final ("Dua kali anak
+  buah gue lo tumbangin… jadi gue kasih dua penawaran.") — terima → rute bad,
+  tolak → rute resistance.
+- **RUTE BAD diganti**: bukan lagi razia gudang yang berakhir dipenjara —
+  Ren menjadi eksekutor geng (montase pemalakan + pekerjaan gudang), Aris
+  mulai takut padanya, lalu **lulus sebagai pemimpin geng baru pengganti
+  Bimo** → BAD ENDING 1 **"Tunduk Pada Kekuasaan"** (monolog final persis
+  naskah: "Gue selamat dari sistem Yuson, cuma buat jadi bagian dari sistem
+  yang gue rusak."). Kartu BAB IV rute bad kini bertajuk "Tunduk Pada
+  Kekuasaan".
+- **RUTE RESISTANCE diganti**: bukan lagi pilihan tolong/tinggalkan di gang —
+  kini **penyanderaan Aris** + taktik OSIS (Siti merekam bukti), Ren
+  menumbangkan dua anak buah, lalu **FIGHT 3 FINAL BOSS: Ren vs Bimo**
+  (encounter baru `bimo_fight`, boss HP 150) → **CHOICE 3**:
+  - [A] Tahan emosi → polisi & Kepala Sekolah datang dengan rekaman Siti,
+    Bimo dkk. ditangkap → kelulusan **foto bertiga dengan teh kotak** →
+    GOOD ENDING **"Lulus Bersama"** ("gue keluar dari sini tanpa
+    kehilangan hati gue").
+  - [B] Hajar brutal → Bimo kritis di rumah sakit, Ren dilaporkan,
+    dikeluarkan & ditangkap di halaman sekolah → BAD ENDING 2
+    **"Rantai Dendam"** ("amarah udah mengubah gue jadi monster yang sama
+    mengerikannya").
+- Dialog seluruh spine cerita (opening 4 scene, bab 2, kedua rute, kelulusan)
+  disesuaikan dengan draf final: Ren gue, Siti lu/gue, Bimo gue/lo, geng lo,
+  Aris tetap aku/kamu (jadi lo saat dingin di rute netral — sesuai draf).
+  NPC ambient, hidden event & zone flavor ikut diselaraskan.
+- Subtitle bab: BAB III "Penawaran di Rooftop", BAB IV "Klimaks Gang
+  Belakang" (netral/bad tetap punya judul rute sendiri).
+- `endingResolver` dirender ulang ke 4 ending kanon; ending lama "Kebenaran &
+  Solidaritas" / "Lulus Tapi Sendirian" / razia gudang digantikan.
+
+### Added — panel kredit tim (menu utama)
+- Tombol KREDIT kini membuka panel overlay berisi pembagian peran resmi sesuai
+  laporan final project: **Ridho** (Lead Programmer / Integrator), **Naufal**
+  (Game Designer / Narrative Designer), **Fadlan** (UI/UX Designer),
+  **Marcell** (Game/Level Support & Testing) — siap untuk demo presentasi.
+
+### Technical
+- Beat baru: `ch3_osis`, `ch3_parking`, `ch4_bad_grad`, `ch4_res_bimo`,
+  `ch4_good_grad`; `BEAT_ENCOUNTER` bertambah 2 pemetaan.
+- Node rantai baru: `o2_3b`, `ch2_fight_1b/1c`, `ch2_win_2..6`,
+  `ch3_osis_1..6`, `ch3_f2_1..3`, `ch3_f2_win..3`, `ch4_bad_4b`,
+  `ch4_bad_after..2`, `ch4_bad_grad_1..3`, `ch4_res_alley_2..4`,
+  `ch4_res_goons_win..2`, `ch4_good_1..4`, `ch4_good_grad_1..5`,
+  `ch4_bad2_1..5`. Node razia & rute lama dihapus (tanpa orphan — dijaga
+  test reachability).
+- Checkpoint save baru sebelum setiap klimaks (`ch3_osis_6`, `ch3_f2_win_3`,
+  `ch4_good_4`, `ch4_bad_after_2`); trigger StoryDirector baru untuk montase
+  OSIS, sergapan parkiran, dan dua scene kelulusan; aktor sinematik penyanderaan
+  (sandera + lingkaran geng + Bimo) & kelulusan (Aris kacamata baru + Siti)
+  dipasok data `SCENE_ACTORS`.
+- Quest: `gang_ambush` (baru), `find_aris`/`warehouse_call`/`graduation_day`
+  deskripsi disesuaikan GARIS MERAH; waypoint parkiran untuk FIGHT 2.
+- Test: 120 unit test hijau (storyFlow diperluas — rantai FIGHT 1, montase
+  OSIS→parkiran→rooftop, kedua cabang CHOICE 3, kedua kelulusan; resolver
+  test disesuaikan kanon baru); tsc bersih; vite build sukses.
+
 ## 0.10.0 — 2026-09-17 (Siang–malam, waypoint misi, perbaikan peta, setelan kontrol)
 
 Empat permintaan sekaligus: siklus siang–malam, penunjuk objektif, setelan

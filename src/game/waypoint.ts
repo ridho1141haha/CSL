@@ -60,6 +60,7 @@ export function questTargetFor(
   }
   switch (quest.id) {
     case 'aris_incident': return zoneTarget(quest, 'back_stairs');
+    case 'gang_ambush': return zoneTarget(quest, 'parking'); // GARIS MERAH: FIGHT 2
     case 'rooftop_meeting': return zoneTarget(quest, 'back_stairs');
     case 'warehouse_call': return zoneTarget(quest, 'warehouse');
     case 'find_aris': return zoneTarget(quest, 'back_alley');
