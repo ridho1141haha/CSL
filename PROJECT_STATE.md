@@ -1,6 +1,32 @@
 # Project State
 
-Updated: 2026-09-17 (v0.11.0 — GARIS MERAH final script: 3 choice points, 4 endings, team credits)
+Updated: 2026-09-17 (v0.12.0 — cinematic polish & world connectivity: camera hard-cut, bab 2 di jalur tangga→kantin, lorong lobi→kelas tembus, animasi duduk/jongkok/prop, peta blueprint, low-texture presets)
+
+## v0.12.0 Snapshot (2026-09-17)
+
+**Arsitektur baru:**
+- `src/game/story/StoryProps.tsx` — prop dunia pendukung cerita (kotak pensil
+  jatuh, buku berserakan, botol, genangan air) per-node via `STORY_PROPS`
+  (data/chapters.ts). Dipasang di App hanya untuk scene campus.
+- Figure (Character.tsx) menerima `hold` (map/book/pencil/eraser/stack/bottle/
+  phone) + state `sit`/`crouch` di FigureAnim dengan blending 0..1.
+- `isPoseCut` (CameraRig) — hard-cut kamera saat pose sinematik pindah >6 m.
+- quality.ts += `texScale`/`aniso` (256/192/128 px; aniso 4/2/1) — dibaca pbr
+  sekali saat tekstur pertama dibangun.
+- NpcDef += `sitAt` (periode duduk) & `sitFace` (titik hadap). Aris kursi
+  (-4.0,11.3), Siti (-6.75,11.3), keduanya menghadap papan tulis.
+- FPViewModel (App.tsx) — map merah/buku catatan di tangan Ren saat opening FP.
+
+**Geometri gedung utama (v0.12.0):**
+- Inti gudang (z 16..21) jadi lorong tembus lobi→koridor; pintu dobel z=21
+  (x ±1.45, w 1.9); dinding z=16 inti DIHAPUS; bukaan vestibule x=±2 z 4..5.4
+  + lintel; Vestibule punya lantai/plafon/lampu; papan pengumuman ke dinding
+  barat lobi; jalur beton kantin (15.9, 3; 10.4×4.6) + lampu (11.4, 5.6).
+- Verifikasi: scripts/qa-walkability.mjs 12/12 (raycast fisika, control solid).
+
+**Staging bab 2:** aktor timur shaft tangga (gang 6.3/7.3, Aris 4.5–5.2,
+prop buku/botol/genangan 4.85–5.85) — DI DALAM shaft ada undakan, jangan
+menaruh aktor di x<4.2. Zona back_stairs r 7.5.
 
 ## Development state
 

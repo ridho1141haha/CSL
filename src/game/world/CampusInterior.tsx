@@ -212,15 +212,19 @@ function HallAndCorridor() {
           ))}
         </group>
       ))}
-      {/* bulletin board (hall) */}
-      <mesh position={[0, 1.7, 27.7]}>
-        <boxGeometry args={[3.2, 1.2, 0.08]} />
-        <meshStandardMaterial color="#6b4f2e" roughness={0.8} />
-      </mesh>
-      <mesh position={[0, 1.7, 27.74]}>
-        <planeGeometry args={[2.9, 0.95]} />
-        <meshStandardMaterial color="#e9e2ce" roughness={0.95} />
-      </mesh>
+      {/* v0.12.0 FIX: papan pengumuman dipindah dari depan pintu masuk utama
+          (menutupi pintu — feedback "pintu gedung utama ketutupan papan tulis")
+          ke dinding barat lobi, menghadap timur */}
+      <group position={[-15.78, 1.7, 24.5]} rotation={[0, Math.PI / 2, 0]}>
+        <mesh>
+          <boxGeometry args={[3.2, 1.2, 0.08]} />
+          <meshStandardMaterial color="#6b4f2e" roughness={0.8} />
+        </mesh>
+        <mesh position={[0, 0, 0.05]}>
+          <planeGeometry args={[2.9, 0.95]} />
+          <meshStandardMaterial color="#e9e2ce" roughness={0.95} />
+        </mesh>
+      </group>
       {/* benches */}
       <mesh position={[-5, 0.45, 26.6]} castShadow>
         <boxGeometry args={[2.6, 0.06, 0.5]} />
@@ -338,12 +342,34 @@ function CanteenInterior() {
   );
 }
 
+// v0.12.0: vestibule tangga belakang (slot tengah x -2..2, z 4..14) — dulu
+// kantong mati tanpa lantai; kini lorong penghubung pintu tangga ↔ kelas &
+// ruang guru (bukaan baru di dinding x=±2, z 4..5.4).
+function Vestibule() {
+  return (
+    <Cull center={[0, 1.6, 9]} radius={7} mode="interior">
+      <group>
+        <mesh position={[0, 0.03, 9]} rotation={[-Math.PI / 2, 0, 0]} receiveShadow>
+          <planeGeometry args={[3.9, 9.8]} />
+          <Pbr name="terrazzo" repeat={[2, 3]} color="#d8d2c4" envMapIntensity={0.45} />
+        </mesh>
+        <mesh position={[0, 3.26, 9]} rotation={[Math.PI / 2, 0, 0]}>
+          <planeGeometry args={[3.9, 9.8]} />
+          <meshStandardMaterial color="#f2efe6" roughness={0.95} />
+        </mesh>
+        <LightPanel x={0} z={9} y={3.12} />
+      </group>
+    </Cull>
+  );
+}
+
 export function CampusInterior() {
   return (
     <group>
       <HallAndCorridor />
       <Classroom />
       <TeacherRoom />
+      <Vestibule />
       <CanteenInterior />
     </group>
   );

@@ -303,6 +303,23 @@ export function InventoryPanel() {
 const SCENE_TAG: Record<string, string> = { campus: 'GND', rooftop: 'ROOF', warehouse: 'GUDANG' };
 const MAP_FLOOR_RX = /\s*\(Lantai (\d+)\)$/;
 
+type MapFootprint = { x0: number; z0: number; x1: number; z1: number; kind: 'bldg' | 'road' | 'ring' | 'path' };
+// Footprint dalam koordinat dunia kampus (lihat game/world/CampusWorld.tsx).
+const MAP_FOOTPRINTS: MapFootprint[] = [
+  { x0: -16, z0: 4, x1: 16, z1: 28, kind: 'bldg' },      // gedung utama
+  { x0: -4, z0: -2, x1: 4, z1: 4, kind: 'bldg' },        // tangga belakang
+  { x0: 22, z0: 2, x1: 34, z1: 14, kind: 'bldg' },       // kantin
+  { x0: 23, z0: 16, x1: 39, z1: 24, kind: 'bldg' },      // perpustakaan
+  { x0: 24, z0: -16, x1: 44, z1: -2, kind: 'bldg' },     // gedung B
+  { x0: -46, z0: -36, x1: -26, z1: -18, kind: 'bldg' },  // gudang tua
+  { x0: 26, z0: 26, x1: 42, z1: 42, kind: 'bldg' },      // parkir
+  { x0: -6, z0: -30, x1: 18, z1: -12, kind: 'bldg' },    // gang belakang
+  { x0: -43, z0: 5, x1: -23, z1: 25, kind: 'ring' },     // lapangan
+  { x0: -48, z0: 46, x1: 48, z1: 54, kind: 'road' },     // jalan depan
+  { x0: -10, z0: 28, x1: 24, z1: 44, kind: 'path' },     // halaman utama
+  { x0: 10.75, z0: 0.75, x1: 21.25, z1: 5.35, kind: 'path' }, // lorong kantin (v0.12.0)
+];
+
 export function MapPanel() {
   // zustand v5: object-literal selectors create a new snapshot every poll and
   // crash React with "Maximum update depth exceeded" — select primitives.
@@ -327,6 +344,15 @@ export function MapPanel() {
     `${50 + ((x - (b.minX + b.maxX) / 2) / (b.maxX - b.minX)) * 46}%`,
     `${50 + ((z - (b.minZ + b.maxZ) / 2) / (b.maxZ - b.minZ)) * 44}%`,
   ];
+
+  // v0.12.0: blueprint layer — footprint gedung/jalan/jalur (kampus) supaya
+  // overlay peta terbaca sebagai DENAH sekolah, bukan kumpulan titik lepas.
+  // (feedback user: "ui/overlay map")
+  const toRect = (f: MapFootprint) => {
+    const [l, t] = toMap(f.x0, f.z0);
+    const [r, bm] = toMap(f.x1, f.z1);
+    return { left: l, top: t, width: `calc(${r} - ${l})`, height: `calc(${bm} - ${t})` };
+  };
 
   // group zones that share a center so stacked floors don't overlap:
   // each extra member is offset vertically around the shared point
@@ -365,6 +391,9 @@ export function MapPanel() {
         </div>
         <div className="map-grid">
           {activeQuest && <div className="map-objective">OBJEKTIF: {activeQuest.objective}</div>}
+          {sceneId === 'campus' && MAP_FOOTPRINTS.map((f, i) => (
+            <i key={`bp${i}`} className={`map-bp map-bp-${f.kind}`} style={toRect(f)} />
+          ))}
           {zoneGroups.flat().map(({ zone, offset }) => {
             const [left, top] = toMap(zone.center[0], zone.center[1]);
             const fl = zone.label.match(MAP_FLOOR_RX);

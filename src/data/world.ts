@@ -55,7 +55,7 @@ export const CAMPUS_ZONES: ZoneDef[] = [
   { id: 'ruang_osis', label: 'Ruang OSIS', center: [40, -7.8], radius: 3.5 },
   { id: 'kelas_12a', label: 'Kelas 12-A (Lantai 2)', center: [30, -7.8], radius: 4.5, y: [3.4, 6.9] },
   { id: 'kelas_12b', label: 'Kelas 12-B (Lantai 3)', center: [30, -7.8], radius: 4.5, y: [6.9, 10.4] },
-  { id: 'back_stairs', label: 'Tangga Belakang', center: [0, 1], radius: 4.5 },
+  { id: 'back_stairs', label: 'Tangga Belakang', center: [0, 1], radius: 7.5 },
   { id: 'back_alley', label: 'Gang Belakang', center: [6, -21], radius: 8 },
   { id: 'warehouse', label: 'Gudang Tua', center: [-36, -27], radius: 8 },
 ];
@@ -165,11 +165,13 @@ export const CAMERA_POSES: Record<string, CameraPose> = {
   fp_canteen_whisper: { pos: [28.2, 1.5, 6.6], look: [25.3, 1.1, 4.7] },
   fp_bimo_entry: { pos: [28.9, 1.6, 9.6], look: [23.4, 1.45, 10.6] },
   fp_bimo_close: { pos: [27.1, 1.55, 8.9], look: [28.6, 1.5, 7.3] },
-  // ---- bab 2 "Kesalahan Kecil Aris": halaman belakang, luar pintu tangga ----
-  stairs_wide: { pos: [4.8, 2.2, -7.0], look: [0, 1.3, -2.6] },
-  stairs_close: { pos: [2.4, 1.6, -4.8], look: [-0.3, 1.3, -2.8] },
-  stairs_aris: { pos: [-3.0, 1.5, -4.2], look: [-0.5, 1.1, -2.9] },
-  stairs_away: { pos: [-3.5, 2.0, -6.5], look: [1.5, 1.5, -2.2] },
+  // ---- bab 2 "Kesalahan Kecil Aris": jalur tangga belakang → kantin ----
+  // v0.12.0: staging di timur shaft tangga (x 4.5..7.5) — DI DALAM shaft ada
+  // undakan, jadi kamera juga memotong timur (bebas tembok, bins dijauh).
+  stairs_wide: { pos: [13.5, 2.9, -7.5], look: [5.4, 1.1, 2.4] },
+  stairs_close: { pos: [8.0, 1.6, -0.6], look: [4.8, 1.1, 2.6] },
+  stairs_aris: { pos: [7.6, 1.3, 5.2], look: [5.2, 0.75, 3.0] },
+  stairs_away: { pos: [3.4, 1.7, 5.6], look: [7.2, 1.2, 2.0] },
   // ---- rute netral: montage interior ----
   classroom_view: { pos: [-2.5, 2.1, 13.6], look: [-9.8, 1.15, 9.4] },
   classroom_close: { pos: [-6.6, 1.45, 12.9], look: [-4.0, 1.2, 11.3] },

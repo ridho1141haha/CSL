@@ -1,5 +1,8 @@
 import * as THREE from 'three';
 import { useMemo } from 'react';
+import { qualityConfig } from '../quality';
+import { useSettings } from '../../stores/settingsStore';
+import { mobile } from '../mobile';
 
 // ============================================================================
 // pbr.ts — procedural PBR texture factory (ZERO network).
@@ -81,8 +84,14 @@ function fbmFactory(seed: number, per: number, octaves: number) {
 
 // ---------------------------------------------------------------------------
 // Surface painters — each fills albedo/height/rough for a SIZE×SIZE tile
+// v0.12.0: SIZE turun mengikuti preset kualitas ("optimasi, low texture") —
+// RENDAH → 128px + aniso 1, SEDANG → 192px + aniso 2, TINGGI → 256px + aniso 4.
+// Semua painter menggambar dalam koordinat ternormalisasi (u = x/SIZE), jadi
+// skala cukup mengubah resolusi kanvas tanpa menyentuh pola.
 // ---------------------------------------------------------------------------
-const SIZE = 256;
+const __Q = qualityConfig(useSettings.getState().quality, mobile.tier);
+const SIZE = Math.max(64, Math.round((256 * __Q.texScale) / 64) * 64);
+const ANISO = __Q.aniso;
 
 type Painter = () => Painted;
 
@@ -559,7 +568,7 @@ function texFromCanvas(c: HTMLCanvasElement, srgb: boolean): THREE.CanvasTexture
   const t = new THREE.CanvasTexture(c);
   t.wrapS = t.wrapT = THREE.RepeatWrapping;
   t.colorSpace = srgb ? THREE.SRGBColorSpace : THREE.NoColorSpace;
-  t.anisotropy = 4;
+  t.anisotropy = ANISO;
   t.generateMipmaps = true;
   t.minFilter = THREE.LinearMipmapLinearFilter;
   t.needsUpdate = true;

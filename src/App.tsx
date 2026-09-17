@@ -21,6 +21,8 @@ import { perfState, PREWARM } from './game/runtime';
 import { GraphicsManager, CullingManager, WorldReadyProbe } from './game/perf';
 import { OPENING_ROOT, OPENING_ACTORS, SCENE_ACTORS, type StorySpot } from './data/chapters';
 import { PLAYER_SPAWN } from './data/world';
+import { StoryPropFX } from './game/story/StoryProps';
+import type { StoryPlacement } from './game/npc/Npc';
 
 import { World } from './game/world/World';
 import { Player } from './game/player/Player';
@@ -229,10 +231,12 @@ export default function App() {
             <>
               <Player />
               {scene === 'campus' && <Npcs hideMain={mode === 'CINEMATIC'} />}
+              {scene === 'campus' && <StoryPropFX />}
               <StoryDirector />
               <InputJanitor />
               {mode === 'COMBAT' && <CombatScene />}
               {mode === 'CINEMATIC' && <CinematicActors />}
+              <FPViewModel />
             </>
           )}
           <PhysicsProbe />
@@ -374,15 +378,26 @@ function PointerLockHint() {
 // Cinematic actor placement. v0.7.0: satu schema Spot { pos, face } untuk
 // OPENING_ACTORS (alur lambat "Minggu Pertama") dan SCENE_ACTORS (bab 2 tangga,
 // montage netral, graduasi). Semua koordinat kampus/interior (data/chapters.ts).
+// v0.12.0: Spot juga membawa sit/crouch/hold — dipakai Figure untuk pose
+// duduk/jongkok dan prop cerita di tangan.
 function CinematicActors() {
   const nodeId = useDialogue((s) => s.nodeId);
   const placements = useMemo(() => {
-    const list: { id: string; x: number; z: number; color: string; faceTo?: [number, number] }[] = [];
+    const list: StoryPlacement[] = [];
     if (!nodeId) return list;
     const cast = OPENING_ACTORS[nodeId] ?? SCENE_ACTORS[nodeId];
     if (cast) {
       const push = (base: string, i: number, spot: StorySpot, color: string) => {
-        list.push({ id: i === 0 ? base : `${base}${i}`, x: spot.pos[0], z: spot.pos[1], color, faceTo: spot.face });
+        list.push({
+          id: i === 0 ? base : `${base}${i}`,
+          x: spot.pos[0],
+          z: spot.pos[1],
+          color,
+          faceTo: spot.face,
+          sit: spot.sit,
+          crouch: spot.crouch,
+          hold: spot.hold,
+        });
       };
       // base id 'gang*' → placedActor('gang') menemukannya untuk shot ORANG
       // GENG (ch2 & montage netral); opening sendiri tidak punya node BULLY.
@@ -411,6 +426,66 @@ function CinematicActors() {
   return <StoryActors placements={placements} />;
 }
 
+// v0.12.0 — Viewmodel tangan Ren saat opening FIRST-PERSON (permintaan user:
+// "pas di opening, kan ren pegang buku"). Scene 1: map merah berkas pindahan
+// di genggaman; scene 2 & 4: buku catatan. Ikut kamera + sway halus napas.
+const FP_MAP_NODES = new Set(['o1_3', 'o1_4', 'o1_5', 'o1_6']);
+const FP_BOOK_NODES = new Set(
+  [1, 2, 3, 4, 5, 6, 7, 8].map((i) => `o2_${i}`).concat(Array.from({ length: 11 }, (_, i) => `o4_${i + 1}`)),
+);
+
+function FPViewModel() {
+  const nodeId = useDialogue((s) => s.nodeId);
+  const mode = useGame((s) => s.mode);
+  const openingDone = useStory((s) => s.flags.includes('opening_complete'));
+  const kind = FP_MAP_NODES.has(nodeId ?? '') ? 'map' : FP_BOOK_NODES.has(nodeId ?? '') ? 'book' : null;
+  const ref = useRef<THREE.Group>(null);
+  const tmp = useRef(new THREE.Vector3());
+  useFrame(({ camera, clock }) => {
+    const g = ref.current;
+    if (!g) return;
+    const t = clock.elapsedTime;
+    tmp.current.set(0.33, -0.3 + Math.sin(t * 1.6) * 0.007, -0.55)
+      .applyQuaternion(camera.quaternion)
+      .add(camera.position);
+    g.position.copy(tmp.current);
+    g.quaternion.copy(camera.quaternion);
+    g.rotateY(-0.3);
+    g.rotateX(0.12);
+    g.rotateZ(Math.sin(t * 1.1) * 0.02);
+  });
+  if (openingDone || mode !== 'CINEMATIC' || !kind) return null;
+  return (
+    <group ref={ref}>
+      {kind === 'map' ? (
+        // map merah berkas pindahan (naskah scene 1)
+        <group rotation={[0.9, 0, 0.1]}>
+          <mesh>
+            <boxGeometry args={[0.13, 0.006, 0.17]} />
+            <meshStandardMaterial color="#b3282d" roughness={0.6} />
+          </mesh>
+          <mesh position={[0, 0.005, 0]}>
+            <boxGeometry args={[0.112, 0.003, 0.15]} />
+            <meshStandardMaterial color="#f1e8d8" roughness={0.85} />
+          </mesh>
+        </group>
+      ) : (
+        // buku catatan dibaca ulang (scene 2 & 4)
+        <group rotation={[1.0, 0, 0]}>
+          <mesh>
+            <boxGeometry args={[0.12, 0.006, 0.16]} />
+            <meshStandardMaterial color="#5a4a35" roughness={0.7} />
+          </mesh>
+          <mesh position={[0, 0.006, 0]}>
+            <boxGeometry args={[0.105, 0.004, 0.14]} />
+            <meshStandardMaterial color="#e7dcc3" roughness={0.9} />
+          </mesh>
+        </group>
+      )}
+    </group>
+  );
+}
+
 // Input janitor (v0.6 regression fix): input.endFrame() clears just-pressed
 // actions, so it must run AFTER every consumer. The Player used to clear at
 // the end of its own frame — but R3F runs frames in mount order and the
@@ -424,15 +499,18 @@ function InputJanitor() {
 }
 
 // TEMP DEBUG (remove before release): expose the live Rapier world so the
-// console can verify collider registration.
+// console can verify collider registration. v0.12.0: also expose the Ray
+// class — scripts/qa-walkability.mjs casts physics rays through the building
+// to prove the new corridor/vestibule passages are truly walkable.
 function PhysicsProbe() {
-  const { world } = useRapier();
+  const { world, rapier } = useRapier();
   useEffect(() => {
     (window as unknown as Record<string, unknown>).__cslWorld = world;
+    (window as unknown as Record<string, unknown>).__cslRayClass = (rapier as unknown as { Ray: unknown }).Ray;
     (window as unknown as Record<string, unknown>).__cslInput = input;
     (window as unknown as Record<string, unknown>).__cslGame = useGame;
     (window as unknown as Record<string, unknown>).__cslPlayer = usePlayer;
-  }, [world]);
+  }, [world, rapier]);
   return null;
 }
 

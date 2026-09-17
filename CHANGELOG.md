@@ -1,5 +1,84 @@
 # Changelog
 
+## 0.12.0 — 2026-09-17 (Cinematic Polish & World Connectivity)
+
+Patch besar dari feedback playtest: kamera scene-cut, posisi cerita bab 2,
+konektivitas gedung utama (lorong buntu & papan penutup pintu), jalur kantin,
+animasi pendukung cerita (duduk/jongkok/prop tangan/pensil jatuh), penyesuaian
+dialog bagian transfer, tekstur dinamis per preset, dan peta blueprint.
+
+### Fixed — kamera & sinematik
+- **Hard-cut kamera antar scene**: pose kamera sinematik yang berpindah >6 m
+  kini CUT instan (dilindungi fade-in yang sudah ada), bukan lagi lerp fisik
+  yang "terbang menembus kelas" saat narasi baru tampil (feedback: cerita baru
+  di kantin tapi kamera malah lewat kelas). Dalam satu scene tetap halus.
+  Helper murni `isPoseCut` + test.
+- **Bab 2 pindah lokasi**: staging "Kesalahan Kecil Aris" keluar dari belakang
+  gedung ke **jalur timur tangga menuju kantin belakang** (sesuai naskah
+  "Lorong tangga menuju kantin belakang") — karakter utama tidak lagi terlihat
+  "di belakang gedung" saat cerita berjalan. Pose `stairs_wide/close/aris/away`
+  direkomposisi (bebas tembok shaft & tong sampah), zona pemicu `back_stairs`
+  diperluas r 4.5 → 7.5.
+
+### Fixed — dunia & navigasi
+- **Lorong lobi → kelas AKHIRNYA TEMBUS** (feedback: "tidak ada pintu/lobang"):
+  inti gudang di tengah gedung (z 16..21) tidak lagi menutup celah z=21 —
+  kini jadi lorong tembus dengan pintu dobel baru; dinding selatan inti
+  dihapus, koridor strip z 14..16 terbuka ke pintu Kelas 1-X & Ruang Guru.
+- **Vestibule tangga belakang**: slot tengah gedung (x -2..2, z 4..14) diberi
+  lantai/plafon/lampu dan dua bukaan baru (x=±2, z 4..5.4 + lintel) sehingga
+  pintu tangga belakang terhubung langsung ke kelas & ruang guru.
+- **Papan pengumuman dipindah** dari depan pintu masuk utama (menutupi pintu) ke
+  dinding barat lobi (feedback: "pintu gedung utama ketutupan papan tulis").
+- **Jalur beton "lorong menuju kantin"** dari halaman belakang ke teras kantin
+  (+ lampu taman) — route visual bab 2 → kantin kini terbaca.
+
+### Added — animasi & prop pendukung cerita (feedback user)
+- **Pose baru Figure**: `sit` (duduk di kursi/meja) dan `crouch` (jongkok
+  memungut barang) dengan blending halus; gesture dialog tetap jalan.
+- **Prop di tangan** (HoldProp): map merah, buku catatan, pensil, penghapus,
+  tumpukan buku, botol minum, ponsel.
+- **Scene 2 (kelas)**: kotak pensil Aris tersenggol → **animasi jatuh dengan
+  pantulan** + pensil bergelaran → Aris jongkok memungut → menyodorkan
+  penghapus ke Ren (prop tangan) → kotak terkumpul. Data-driven via
+  `STORY_PROPS` + komponen `StoryPropFX`.
+- **Bab 2**: Aris berjalan **membawa tumpukan buku + botol**, tersandung —
+  buku berserakan, botol jatuh, **genangan air** membesar di beton; buku
+  terkumpul lagi di ch2_win_3.
+- **Rute good**: Siti memegang ponsel (layar menyala) saat merekam geng.
+- **Opening first-person**: Ren kini **memegang map merah** (scene 1) dan buku
+  catatan (scene 2 & 4) — viewmodel kamera dengan sway halus.
+- **NPC duduk jam kelas**: Aris & Siti duduk di kursi mereka (meja baris
+  belakang, menghadap papan tulis) selama periode class/class2/class3
+  (`sitAt`/`sitFace` di data NPC), berdiri saat berjalan.
+
+### Changed — dialog (bagian transfer)
+- o2_5 Aris kini persis naskah: "Kamu murid baru yang **dari kota** itu, kan?"
+  (sebelumnya "yang pindahan itu" — dobel dengan o1_3/o3_2).
+- Pembuka Pak Budi diganti: "Ren, kan? Mari duduk. Bagaimana Yuson selama
+  ini — masih kuat bertahan?" (tidak lagi mengulang "murid pindahan").
+
+### Changed — optimasi ("low texture")
+- Preset kualitas kini mengatur **resolusi tekstur prosedural** + anisotropy:
+  TINGGI 256px/aniso 4, SEDANG 192px/aniso 2, RENDAH 128px/aniso 1 —
+  memangkas VRAM hingga ~4× di RENDAH tanpa menyentuh geometri/culling.
+  (`texScale` + `aniso` di quality.ts; pbr membaca saat tekstur dibangun.)
+
+### Improved — UI peta
+- **Layer blueprint** di panel PETA: footprint gedung utama/tangga/kantin/
+  perpustakaan/Gedung B/gudang/parkir/gang, ring lapangan, jalan depan, halaman,
+  dan jalur kantin — node zona kini terbaca sebagai denah sekolah.
+
+### Verify
+- 132 unit test hijau (12 baru: isPoseCut, STORY_PROPS, pose/prop data,
+  preset tekstur).
+- **qa-walkability.mjs (baru): 12/12 PASS** — raycast fisika membuktikan
+  lobi→lorong→kelas/ruang guru, tangga→vestibule→kelas, staging bab 2 bebas,
+  dan 3 kontrol dinding solid; CONSOLE_ERRORS: none.
+- qa-mentor PASS (dialog Aris + pilihan utuh), qa-nav PASS (peta blueprint,
+  ESC, setelan, timeflow); tsc bersih; vite build sukses.
+
+
 ## 0.11.0 — 2026-09-17 (Naskah final "GARIS MERAH" — 3 pilihan, 4 ending, panel kredit)
 
 Integrasi lengkap naskah cerita final **GARIS MERAH** (laporan final project):

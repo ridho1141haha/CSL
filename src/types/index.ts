@@ -258,6 +258,9 @@ export type HiddenEventDef = {
   oneTime?: boolean;              // default true
 };
 
+// v0.12.0: props that a Figure can hold in its hands (story-support detail).
+export type HoldKind = 'book' | 'map' | 'pencil' | 'eraser' | 'stack' | 'bottle' | 'phone';
+
 export type NpcDef = {
   id: NpcId;
   name: string;
@@ -266,6 +269,10 @@ export type NpcDef = {
   accent: string;
   height: number;
   schedule: Partial<Record<string, [number, number]>>; // period -> [x, z]
+  // v0.12.0: when the NPC arrives at a waypoint marked `sit` below, it sits
+  // (classroom desks) and turns toward this world point while seated
+  sitAt?: string[]; // period ids where the NPC sits after arriving
+  sitFace?: [number, number]; // look-at point while seated
   dialogueRoot: string; // dialogue node id used when interacted
   // stylized-realistic look overrides (see game/npc/Character.tsx Figure)
   skin?: string;

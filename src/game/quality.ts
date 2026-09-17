@@ -30,6 +30,11 @@ export type QualityConfig = {
   fogFar: number;
   interiorRange: number;
   cullMargin: number;
+  // v0.12.0 "low texture": faktor skala tekstur prosedural (256px × scale)
+  // + anisotropy maksimum — memangkas VRAM ~4× di RENDAH, tanpa mengubah
+  // geometri/culling. Dibaca pbr.ts saat tekstur pertama dibangun.
+  texScale: number;
+  aniso: number;
 };
 
 export const QUALITY_PRESETS: Record<Resolved, QualityConfig> = {
@@ -42,6 +47,8 @@ export const QUALITY_PRESETS: Record<Resolved, QualityConfig> = {
     fogFar: 230,
     interiorRange: 80,
     cullMargin: 6,
+    texScale: 1,
+    aniso: 4,
   },
   medium: {
     dpr: 1.5,
@@ -52,6 +59,8 @@ export const QUALITY_PRESETS: Record<Resolved, QualityConfig> = {
     fogFar: 170,
     interiorRange: 60,
     cullMargin: 8,
+    texScale: 0.75,
+    aniso: 2,
   },
   low: {
     dpr: 1,
@@ -62,6 +71,8 @@ export const QUALITY_PRESETS: Record<Resolved, QualityConfig> = {
     fogFar: 110,
     interiorRange: 42,
     cullMargin: 10,
+    texScale: 0.5,
+    aniso: 1,
   },
 };
 

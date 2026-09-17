@@ -35,26 +35,33 @@ const MAIN_SHELL: Seg[] = [
   // west / east
   { x: -16, z: 16, w: 0.3, d: 24.3, color: WALL_CREAM },
   { x: 16, z: 16, w: 0.3, d: 24.3, color: WALL_CREAM },
-  // hall/corridor divider z=21, gap x -2.5..2.5
+  // hall/corridor divider z=21, gap x -2.5..2.5 — v0.12.0: gap kini NYATA
+  // menghubungkan lobi ↔ koridor (dulu tertutup inti gudang = lorong buntu,
+  // feedback user "lorong dari gedung utama ke kelas tidak ada pintu/lobang")
   { x: -9.25, z: 21, w: 13.5, d: 0.25, color: '#ded5c2' },
   { x: 9.25, z: 21, w: 13.5, d: 0.25, color: '#ded5c2' },
-  // storage core (z 16..21, x -2..2)
+  // storage core (z 16..21, x -2..2) — v0.12.0: dinding selatan (z=16)
+  // DIHAPUS sehingga inti jadi lorong tembus lobi → koridor kelas;
+  // dinding sisi x=±2 dipertahankan sebagai dinding lorong sempit
   { x: -2, z: 18.5, w: 0.25, d: 5.25, color: '#ded5c2' },
   { x: 2, z: 18.5, w: 0.25, d: 5.25, color: '#ded5c2' },
-  { x: 0, z: 16, w: 4.25, d: 0.25, color: '#ded5c2' },
   // rooms wall z=14 — classroom door x -9.5..-7.5, teacher door x 8..10
   { x: -12.75, z: 14, w: 6.5, d: 0.25, color: '#ded5c2' },
   { x: -0.25, z: 14, w: 15.5, d: 0.25, color: '#ded5c2' },
   { x: 13, z: 14, w: 6, d: 0.25, color: '#ded5c2' },
-  // room dividers x=±2 (z 4..14)
-  { x: -2, z: 9, w: 0.25, d: 10, color: '#ded5c2' },
-  { x: 2, z: 9, w: 0.25, d: 10, color: '#ded5c2' },
+  // room dividers x=±2 (z 5.4..14) — v0.12.0: dipendekkan agar ada bukaan
+  // z 4..5.4 = vestibule tangga belakang ↔ kelas 1-X & ruang guru
+  { x: -2, z: 9.7, w: 0.25, d: 8.6, color: '#ded5c2' },
+  { x: 2, z: 9.7, w: 0.25, d: 8.6, color: '#ded5c2' },
 ];
 
 // v0.8.0: lintels above the classroom / teacher-room door gaps (visual only)
+// v0.12.0: + lintel bukaan vestibule di dinding x=±2 (z 4..5.4)
 const MAIN_LINTELS: Seg[] = [
   { x: -8.75, z: 14, w: 1.7, d: 0.25, h: 0.78, y0: 2.52, color: WALL_CREAM },
   { x: 8.75, z: 14, w: 2.6, d: 0.25, h: 0.78, y0: 2.52, color: WALL_CREAM },
+  { x: -2, z: 4.7, w: 0.25, d: 1.4, h: 0.78, y0: 2.52, color: WALL_CREAM },
+  { x: 2, z: 4.7, w: 0.25, d: 1.4, h: 0.78, y0: 2.52, color: WALL_CREAM },
 ];
 
 // Second-floor facade bands + roof (visual only, above reachable space)
@@ -166,6 +173,12 @@ function Ground() {
         <planeGeometry args={[23, 21]} />
         <Pbr name="concrete" repeat={[6, 6]} color="#a2a4a5" roughness={1} envMapIntensity={0.25} />
       </mesh>
+      {/* v0.12.0: jalur beton "lorong menuju kantin" — halaman belakang →
+          teras kantin (sekaligus lantai staging bab 2) */}
+      <mesh position={[15.9, 0.015, 3]} rotation={[-Math.PI / 2, 0, 0]} receiveShadow>
+        <planeGeometry args={[10.4, 4.6]} />
+        <Pbr name="concrete" repeat={[5, 2]} color="#b4afa6" roughness={0.95} />
+      </mesh>
       {/* canteen front slab */}
       <mesh position={[20, 0.016, 8]} rotation={[-Math.PI / 2, 0, 0]} receiveShadow>
         <planeGeometry args={[5, 9]} />
@@ -254,6 +267,10 @@ function MainBuilding() {
       <WallMeshes segs={MAIN_LINTELS} color={WALL_CREAM} />
       <Door x={-8.75} z={14} w={1.5} open={-1} hinge={-1} />
       <Door x={8.75} z={14} w={2.4} open={-1} hinge={1} />
+      {/* v0.12.0: pintu dobel lorong lobi → koridor kelas (gap z=21, x -2.5..2.5)
+          — daun terbuka ke sisi lobi, passage tetap jalan penuh */}
+      <Door x={-1.45} z={21} w={1.9} open={1} hinge={-1} />
+      <Door x={1.45} z={21} w={1.9} open={1} hinge={1} />
       {/* second floor + roof */}
       <WallMeshes segs={UPPER_FACADE} color={WALL_CREAM} />
       {/* blue trim band between floors */}
@@ -685,6 +702,7 @@ function StreetFurniture() {
       <LampPost x={-2} z={49} h={5} />
       <LampPost x={16} z={49} h={5} />
       <LampPost x={22} z={16} h={4} />
+      <LampPost x={11.4} z={5.6} h={3.8} />
       <LampPost x={2} z={-8} h={3.8} />
     </group>
   );

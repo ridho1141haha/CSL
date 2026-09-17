@@ -8,6 +8,7 @@ import { mobile } from '../mobile';
 import { Figure, makeAnim } from './Character';
 import { NPCS, AMBIENT_STUDENTS, NPC_BY_ID } from '../../data/npcs';
 import { periodFor } from '../systems/time';
+import type { HoldKind } from '../../types';
 
 // Ambient students: light, non-collidable wanderers for crowd life.
 function Student({ home, wander, color, seed }: { home: [number, number]; wander: number; color: string; seed: number }) {
@@ -111,12 +112,25 @@ function ScheduledNpc({ id }: { id: string }) {
         g.position.z += (dz / d) * sp * dt;
         g.rotation.y = THREE.MathUtils.lerp(g.rotation.y, Math.atan2(dx, dz), 0.1);
         anim.current.speed = sp;
+        anim.current.sit = false; // berdiri selama berjalan
       } else {
-        // face the player when nearby
-        const pdx = playerPos.x - g.position.x;
-        const pdz = playerPos.z - g.position.z;
-        if (Math.hypot(pdx, pdz) < 3.5) {
-          g.rotation.y = THREE.MathUtils.lerp(g.rotation.y, Math.atan2(pdx, pdz), 0.06);
+        // v0.12.0: duduk di bangku saat periode kelas (def.sitAt) — menghadap
+        // titik sitFace (papan tulis). Blend duduk ditangani Figure.
+        const sitting = !!def.sitAt?.includes(period);
+        anim.current.sit = sitting;
+        if (sitting && def.sitFace) {
+          g.rotation.y = THREE.MathUtils.lerp(
+            g.rotation.y,
+            Math.atan2(def.sitFace[0] - g.position.x, def.sitFace[1] - g.position.z),
+            0.08,
+          );
+        } else {
+          // face the player when nearby
+          const pdx = playerPos.x - g.position.x;
+          const pdz = playerPos.z - g.position.z;
+          if (Math.hypot(pdx, pdz) < 3.5) {
+            g.rotation.y = THREE.MathUtils.lerp(g.rotation.y, Math.atan2(pdx, pdz), 0.06);
+          }
         }
         anim.current.speed = 0;
       }
@@ -145,7 +159,12 @@ function ScheduledNpc({ id }: { id: string }) {
 }
 
 // Cinematic-only extras: bullies (opening) + story actors placed by the director.
-export function StoryActors({ placements }: { placements: { id: string; x: number; z: number; color: string; faceTo?: [number, number] }[] }) {
+// v0.12.0: placements bisa membawa sit/crouch (pose) + hold (prop tangan).
+export type StoryPlacement = {
+  id: string; x: number; z: number; color: string; faceTo?: [number, number];
+  sit?: boolean; crouch?: boolean; hold?: HoldKind;
+};
+export function StoryActors({ placements }: { placements: StoryPlacement[] }) {
   return (
     <>
       {placements.map((p, i) => (
@@ -155,19 +174,22 @@ export function StoryActors({ placements }: { placements: { id: string; x: numbe
   );
 }
 
-function StoryActor({ id, x, z, color, faceTo }: { id: string; x: number; z: number; color: string; faceTo?: [number, number] }) {
+function StoryActor({ id, x, z, color, faceTo, sit, crouch, hold }: StoryPlacement) {
   const group = useRef<THREE.Group>(null);
   const anim = useRef(makeAnim());
   useFrame(() => {
     const g = group.current;
     if (!g) return;
     if (faceTo) g.rotation.y = Math.atan2(faceTo[0] - g.position.x, faceTo[1] - g.position.z);
+    // pose + prop cerita per frame (blend halus dilakukan di Figure)
+    anim.current.sit = !!sit;
+    anim.current.crouch = !!crouch;
     // expose the placement to the dialogue camera + acting system
     actorPositions[id] = { x: g.position.x, z: g.position.z };
   });
   return (
     <group ref={group} position={[x, 0.03, z]} scale={0.98}>
-      <Figure anim={anim} color={color} accent="#94a3b8" actId={id} />
+      <Figure anim={anim} color={color} accent="#94a3b8" actId={id} hold={hold} />
     </group>
   );
 }

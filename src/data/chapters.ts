@@ -1,4 +1,4 @@
-import type { ChapterDef, ChapterId } from '../types';
+import type { ChapterDef, ChapterId, HoldKind } from '../types';
 
 export const CHAPTERS: Record<ChapterId, ChapterDef> = {
   // v0.7.0 — bab 1 & 2 mengikuti alur lambat baru (GDD §"Alur yang lebih lambat").
@@ -212,7 +212,7 @@ export const NODE_FX: Record<string, { fx: 'fp-to-tp' | 'fade-out' | 'fade-in' |
 // kampus; scene kelas/lorong/kantin memakai koordinat interior
 // (lihat game/world/CampusInterior.tsx).
 // ---------------------------------------------------------------------------
-export type StorySpot = { pos: [number, number]; face?: [number, number] };
+export type StorySpot = { pos: [number, number]; face?: [number, number]; sit?: boolean; crouch?: boolean; hold?: HoldKind };
 export type OpeningCast = {
   bullies?: StorySpot[]; // dua murid besar (kelas) / dua murid kelas 10 (kantin)
   aris?: StorySpot;
@@ -233,28 +233,30 @@ const whisperers: StorySpot[] = [
 
 export const OPENING_ACTORS: Record<string, OpeningCast> = {
   // Scene 2 — kelas: dua murid besar menyenggol kursi Aris
+  // v0.12.0: kotak pensil jatuh (STORY_PROPS) — Aris buru-buru memungut
   o2_3: {
     bullies: [
       { pos: [-6.1, 10.2], face: [-4.4, 12.2] },
       { pos: [-7.0, 12.2], face: [-4.4, 12.2] },
     ],
-    aris: { pos: [-4.0, 11.3], face: [-6.5, 11.2] },
+    aris: { pos: [-4.0, 11.3], crouch: true, face: [-4.5, 10.6] },
   },
   o2_4: {
     bullies: [
       { pos: [-7.4, 12.6], face: [-9.5, 9.0] },
       { pos: [-6.6, 12.9], face: [-9.5, 9.0] },
     ],
-    aris: arisDesk,
+    aris: { pos: [-4.0, 11.3], crouch: true, face: [-4.5, 10.6] },
   },
   o2_3b: {
     bullies: [
       { pos: [-7.4, 12.6], face: [-9.5, 9.0] },
       { pos: [-6.6, 12.9], face: [-9.5, 9.0] },
     ],
-    aris: { pos: [-4.0, 11.3], face: [-6.5, 11.2] },
+    aris: { pos: [-4.0, 11.3], crouch: true, face: [-4.5, 10.6] },
   },
-  o2_5: { aris: { pos: [-4.0, 11.3], face: [-3.9, 12.4] } },
+  // v0.12.0: Aris berdiri lagi, menyodorkan penghapus (naskah scene 2)
+  o2_5: { aris: { pos: [-4.0, 11.3], face: [-3.9, 12.4], hold: 'eraser' } },
   o2_6: { aris: arisDesk },
   o2_7: { aris: arisDesk },
   o2_8: { aris: arisDesk },
@@ -317,13 +319,23 @@ export const OPENING_ACTORS: Record<string, OpeningCast> = {
 
 // Story actors untuk scene NON-opening (bab 2 tangga, montase, kelulusan).
 // Keyed per node → placements (dipakai CinematicActors di App.tsx).
-// Bab 2 bermain di halaman belakang tepat di luar pintu tangga (z ≈ -2.7),
-// supaya bingkai kamera lega dan tidak menabrak dinding lorong tangga.
+// v0.12.0: bab 2 pindah dari halaman belakang gedung ke JALUR tangga →
+// kantin belakang (sesuai naskah "Lorong tangga menuju kantin belakang"):
+// geng nongkrong di pinggir jalur beton timur tangga, Aris lewat membawa
+// tumpukan buku + botol minum, tersandung, air tumpah ke sepatu geng.
+// Koordinat di jalur halaman belakang (path beton x -11..11, z -7.5..3.5).
 const gangStairs: StorySpot[] = [
-  { pos: [1.4, -2.7], face: [-1.5, -3.1] },
-  { pos: [2.5, -3.3], face: [-1.5, -3.1] },
+  { pos: [6.3, 1.6], face: [4.6, 2.9] },
+  { pos: [7.3, 2.4], face: [4.6, 2.9] },
 ];
-const arisSpill: StorySpot = { pos: [-0.5, -2.7], face: [1.4, -2.8] };
+// Aris berjalan membawa tumpukan buku (hold 'stack' — dirender di tangan).
+// Semua spot di timur shaft tangga (x > 4.2) — DI DALAM shaft ada undakan.
+const arisWalk: StorySpot = { pos: [4.5, 3.5], face: [6.3, 1.6], hold: 'stack' };
+const arisTrip: StorySpot = { pos: [5.2, 3.0], face: [6.3, 1.6], hold: 'stack' };
+// Aris berlutut memungut buku yang berserakan (prop dunia: STORY_PROPS)
+const arisSpill: StorySpot = { pos: [5.2, 3.0], face: [6.3, 1.6], crouch: true };
+// Setelah ditolong: Aris berdiri, buku terkumpul lagi di tangan
+const arisThanks: StorySpot = { pos: [5.2, 3.0], face: [2.0, 2.6], hold: 'stack' };
 // GARIS MERAH: pengaturan aktor berulang (Siti koridor, letnan parkiran,
 // penyanderaan gang, kelulusan good/bad).
 const sitiHall: StorySpot = { pos: [-3.0, 23.5], face: [3, 26] };
@@ -347,14 +359,26 @@ const gradFollowers: StorySpot[] = [
   { pos: [8.6, 43.2], face: [7.0, 42.0] },
 ];
 export const SCENE_ACTORS: Record<string, OpeningCast> = {
-  // Bab 2 — tangga belakang: Aris + dua anak geng inti
+  // Bab 2 — jalur tangga belakang → kantin: Aris + dua anak geng inti
   ch2_intro_1: { bullies: gangStairs },
-  ch2_intro_2: { bullies: gangStairs, aris: { pos: [-1.8, -3.4], face: [1.4, -2.8] } },
-  ch2_intro_3: { bullies: gangStairs, aris: { pos: [-1.0, -3.0], face: [1.4, -2.8] } },
+  ch2_intro_2: { bullies: gangStairs, aris: arisWalk },
+  ch2_intro_3: { bullies: gangStairs, aris: arisTrip },
   ch2_intro_4: { bullies: gangStairs, aris: arisSpill },
   ch2_intro_5: { bullies: gangStairs, aris: arisSpill },
   ch2_intro_6: { bullies: gangStairs, aris: arisSpill },
   ch2_choice: { bullies: gangStairs, aris: arisSpill },
+  ch2_fight_1: { bullies: gangStairs, aris: arisSpill },
+  ch2_fight_1b: { bullies: gangStairs, aris: arisSpill },
+  ch2_fight_1c: { bullies: gangStairs, aris: arisSpill },
+  ch2_fight_2: { bullies: gangStairs, aris: arisSpill },
+  ch2_win: { bullies: gangStairs, aris: arisSpill },
+  ch2_win_2: { bullies: gangStairs, aris: arisSpill },
+  ch2_win_3: { aris: arisThanks },
+  ch2_win_4: { aris: arisThanks },
+  ch2_win_5: {},
+  ch2_win_6: {},
+  ch2_away_1: { bullies: gangStairs, aris: arisSpill },
+  ch2_away_2: { bullies: gangStairs, aris: arisSpill },
   // GARIS MERAH — pendekatan OSIS (Siti koridor)
   ch3_osis_1: { siti: sitiHall },
   ch3_osis_2: { siti: sitiHall },
@@ -384,9 +408,10 @@ export const SCENE_ACTORS: Record<string, OpeningCast> = {
   ch4_res_goons_win_2: { aris: arisHostage, bimo: bimoAlley },
   ch4_res_choice: { aris: arisHostage, bimo: bimoAlley },
   // GARIS MERAH — good: penangkapan + kelulusan bersama
+  // v0.12.0: Siti merekam aksi geng dari sembunyi (pegang ponsel)
   ch4_good_1: { aris: arisHostage },
-  ch4_good_2: { aris: arisHostage, siti: sitiHidden },
-  ch4_good_3: { aris: arisHostage, siti: sitiHidden },
+  ch4_good_2: { aris: arisHostage, siti: { ...sitiHidden, hold: 'phone' } },
+  ch4_good_3: { aris: arisHostage, siti: { ...sitiHidden, hold: 'phone' } },
   ch4_good_grad_1: { aris: gradAris, siti: gradSiti },
   ch4_good_grad_2: { aris: gradAris, siti: gradSiti },
   ch4_good_grad_3: { aris: gradAris, siti: gradSiti },
@@ -443,6 +468,60 @@ export const SCENE_ACTORS: Record<string, OpeningCast> = {
   ch4_neu_grad_4: { siti: { pos: [8.4, 44.4], face: [6.8, 43.2] } },
   ch4_neu_grad_5: {},
   ch4_neu_grad_6: {},
+};
+
+// ---------------------------------------------------------------------------
+// v0.12.0 — Prop dunia pendukung cerita (dirender StoryPropFX di App.tsx).
+// Per node dialogue: keadaan prop — kotak pensil Aris (scene 2 kelas),
+// buku + botol minum + genangan air (bab 2 jalur tangga).
+//   pencase: 'desk' di meja | 'fall' animasi jatuh | 'floor' di lantai |
+//            'none' sudah dipungut (disembunyikan)
+//   books:   'held' di tangan Aris | 'scatter' berserakan di lantai | 'none'
+//   bottle:  'held' | 'drop' jatuh | 'none'
+//   spill:   genangan air terlihat di lantai
+// ---------------------------------------------------------------------------
+export type StoryPropDef = {
+  pencase?: 'desk' | 'fall' | 'floor' | 'none';
+  books?: 'held' | 'scatter' | 'none';
+  bottle?: 'held' | 'drop' | 'none';
+  spill?: boolean;
+};
+
+const SPILL: StoryPropDef = { books: 'scatter', bottle: 'drop', spill: true };
+
+export const STORY_PROPS: Record<string, StoryPropDef> = {
+  // Scene 2 kelas: kotak pensil jatuh dari meja Aris (o2_3), Aris memungut,
+  // lalu lenyap dari lantai saat scene lanjut (sudah terkumpul)
+  o2_1: { pencase: 'desk' },
+  o2_2: { pencase: 'desk' },
+  o2_3: { pencase: 'fall' },
+  o2_3b: { pencase: 'floor' },
+  o2_4: { pencase: 'floor' },
+  o2_5: { pencase: 'floor' },
+  o2_6: { pencase: 'none' },
+  o2_7: { pencase: 'none' },
+  o2_8: { pencase: 'none' },
+  // Bab 2: Aris bawa buku+botol (intro_2), tersandung & tumpah (intro_3),
+  // buku berserakan sampai duel usai; ch2_win_3 buku sudah terkumpul lagi
+  ch2_intro_1: {},
+  ch2_intro_2: { books: 'held', bottle: 'held' },
+  ch2_intro_3: SPILL,
+  ch2_intro_4: SPILL,
+  ch2_intro_5: SPILL,
+  ch2_intro_6: SPILL,
+  ch2_choice: SPILL,
+  ch2_fight_1: SPILL,
+  ch2_fight_1b: SPILL,
+  ch2_fight_1c: SPILL,
+  ch2_fight_2: SPILL,
+  ch2_win: SPILL,
+  ch2_win_2: SPILL,
+  ch2_win_3: { books: 'none', bottle: 'none', spill: true },
+  ch2_win_4: { books: 'none', bottle: 'none' },
+  ch2_win_5: {},
+  ch2_win_6: {},
+  ch2_away_1: SPILL,
+  ch2_away_2: SPILL,
 };
 
 // Study mini-game questions [PROPOSED content]

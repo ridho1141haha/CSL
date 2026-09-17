@@ -43,7 +43,7 @@ export function LoadingScreen() {
         <div className="boot-bar boot-bar-real"><i style={{ width: `${pct}%` }} /></div>
         <div className="boot-meta">
           <span className="chip">{pct}%</span>
-          <span className="chip">BUILD 0.11.0</span>
+          <span className="chip">BUILD 0.12.0</span>
           <span className="chip">TEAM CHAOS</span>
           <span className="chip chip-amber">SMA YUSON</span>
         </div>

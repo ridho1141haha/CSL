@@ -21,6 +21,23 @@ const rayV = new THREE.Raycaster();
 const shotLookV = new THREE.Vector3();
 const shotDirV = new THREE.Vector3();
 
+// v0.12.0 FIX (user feedback: "cerita baru di kantin tapi kamera malah ke
+// kelas"): cinematic poses used to lerp physically between scene cuts, so the
+// camera FLEW across the map (through walls/classes) while the new scene's
+// narration was already on screen. Now a pose change across more than
+// POSE_CUT_DIST meters is an instant cut — masked by the NODE_FX fade-in that
+// already fires on scene-change nodes (o2_1 / o3_1 / o4_1 / montages…).
+const POSE_CUT_DIST = 6;
+
+// Pure helper (unit-testable): should a pose change snap instead of lerp?
+export function isPoseCut(
+  prev: { x: number; y: number; z: number } | null,
+  next: { x: number; y: number; z: number },
+): boolean {
+  if (!prev) return true; // first pose after mount → land instantly
+  return Math.hypot(next.x - prev.x, next.y - prev.y, next.z - prev.z) > POSE_CUT_DIST;
+}
+
 // ---------------------------------------------------------------------------
 // Dialogue shot resolution (mentor feedback #2).
 // Speaker-driven framing computed from LIVE entity positions. Resolution chain
@@ -95,6 +112,7 @@ export function CameraRig() {
   const lastNode = useRef<string | null>(null);
   const lookAt = useRef(new THREE.Vector3(0, 1.5, 20));
   const targetDist = useRef(4.6);
+  const lastPose = useRef<{ key: string | null; pos: THREE.Vector3 }>({ key: null, pos: new THREE.Vector3() });
 
   // Camera control: drag-look (primary) + pointer lock (optional enhancement).
   // Primary: hold LMB and move mouse to orbit camera. Always works.
@@ -207,10 +225,18 @@ export function CameraRig() {
       const openingFp = !story.flags.includes('opening_complete');
 
       if (openingFp) {
-        // smooth head-cam toward pose
-        const k = reduced ? 1 : 1 - Math.exp(-3.2 * dt);
-        camera.position.lerp(lerpV.set(pose.pos[0], pose.pos[1], pose.pos[2]), k);
-        lookAt.current.lerp(lookV.set(pose.look[0], pose.look[1], pose.look[2]), k);
+        // v0.12.0: hard cut between scenes, smooth head-cam inside a scene
+        const cut = poseKey !== lastPose.current.key && isPoseCut(lastPose.current.key === poseKey ? null : lastPose.current.pos, { x: pose.pos[0], y: pose.pos[1], z: pose.pos[2] });
+        if (cut || reduced) {
+          camera.position.set(pose.pos[0], pose.pos[1], pose.pos[2]);
+          lookAt.current.set(pose.look[0], pose.look[1], pose.look[2]);
+        } else {
+          const k = 1 - Math.exp(-3.2 * dt);
+          camera.position.lerp(lerpV.set(pose.pos[0], pose.pos[1], pose.pos[2]), k);
+          lookAt.current.lerp(lookV.set(pose.look[0], pose.look[1], pose.look[2]), k);
+        }
+        lastPose.current.key = poseKey;
+        lastPose.current.pos.copy(camera.position);
         camera.lookAt(lookAt.current);
       } else if (fp.current) {
         // FP→TP transition at the end of the opening
@@ -265,9 +291,18 @@ export function CameraRig() {
         if (shot) {
           applyShot(camera, lookAt.current, shot, dt, reduced);
         } else {
-          const k = reduced ? 1 : 1 - Math.exp(-2.6 * dt);
-          camera.position.lerp(lerpV.set(pose.pos[0], pose.pos[1], pose.pos[2]), k);
-          lookAt.current.lerp(lookV.set(pose.look[0], pose.look[1], pose.look[2]), k);
+          // v0.12.0: same hard-cut rule for third-person montage poses
+          const cut = poseKey !== lastPose.current.key && isPoseCut(lastPose.current.key === poseKey ? null : lastPose.current.pos, { x: pose.pos[0], y: pose.pos[1], z: pose.pos[2] });
+          if (cut || reduced) {
+            camera.position.set(pose.pos[0], pose.pos[1], pose.pos[2]);
+            lookAt.current.set(pose.look[0], pose.look[1], pose.look[2]);
+          } else {
+            const k = 1 - Math.exp(-2.6 * dt);
+            camera.position.lerp(lerpV.set(pose.pos[0], pose.pos[1], pose.pos[2]), k);
+            lookAt.current.lerp(lookV.set(pose.look[0], pose.look[1], pose.look[2]), k);
+          }
+          lastPose.current.key = poseKey;
+          lastPose.current.pos.copy(camera.position);
           camera.lookAt(lookAt.current);
         }
       }

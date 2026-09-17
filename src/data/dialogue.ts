@@ -39,7 +39,7 @@ export const DIALOGUE: Record<string, DialogueNode> = Object.fromEntries(
     N({ id: 'o2_3', speaker: 'NARATOR', portrait: 'narrator', text: 'Dua murid berbadan besar lewat di samping meja mereka — dan sengaja menyenggol kursi Aris sampai kotak pensilnya jatuh. Aris buru-buru memungutnya tanpa bersuara.', next: 'o2_3b' }),
     N({ id: 'o2_3b', speaker: 'MURID BESAR', portrait: 'gang', emotion: 'tense', text: 'Ups, sengaja. Bergerak aja lelet lo, Aris! Belajar terus buat apa sih?', next: 'o2_4' }),
     N({ id: 'o2_4', speaker: 'REN', portrait: 'ren', emotion: 'neutral', text: 'Ren melihat kejadian itu — lalu memilih terus mencatat materi guru di papan tulis.', next: 'o2_5' }),
-    N({ id: 'o2_5', speaker: 'ARIS', portrait: 'aris', emotion: 'worried', text: '(Berbisik ragu sambil menyodorkan penghapus) N-nih... kalau butuh. Kamu murid baru yang pindahan itu, kan?', next: 'o2_6' }),
+    N({ id: 'o2_5', speaker: 'ARIS', portrait: 'aris', emotion: 'worried', text: '(Berbisik ragu sambil menyodorkan penghapus) N-nih... kalau butuh. Kamu murid baru yang dari kota itu, kan?', next: 'o2_6' }),
     N({ id: 'o2_6', speaker: 'REN', portrait: 'ren', emotion: 'calm', text: '(Menerima tanpa menoleh dari catatannya) Makasih. Gue Ren.', next: 'o2_7' }),
     N({ id: 'o2_7', speaker: 'ARIS', portrait: 'aris', emotion: 'neutral', text: 'Aku Aris. Kalau ada materi Pak Budi yang kelewat, kamu bisa lihat catatanku kok.', next: 'o2_8' }),
     N({ id: 'o2_8', speaker: 'REN', portrait: 'ren', emotion: 'calm', text: 'Satu bangku di sudut, satu teman sebangku yang takut sama sekolahnya sendiri. Tahun ini gue cuma butuh dua hal itu.', next: 'o3_1' }),
@@ -262,7 +262,7 @@ export const DIALOGUE: Record<string, DialogueNode> = Object.fromEntries(
       speaker: 'PAK BUDI',
       portrait: 'budi',
       emotion: 'neutral',
-      text: 'Ren, murid pindahan. Bagaimana penyesuaian di Yuson?',
+      text: 'Ren, kan? Mari duduk. Bagaimana Yuson selama ini — masih kuat bertahan?',
       choices: [
         { id: 'budi_class', text: 'Ikut kelas tambahan (45 menit)', next: 'budi_class_done' },
         {
