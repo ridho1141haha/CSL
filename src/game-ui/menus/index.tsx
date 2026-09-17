@@ -7,6 +7,7 @@ import { useSocial } from '../../stores/socialStore';
 import { useQuests } from '../../stores/questStore';
 import { useInventory } from '../../stores/inventoryStore';
 import { useSettings } from '../../stores/settingsStore';
+import { QUALITY_LABELS } from '../../game/quality';
 import { QUESTS } from '../../data/quests';
 import { ITEM_BY_ID } from '../../data/items';
 import { NPCS } from '../../data/npcs';
@@ -400,6 +401,19 @@ export function SettingsPanel() {
   ];
   return (
     <div className="settings-panel">
+      {/* v0.9.0: graphics quality preset — applied live by GraphicsManager */}
+      <label>
+        <span>KUALITAS GRAFIK</span>
+        <select
+          className="settings-select"
+          value={s.quality}
+          onChange={(e) => s.set('quality', e.target.value as typeof s.quality)}
+        >
+          {(Object.keys(QUALITY_LABELS) as (keyof typeof QUALITY_LABELS)[]).map((q) => (
+            <option key={q} value={q}>{QUALITY_LABELS[q]}</option>
+          ))}
+        </select>
+      </label>
       {rows.map(([key, label, min, max, step]) => (
         <label key={String(key)}>
           <span>{label}</span>

@@ -1,5 +1,5 @@
 import { RigidBody, CuboidCollider } from '@react-three/rapier';
-import { WallMeshes, WallColliders, SchoolSign, type Seg } from './props';
+import { WallMeshes, WallColliders, SchoolSign, Cull, type Seg } from './props';
 import { Pbr } from './pbr';
 
 // Perpustakaan — school library (v0.8.0), between the main building and the
@@ -98,7 +98,9 @@ export function Library() {
     [37, 21],
   ];
   return (
-    <group>
+    // v0.9.0: shell is a frustum-cull bundle; furniture/lights are an
+    // 'interior' bundle hidden past interiorRange (walls hide them anyway)
+    <Cull center={[31, 1.8, 20]} radius={10.5}>
       <WallMeshes segs={LIB_SHELL} color={WALL_CREAM} />
       <WallColliders segs={LIB_SHELL} defaultH={3.6} />
       {/* roof + cap */}
@@ -151,6 +153,7 @@ export function Library() {
         <planeGeometry args={[15.4, 7.4]} />
         <meshStandardMaterial color="#f2efe6" roughness={0.95} />
       </mesh>
+      <Cull mode="interior" center={[31, 1.2, 20]} radius={8}>
       <LibLight x={26} z={20} />
       <LibLight x={31} z={20} />
       <LibLight x={36} z={20} />
@@ -205,6 +208,7 @@ export function Library() {
           </mesh>
         </group>
       ))}
+      </Cull>
       {/* furniture colliders */}
       <RigidBody type="fixed" colliders={false}>
         {shelfXs.map((x) =>
@@ -224,6 +228,6 @@ export function Library() {
       </RigidBody>
       {/* facade sign (faces west, toward the main building path) */}
       <SchoolSign position={[22.8, 3.2, 20.2]} text="PERPUSTAKAAN" size={0.34} color="#ffd34d" rotY={-Math.PI / 2} />
-    </group>
+    </Cull>
   );
 }

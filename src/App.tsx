@@ -1,5 +1,6 @@
-import { Component, Suspense, useCallback, useEffect, useMemo, useState, type ReactNode } from 'react';
+import { Component, Suspense, useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { Canvas } from '@react-three/fiber';
+import { useProgress } from '@react-three/drei';
 import { Physics, RigidBody, useRapier } from '@react-three/rapier';
 import * as THREE from 'three';
 import { useGame } from './stores/gameStore';
@@ -16,6 +17,8 @@ import { input } from './game/input';
 import { audio } from './game/audio';
 import { saveGame } from './game/save';
 import { mobile } from './game/mobile';
+import { perfState, PREWARM } from './game/runtime';
+import { GraphicsManager, CullingManager, WorldReadyProbe } from './game/perf';
 import { OPENING_ROOT, OPENING_ACTORS, SCENE_ACTORS, type StorySpot } from './data/chapters';
 import { PLAYER_SPAWN } from './data/world';
 
@@ -47,6 +50,15 @@ import {
   StudyPanel,
 } from './game-ui/menus';
 
+// v0.9.0: desktop-class devices build the world during boot/menu (prewarm,
+// see runtime.ts) so "MULAI" lands in a ready scene and the loading bar
+// tracks REAL progress. Low-tier phones keep lazy mounting (battery + memory).
+const BOOT_MIN_MS = 1600;
+// fail-open: if the render loop is dead (or extremely slow — old hardware,
+// headless test shells) worldReady never flips, so we proceed shortly after
+// the minimum window instead of hanging the loading screen
+const BOOT_FAILSAFE_MS = 5100;
+
 export default function App() {
   const phase = useGame((s) => s.phase);
   const mode = useGame((s) => s.mode);
@@ -55,22 +67,22 @@ export default function App() {
   const boot = useGame((s) => s.boot);
   const pointerLocked = useGame((s) => s.pointerLocked);
   const fade = useGame((s) => s.fade);
+  // v0.9.0: world prewarm (see PREWARM) — mounted during boot/menu on
+  // desktop-class devices, always during play
+  const worldMounted = phase === 'play' || PREWARM;
 
-  // boot sequence: show loading, unlock audio on first gesture, then menu
+  // boot sequence: real loading gate — engine builds the world while the
+  // loading screen tracks assets + first rendered frames, then menu
   useEffect(() => {
     input.attach();
     const unlock = () => audio.unlock();
     window.addEventListener('pointerdown', unlock, { once: true });
     window.addEventListener('keydown', unlock, { once: true });
-    const t = setTimeout(() => {
-      if (useGame.getState().phase === 'boot') boot();
-    }, 1400);
     return () => {
-      clearTimeout(t);
       window.removeEventListener('pointerdown', unlock);
       window.removeEventListener('keydown', unlock);
     };
-  }, [boot]);
+  }, []);
 
   // BUG-3.1: mirror pointer lock state into gameStore so the "click to control"
   // overlay can render when gameplay is active but pointer is not locked.
@@ -169,7 +181,8 @@ export default function App() {
         shadows={mobile.lowSpec ? 'basic' : true}
         // v0.5.0 mobile tier: dpr cap 1.5 + antialias off on phones — the v0.4.x
         // full-fat config (dpr 2 + MSAA + 2048 shadows) could kill the GPU loop
-        // on mid-range Android = the "blank world" report
+        // on mid-range Android = the "blank world" report. v0.9.0: GraphicsManager
+        // re-applies dpr/shadows live from the quality preset.
         dpr={mobile.dpr}
         gl={{
           antialias: !mobile.lowSpec,
@@ -190,34 +203,24 @@ export default function App() {
           });
         }}
       >
+        {/* v0.9.0: root-level duplicate light rig REMOVED — every scene mounts
+            its own ambient/hemi/sun (previously BOTH ran at once, so two
+            shadow-casting directionals rendered the shadow map twice). The
+            plain background color covers the first frames before World mounts. */}
         <color attach="background" args={['#9fb6c9']} />
-        <fog attach="fog" args={['#a8bccb', 60, 220]} />
-        <ambientLight intensity={0.65} />
-        <hemisphereLight args={['#dbeafe', '#4b5f45', 0.5]} />
-        <directionalLight
-          position={[-40, 55, 60]}
-          intensity={2.6}
-          color="#fff3dd"
-          castShadow
-          shadow-mapSize={[2048, 2048]}
-          shadow-camera-near={1}
-          shadow-camera-far={220}
-          shadow-camera-left={-70}
-          shadow-camera-right={70}
-          shadow-camera-top={70}
-          shadow-camera-bottom={-70}
-        />
         <Physics gravity={[0, -9.81, 0]} timeStep="vary">
+          {/* v0.9.0: world prewarm — mounts during boot/menu on desktop-class
+              devices so the loading screen covers real engine work */}
+          {worldMounted && (
+            <SceneErrorBoundary>
+              <Suspense fallback={null}>
+                <World />
+              </Suspense>
+            </SceneErrorBoundary>
+          )}
+          {worldMounted && <WorldReadyProbe />}
           {phase === 'play' && (
             <>
-              {/* If anything inside the world throws (asset hiccup, driver
-                  quirk), fall back to a walkable flat plane instead of a
-                  blank canvas — the show must go on. */}
-              <SceneErrorBoundary>
-                <Suspense fallback={null}>
-                  <World />
-                </Suspense>
-              </SceneErrorBoundary>
               <Player />
               {scene === 'campus' && <Npcs hideMain={mode === 'CINEMATIC'} />}
               <StoryDirector />
@@ -229,9 +232,12 @@ export default function App() {
           <PhysicsProbe />
           <CameraRig />
         </Physics>
+        <GraphicsManager />
+        <CullingManager />
       </Canvas>
 
       {phase === 'boot' && <LoadingScreen />}
+      {phase === 'boot' && <BootGate onReady={boot} />}
       {sceneLoading && <SceneLoadingOverlay />}
       {fade !== 'none' && <div className={`fade-overlay fade-${fade}`} />}
       <TouchControls />
@@ -284,6 +290,46 @@ export default function App() {
       {mode === 'ENDING' && <EndingScreen onRestart={restart} onMenu={toMenu} />}
     </div>
   );
+}
+
+// v0.9.0: real loading gate — flips to the main menu only when the world has
+// actually rendered its first frames (prewarm), async assets finished, and the
+// minimum branding time elapsed. Failsafe timer keeps a dead GPU from hanging
+// the loading screen forever.
+function BootGate({ onReady }: { onReady: () => void }) {
+  const { active, progress } = useProgress();
+  const stateRef = useRef({ active, progress });
+  stateRef.current = { active, progress };
+  const done = useRef(false);
+  useEffect(() => {
+    const t0 = Date.now();
+    const iv = setInterval(() => {
+      if (done.current) {
+        clearInterval(iv);
+        return;
+      }
+      if (useGame.getState().phase !== 'boot') {
+        done.current = true;
+        return;
+      }
+      const elapsed = Date.now() - t0;
+      const { active: a, progress: p } = stateRef.current;
+      // fail-open when the render loop looks dead (headless test shells, dead
+      // GPU): CameraRig's frame loop pets mobile.lastFrameAt — if it has never
+      // petted or stalled >1.2s, don't wait for world-first-frame anymore
+      const loopDead = mobile.lastFrameAt === 0 || Date.now() - mobile.lastFrameAt > 1200;
+      const worldOk = perfState.worldReady || !PREWARM || loopDead;
+      const assetsOk = !a && p >= 100;
+      if ((worldOk && assetsOk && elapsed >= BOOT_MIN_MS) || elapsed >= BOOT_FAILSAFE_MS) {
+        done.current = true;
+        clearInterval(iv);
+        onReady();
+      }
+    }, 100);
+    return () => clearInterval(iv);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+  return null;
 }
 
 // BUG-3.1: pointer lock UX hint. The overlay is pointer-events:none so it
@@ -407,6 +453,9 @@ class SceneErrorBoundary extends Component<{ children: ReactNode }, { failed: bo
     if (!this.state.failed) return this.props.children;
     return (
       <>
+        {/* own minimal light rig — the root lights were removed in v0.9.0 */}
+        <ambientLight intensity={0.7} />
+        <directionalLight position={[10, 20, 10]} intensity={1.5} />
         <mesh rotation={[-Math.PI / 2, 0, 0]} receiveShadow>
           <planeGeometry args={[300, 300]} />
           <meshStandardMaterial color="#8d9298" roughness={0.9} />

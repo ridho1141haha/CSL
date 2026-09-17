@@ -1,10 +1,12 @@
 import { RigidBody, CuboidCollider } from '@react-three/rapier';
-import { SchoolSign } from './props';
+import { SchoolSign, Cull } from './props';
 import { Pbr } from './pbr';
 
 // Interiors of the main building (hall, corridor, classroom, teacher room)
 // and the canteen. Floors/ceilings/light fixtures are visual; furniture gets
 // low colliders so the player can walk between desks but not through them.
+// v0.9.0: each room is an 'interior' cull bundle — hidden once the camera is
+// far enough that walls (and fog) already hide it.
 
 function Desk({ x, z, rot = 0 }: { x: number; z: number; rot?: number }) {
   return (
@@ -68,6 +70,7 @@ function Classroom() {
   const desks: [number, number][] = [];
   for (const z of [6.3, 8.8, 11.3]) for (const x of [-13.2, -10.4, -7.6, -4.8]) desks.push([x, z]);
   return (
+    <Cull center={[-9, 1.6, 9]} radius={8.5} mode="interior">
     <group>
       {/* floor + ceiling */}
       <mesh position={[-9, 0.03, 9]} rotation={[-Math.PI / 2, 0, 0]} receiveShadow>
@@ -112,12 +115,14 @@ function Classroom() {
         <CuboidCollider args={[0.5, 0.4, 0.9]} position={[-13.6, 0.4, 12.4]} />
       </RigidBody>
     </group>
+    </Cull>
   );
 }
 
 function TeacherRoom() {
   // room x 2..16, z 4..14
   return (
+    <Cull center={[9, 1.6, 9]} radius={8.5} mode="interior">
     <group>
       <mesh position={[9, 0.03, 9]} rotation={[-Math.PI / 2, 0, 0]} receiveShadow>
         <planeGeometry args={[13.8, 9.8]} />
@@ -154,6 +159,7 @@ function TeacherRoom() {
         <CuboidCollider args={[0.5, 0.4, 0.6]} position={[5, 0.4, 6]} />
       </RigidBody>
     </group>
+    </Cull>
   );
 }
 
@@ -166,6 +172,7 @@ function HallAndCorridor() {
     [12, 21.45],
   ];
   return (
+    <Cull center={[0, 1.6, 22.75]} radius={13} mode="interior">
     <group>
       {/* floors */}
       <mesh position={[0, 0.03, 24.5]} rotation={[-Math.PI / 2, 0, 0]} receiveShadow>
@@ -244,6 +251,7 @@ function HallAndCorridor() {
         <CuboidCollider args={[1.3, 0.25, 0.25]} position={[5, 0.25, 26.6]} />
       </RigidBody>
     </group>
+    </Cull>
   );
 }
 
@@ -255,6 +263,7 @@ function CanteenInterior() {
     [29.5, 7],
   ];
   return (
+    <Cull center={[28, 1.5, 8]} radius={7.5} mode="interior">
     <group>
       <mesh position={[28, 0.03, 8]} rotation={[-Math.PI / 2, 0, 0]} receiveShadow>
         <planeGeometry args={[11.8, 11.8]} />
@@ -325,6 +334,7 @@ function CanteenInterior() {
         ))}
       </RigidBody>
     </group>
+    </Cull>
   );
 }
 

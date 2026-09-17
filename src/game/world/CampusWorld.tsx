@@ -2,7 +2,7 @@ import { useEffect, useRef } from 'react';
 import * as THREE from 'three';
 import { RigidBody, CuboidCollider } from '@react-three/rapier';
 import { registerOccluders } from '../runtime';
-import { WallMeshes, WallColliders, Blockers, Tree, LampPost, Bench, Planter, SchoolSign, Door, type Seg } from './props';
+import { WallMeshes, WallColliders, Blockers, Tree, LampPost, Bench, Planter, SchoolSign, Door, Cull, type Seg } from './props';
 import { Pbr } from './pbr';
 import { CampusInterior } from './CampusInterior';
 import { GedungB } from './GedungB';
@@ -756,22 +756,32 @@ export function CampusWorld() {
       <Ground />
       <FenceGate />
       <group ref={bldg}>
-        <MainBuilding />
-        <StairShaft />
+        {/* v0.9.0: shell culled when fully behind the camera (sphere r25 keeps
+            any camera→player blocking wall inside the frustum → visible) */}
+        <Cull center={[0, 3.4, 16]} radius={25}>
+          <MainBuilding />
+          <StairShaft />
+        </Cull>
       </group>
       <group ref={canteen}>
-        <Canteen />
+        <Cull center={[28, 1.8, 8]} radius={12}>
+          <Canteen />
+        </Cull>
       </group>
       <group ref={wh}>
-        <WarehouseExt />
+        <Cull center={[-36, 3, -27]} radius={15}>
+          <WarehouseExt />
+        </Cull>
       </group>
-      <Parking />
-      <FieldProps />
-      <Alley />
-      <RearYard />
-      <Greenery />
-      <Signpost />
-      <StreetFurniture />
+      <Cull center={[34, 0.5, 34]} radius={12}><Parking /></Cull>
+      <Cull center={[-33, 0.5, 15]} radius={18}><FieldProps /></Cull>
+      <Cull center={[6, 0.5, -21]} radius={14}><Alley /></Cull>
+      <Cull center={[0, 0.5, -3]} radius={11}><RearYard /></Cull>
+      {/* greenery spans most of the grounds — big sphere, but still hides
+          everything while looking away from the west side */}
+      <Cull center={[3, 2, 10]} radius={49}><Greenery /></Cull>
+      <Cull center={[11.5, 1.4, 34.5]} radius={3}><Signpost /></Cull>
+      <Cull center={[3, 2, 40]} radius={16}><StreetFurniture /></Cull>
       <CampusInterior />
       <GedungB />
       <Library />

@@ -1,8 +1,22 @@
 # Project State
 
-Updated: 2026-09-16 (v0.8.0 — Gedung B bertingkat + perpustakaan)
+Updated: 2026-09-17 (v0.9.0 — render optimization: quality presets, culling, real loading screen)
 
 ## Development state
+
+**v0.9.0** is a render-optimization pass on top of v0.8.0's buildings:
+(1) **graphics quality presets** (auto/high/medium/low in Settings, persisted
+to localStorage; live-applied DPR/shadow-map/Sky/fog via `GraphicsManager`,
+`src/game/quality.ts`); (2) **render culling** — `<Cull>` bundles registered
+in `runtime.ts` get hidden by `CullingManager` when fully outside the camera
+frustum or beyond the interior range (whole Gedung B floors, room interiors,
+library, greenery, props — hundreds of meshes dropped per sweep, throttled
+~8 Hz, safe for the camera occlusion raycast); (3) **real loading screen** —
+desktop devices prewarm the world during boot/menu and the bar tracks asset
+progress + world-first-frame readiness (`WorldReadyProbe`/`BootGate`, fail-open
+on dead render loops). Also fixed a v0.3-era bug where root Canvas lights and
+per-scene lights both ran — shadow maps rendered twice. 99 unit tests green;
+qa-mentor smoke PASS; production build passing.
 
 **v0.8.0** adds two campus buildings on top of v0.7.0's story work:
 **Gedung B** — a 3-storey classroom block (x 24..44, z -16..-2) whose
@@ -11,8 +25,7 @@ floors are all reachable via a real walkable switchback stair core
 now y-aware so L2/L3 zones resolve separately) — and the
 **Perpustakaan** (x 23..39, z 16..24) with full interior (shelves,
 reading tables, counter), which now hosts the neutral-route Siti
-confrontation shots and Siti's after-school schedule. 91 unit tests
-green; production build passing.
+confrontation shots and Siti's after-school schedule.
 
 ## Story routes (current)
 

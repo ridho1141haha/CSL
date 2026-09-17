@@ -1,5 +1,59 @@
 # Changelog
 
+## 0.9.0 — 2026-09-17 (Optimasi render: kualitas grafik, culling, loading screen)
+
+Tiga permintaan optimasi sekaligus: grafik bisa diturunkan, yang tak terlihat
+tak dirender, dan loading screen dengan progres nyata.
+
+### Added — preset kualitas grafik (PENGATURAN → KUALITAS GRAFIK)
+- Pilihan **OTOMATIS / TINGGI / SEDANG / RENDAH** di Settings (tersimpan di
+  localStorage, dipakai ulang setelah reload). `auto` mengikuti tier perangkat
+  (desktop → TINGGI, ponsel kelas bawah → SEDANG).
+- Preset mengatur: cap DPR (2 / 1.5 / 1), shadow map (2048 / 1024 / **off**),
+  shader Sky (off di RENDAH — flat background + fog), jarak fog/view, dan
+  agresivitas culling interior. Diterapkan **live** oleh `GraphicsManager`
+  (ganti preset saat bermain langsung berlaku, tanpa restart).
+- File baru `src/game/quality.ts` (presets + resolver, unit-tested).
+
+### Added — render culling "yang ga keliatan ga dirender"
+- Registry culling di `runtime.ts` + komponen `<Cull>` di `props.tsx`:
+  bundle statis dunia didaftarkan dengan sphere (center, radius, mode).
+- `CullingManager` (throttle ~8×/detik) menyembunyikan bundle yang **seluruhnya
+  di luar frustum kamera** (mode `frustum`) atau di luar jangkauan interior
+  (mode `interior` — mebel/lampu ruangan yang terhalang dinding & fog).
+  Terpasang pada: shell + interior per ruangan gedung utama, seluruh lantai
+  Gedung B (per lantai) + inti tangga, perpustakaan (shell + interior),
+  parkir, lapangan, gang, halaman belakang, gudang, pagar, pohon, papan arah,
+  street furniture — ratusan mesh drop sekaligus saat kamera membelakangi.
+- Aman untuk kamera: raycaster melewatkan objek invisible, dan bundle hanya
+  disembunyikan saat sphere-nya keluar frustum — dinding yang mungkin
+  menghalangi kamera→pemain selalu tetap dalam frustum → tetap ter-render.
+- Bonus CPU: matrixAutoUpdate dimatikan untuk bundle statik (komposisi matriks
+  sekali, bukan tiap frame).
+
+### Fixed — dua lampu arah shadow-casting berjalan bersamaan
+- Root Canvas lama memasang rig cahaya lengkap (ambient/hemi/sun 2048²) PADAHAL
+  tiap scene juga memasang rignya sendiri — shadow map dirender **dua kali**
+  sepanjang game sejak v0.3. Rig duplikat dihapus; fallback error-boundary
+  kini membawa rig minimalnya sendiri.
+
+### Added — loading screen progres nyata
+- Boot tidak lagi timer buta 1,4 detik: **world prewarm** — perangkat kelas
+  desktop membangun dunia saat boot/menu sehingga "MULAI" mendarat di scene
+  siap main; ponsel kelas bawah tetap lazy-mount.
+- `LoadingScreen` menampilkan persentase gabungan nyata: progres aset (drei
+  useProgress) + kesiapan dunia (2 frame pertama benar-benar ter-render,
+  `WorldReadyProbe`) + window branding minimum.
+- `BootGate` fail-open: render loop mati (headless/GPU mati) dideteksi lewat
+  heartbeat frame dan gate tetap buka — loading screen tak pernah menggantung.
+
+### Verified
+- 99 unit tests hijau (8 baru: preset kualitas, resolusi auto, registry cull,
+  keputusan frustum/interior 3D); `tsc -b` bersih; build produksi sukses.
+- QA Playwright: qa-mentor PASS penuh (boot → load save → dialog Aris → HUD,
+  tanpa console error) pada build v0.9.0; qa-landscape crash headless di iter
+  6 **terverifikasi sama pada build v0.8.0** (SwiftShader — bukan regresi).
+
 ## 0.8.0 — 2026-09-16 (Gedung Kelas B bertingkat + Perpustakaan)
 
 Dua bangunan kampus baru sesuai permintaan: **Gedung B** (kelas bertingkat
