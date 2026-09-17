@@ -42,11 +42,15 @@ export function DialogueUI({ cinematic }: { cinematic: boolean }) {
     setShown(0);
     if (!text) return;
     let raf = 0;
+    let lastN = -1;
     const start = performance.now();
     const step = () => {
       const n = Math.floor(((performance.now() - start) / 1000) * cps);
-      setShown(Math.min(text.length, n));
-      if (n % 3 === 0) audio.blip();
+      if (n !== lastN) {
+        lastN = n;
+        setShown(Math.min(text.length, n));
+        if (n % 3 === 0 && n > 0 && n <= text.length) audio.blip();
+      }
       if (n < text.length) raf = requestAnimationFrame(step);
     };
     raf = requestAnimationFrame(step);
@@ -73,22 +77,6 @@ export function DialogueUI({ cinematic }: { cinematic: boolean }) {
     // 'fp-to-tp' is handled by CameraRig via opening_complete flag, skip here
   }, [nodeId]);
 
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      if (e.code === 'Space' || e.code === 'Enter') {
-        e.preventDefault();
-        if (shown < text.length) setShown(text.length);
-        else if (!awaitingChoice) advance();
-      }
-      if (awaitingChoice && /^Digit[12]$/.test(e.code)) {
-        const c = visibleChoices[Number(e.code.slice(5)) - 1];
-        if (c) { audio.click(); choose(c); }
-      }
-    };
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  });
-
   // choice visibility conditions evaluated against live state
   const visibleChoices = useMemo(() => {
     if (!node?.choices) return [];
@@ -104,6 +92,28 @@ export function DialogueUI({ cinematic }: { cinematic: boolean }) {
     };
     return node.choices.filter((c) => evalCondition(c.condition, ctx));
   }, [node, awaitingChoice]);
+
+  const stateRef = useRef({ shown, textLength: text.length, awaitingChoice, advance, visibleChoices, choose });
+  useEffect(() => {
+    stateRef.current = { shown, textLength: text.length, awaitingChoice, advance, visibleChoices, choose };
+  }, [shown, text.length, awaitingChoice, advance, visibleChoices, choose]);
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      const state = stateRef.current;
+      if (e.code === 'Space' || e.code === 'Enter') {
+        e.preventDefault();
+        if (state.shown < state.textLength) setShown(state.textLength);
+        else if (!state.awaitingChoice) state.advance();
+      }
+      if (state.awaitingChoice && /^Digit[12]$/.test(e.code)) {
+        const c = state.visibleChoices[Number(e.code.slice(5)) - 1];
+        if (c) { audio.click(); state.choose(c); }
+      }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, []);
 
   if (!node) return null;
   const speaker = node.speaker;
