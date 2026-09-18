@@ -27,7 +27,13 @@ export function useObjective(): { target: WaypointTarget | null; dist: number } 
       const target = q && game.scene === 'campus' ? questTargetFor(q, { visited: game.visitedZones, px: x, pz: z }) : null;
       setState((prev) => {
         const dist = Math.round(distanceToTarget(target, x, z));
-        if (prev.target === target && prev.dist === dist) return prev; // avoid churn
+        const sameTarget =
+          prev.target === target ||
+          (prev.target != null &&
+            target != null &&
+            prev.target.questId === target.questId &&
+            prev.target.zoneId === target.zoneId);
+        if (sameTarget && prev.dist === dist) return prev; // avoid churn
         return { target, dist };
       });
     };
