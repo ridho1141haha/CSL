@@ -1,10 +1,13 @@
 import { create } from 'zustand';
 import type { Quality } from '../game/quality';
+import type { CamMode } from '../game/camera/mode';
 
 export type Settings = {
   camDistance: number;
   camMin: number;
   camMax: number;
+  /** v0.13.0: first-person / third-person camera mode (persisted) */
+  camMode: CamMode;
   /** v0.10.0: mouse/touch look speed multiplier (1 = default feel) */
   sensitivity: number;
   /** v0.10.0: flip vertical camera look */
@@ -33,6 +36,7 @@ const DEFAULTS: Settings = {
   camDistance: 4.6,
   camMin: 2.6,
   camMax: 8,
+  camMode: 'third',
   sensitivity: 1,
   invertY: false,
   master: 0.8,

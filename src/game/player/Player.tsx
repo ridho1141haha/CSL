@@ -7,6 +7,7 @@ import { useGame } from '../../stores/gameStore';
 import { usePlayer } from '../../stores/playerStore';
 import { useCombat } from '../../stores/combatStore';
 import { playerPos, camState } from '../runtime';
+import { useSettings } from '../../stores/settingsStore';
 import { Figure } from '../npc/Character';
 import { acting } from '../systems/acting';
 import { playerAnim, combatTick, camYaw } from '../combat/combat';
@@ -215,6 +216,13 @@ function PlayerFigure() {
     const g = group.current;
     if (!g) return;
     const game = useGame.getState();
+    // v0.13.0: hide Ren's body while the FP head-cam is active in gameplay /
+    // combat — otherwise the figure fills the whole screen. Story modes
+    // (DIALOGUE / CINEMATIC) always show the body: their cameras are
+    // authored third-person shots that need Ren in frame.
+    const s = useSettings.getState();
+    const fpActive = s.camMode === 'first' && (game.mode === 'GAMEPLAY' || game.mode === 'COMBAT');
+    g.visible = !fpActive;
     const act = acting['ren'];
     // During dialogue Ren turns his body toward the conversation partner
     // (mentor #3 — body orientation). In gameplay the body follows movement.

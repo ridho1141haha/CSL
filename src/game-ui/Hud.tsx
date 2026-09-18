@@ -3,6 +3,7 @@ import { useGame } from '../stores/gameStore';
 import { usePlayer } from '../stores/playerStore';
 import { useCombat } from '../stores/combatStore';
 import { useQuests } from '../stores/questStore';
+import { useSettings } from '../stores/settingsStore';
 import { useStory } from '../stores/storyStore';
 import { QUESTS } from '../data/quests';
 import { DAYS, formatHhmm, periodFor } from '../game/systems/time';
@@ -60,6 +61,9 @@ export function Hud() {
   const zone = useGame((s) => s.currentZone);
   const interactTarget = useGame((s) => s.interactTarget);
   const chapter = useStory((s) => s.chapter);
+  // v0.13.0: first-person crosshair + camera control chip
+  const camMode = useSettings((s) => s.camMode);
+  const gameMode = useGame((s) => s.mode);
   const lastHit = useCombat((s) => s.lastPlayerHitAt);
   const hurtFlash = Date.now() - lastHit < 400;
   // v0.10.0: waypoint-backed mission card — title, objective AND live distance
@@ -107,6 +111,10 @@ export function Hud() {
         </div>
       )}
 
+      {(camMode === 'first' && (gameMode === 'GAMEPLAY' || gameMode === 'COMBAT')) && (
+        <div className="fp-crosshair" />
+      )}
+
       {interactTarget && (
         <div className="interact brackets">
           <kbd>E</kbd> BICARA <i>//</i> <span>{interactTarget.toUpperCase()}</span>
@@ -119,6 +127,7 @@ export function Hud() {
         <span><kbd>SPACE</kbd> LOMPAT</span>
         <span><kbd>LMB</kbd> SERANG</span>
         <span><kbd>E</kbd> INTERAKSI</span>
+        <span><kbd>V</kbd> KAMERA</span>
         <span><kbd>ESC</kbd> JEDA</span>
       </footer>
     </div>

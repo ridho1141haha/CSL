@@ -31,6 +31,8 @@ import { Npcs, StoryActors } from './game/npc/Npc';
 import { CombatScene } from './game/combat/CombatScene';
 import { StoryDirector } from './game/StoryDirector';
 import { resetCombatRuntime } from './game/combat/combat';
+import { nextMode } from './game/camera/mode';
+import { useSettings } from './stores/settingsStore';
 import { SCENES } from './data/world';
 
 import { MainMenu } from './game-ui/MainMenu';
@@ -115,6 +117,15 @@ export default function App() {
           e.preventDefault();
           g.setMode('GAMEPLAY');
         }
+        return;
+      }
+      // v0.13.0: V toggles first-person / third-person camera in gameplay AND
+      // combat — persisted via settings so the choice survives reloads.
+      if (e.code === 'KeyV' && (inGameplay || g.mode === 'COMBAT')) {
+        const s = useSettings.getState();
+        const next = nextMode(s.camMode);
+        s.set('camMode', next);
+        g.notify(next === 'first' ? 'Kamera: Orang Pertama' : 'Kamera: Orang Ketiga', 'quest');
         return;
       }
       if (!inGameplay) return;

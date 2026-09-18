@@ -46,7 +46,7 @@ export function MainMenu({ onStart, onLoad }: { onStart: () => void; onLoad: () 
     <div className="menu" ref={ref}>
       <div className="menu-top">
         <span className="chip chip-amber">CHAOS SCHOOL LIFE</span>
-        <span className="chip">BUILD 0.12.0 <i>//</i> TEAM CHAOS</span>
+        <span className="chip">BUILD 0.13.0 <i>//</i> TEAM CHAOS</span>
         <span className="spacer" />
         <span className="chip">SLOT STATUS <i>//</i> {auto ? `BAB ${info.chapter}` : 'KOSONG'}</span>
         <span className="chip chip-green">{auto ? 'TERSINKRON' : 'MULAI BARU'}</span>
@@ -102,7 +102,7 @@ export function MainMenu({ onStart, onLoad }: { onStart: () => void; onLoad: () 
         <span className="key">[↑↓]</span> NAVIGASI
         <span className="key">[ENTER]</span> PILIH
       </div>
-      <div className="menu-version">BUILD 0.12.0 <span className="menu-input-note">KEYBOARD + MOUSE / SENTUH</span> <span>CHAOS SCHOOL LIFE © 2025</span></div>
+      <div className="menu-version">BUILD 0.13.0 <span className="menu-input-note">KEYBOARD + MOUSE / SENTUH</span> <span>CHAOS SCHOOL LIFE © 2025</span></div>
 
       {credits && (
         <div className="credits-overlay" onClick={() => setCredits(false)}>

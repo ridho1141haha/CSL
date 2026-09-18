@@ -503,6 +503,18 @@ export function SettingsPanel() {
   ];
   return (
     <div className="settings-panel">
+      {/* v0.13.0: first-person / third-person camera mode */}
+      <label>
+        <span>MODE KAMERA</span>
+        <select
+          className="settings-select"
+          value={s.camMode}
+          onChange={(e) => s.set('camMode', e.target.value as typeof s.camMode)}
+        >
+          <option value="third">ORANG KETIGA (TPS)</option>
+          <option value="first">ORANG PERTAMA (FPS)</option>
+        </select>
+      </label>
       {/* v0.9.0: graphics quality preset — applied live by GraphicsManager */}
       <label>
         <span>KUALITAS GRAFIK</span>
@@ -536,7 +548,7 @@ export function SettingsPanel() {
       <label><span>INVERT Y</span><input type="checkbox" checked={s.invertY} onChange={(e) => s.set('invertY', e.target.checked)} /></label>
       <label><span>REDUCED MOTION</span><input type="checkbox" checked={s.reducedMotion} onChange={(e) => s.set('reducedMotion', e.target.checked)} /></label>
       <label><span>SCREEN SHAKE</span><input type="checkbox" checked={s.screenShake} onChange={(e) => s.set('screenShake', e.target.checked)} /></label>
-      <p>CONTROLS: WASD MOVE · SHIFT RUN · SPACE JUMP · MOUSE CAMERA · WHEEL ZOOM · LMB ATTACK · Q HEAVY · RMB BLOCK · E INTERACT</p>
+      <p>CONTROLS: WASD MOVE · SHIFT RUN · SPACE JUMP · MOUSE CAMERA · V FIRST/THIRD · WHEEL ZOOM · LMB ATTACK · Q HEAVY · RMB BLOCK · E INTERACT</p>
     </div>
   );
 }

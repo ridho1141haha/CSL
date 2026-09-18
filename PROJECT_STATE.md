@@ -1,6 +1,23 @@
 # Project State
 
-Updated: 2026-09-17 (v0.12.0 — cinematic polish & world connectivity: camera hard-cut, bab 2 di jalur tangga→kantin, lorong lobi→kelas tembus, animasi duduk/jongkok/prop, peta blueprint, low-texture presets)
+Updated: 2026-09-18 (v0.13.0 — mode kamera first-person/third-person: head-cam FP hard-attach + toggle V + setelan persist, badan Ren auto-hide saat FP, orbit TPS ikut tinggi lantai Gedung B)
+
+## v0.13.0 Snapshot (2026-09-18)
+
+**Mode kamera (src/game/camera/mode.ts — murni, teruji):**
+- `CamMode` = 'third' | 'first'; `clampPitch(mode)` — TP 0.06..0.85, FP
+  -1.05..1.2 (+ = lihat bawah); `fpLookDir(yaw,pitch)` forward (-sin,-cos)·cos
+  (konvensi orbit sama); `FP_EYE` 1.52 m di atas kaki.
+- settingsStore += `camMode` (persist localStorage, default 'third').
+- CameraRig: cabang gameplay kini bercabang FP/TP. FP hard-attach tanpa lerp
+  (anti swim/through-wall), shake skala 0.22; TP kini mengikuti
+  `smoothY = lerp(smoothY, playerPos.y, 1-e^(-9dt))` — lantai 2/3 Gedung B tak
+  lagi menenggelamkan kamera. Mode switch → re-clamp pitch + snap 1 frame.
+- App.tsx: tombol **V** toggle FP/TP di GAMEPLAY/COMBAT + notify;
+  SettingsPanel: dropdown MODE KAMERA; Hud: crosshair `.fp-crosshair` saat FP
+  + chip V KAMERA; PlayerFigure visible=false saat FP gameplay/kombat.
+- Aturan main: DIALOGUE/CINEMATIC SELALU tampilkan badan Ren (shot butuh dia);
+  wheel zoom hanya TPS; opening `fp_gate` tidak terpengaruh camMode.
 
 ## v0.12.0 Snapshot (2026-09-17)
 

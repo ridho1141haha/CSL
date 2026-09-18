@@ -1,5 +1,43 @@
 # Changelog
 
+## 0.13.0 — 2026-09-18 (Mode Kamera First-Person & Third-Person)
+
+Permintaan user: "kasih mode thirdperson dan firstperson". Kamera gameplay kini
+punya dua mode penuh yang bisa diganti kapan saja — saat eksplorasi MAUPUN
+kombat — lewat tombol **V** atau dropdown setelan, dan pilihannya persist di
+localStorage.
+
+### Added
+- **First-person head-cam** (`src/game/camera/mode.ts` + CameraRig): mata kamera
+  menempel keras (hard-attach, tanpa lerp) di titik mata Ren (1.52 m di atas
+  kaki), arah pandang dari yaw/pitch bersama konvensi orbit — gerakan, lari,
+  lompat, dan serangan semua tetap berfungsi. Pitch FP boleh -1.05..1.2 rad
+  (bisa melihat ke atas), berbeda dari pita orbit TPS.
+- **Toggle V**: ganti FP↔TP instan di GAMEPLAY/COMBAT + notifikasi
+  "Kamera: Orang Pertama/Ketiga". Pergantian mode re-clamp pitch (stale look-up
+  FP tak bisa lagi menyeret orbit TPS ke bawah lantai) dan CUT instan satu frame
+  — kamera tidak "terbang" dari titik mata ke posisi orbit.
+- **Setelan MODE KAMERA** (SettingsPanel): ORANG KETIGA (TPS) / ORANG PERTAMA
+  (FPS), persist via `settingsStore.camMode` (tipe `CamMode`).
+- **Crosshair FP** di HUD saat mode orang pertama aktif (dot tengah layar,
+  `.fp-crosshair`), plus chip `<kbd>V</kbd> KAMERA` di footer kontrol.
+- Badan Ren **otomatis disembunyikan** saat FP gameplay/kombat (PlayerFigure
+  `visible=false`) dan muncul kembali di DIALOGUE/CINEMATIC — shot sinematik
+  tetap butuh Ren di frame.
+- Unit test baru `src/test/cammode.test.ts` (6 test: clampPitch per-mode,
+  reclampOnSwitch, nextMode, konvensi arah fpLookDir, tinggi mata).
+
+### Fixed
+- **Kamera TPS ikut ketinggian lantai**: orbit kini mengikuti `playerPos.y`
+  (kaki) ter-smoothing — di lantai tanah perilaku identik dengan versi lama,
+  di Gedung B L2/L3 kamera tidak lagi tenggelam ke dalam lantai. Jump
+  mengangkat kamera dengan halus (lerp 9/s).
+
+### Unchanged (disengaja)
+- Opening sinematik tetap pakai pose `fp_gate` authoran + transisi FP→TP
+  pembuka; DIALOGUE tetap pakai speaker-shot (shotForNode); wheel zoom hanya
+  aktif di TPS dan tetap di-drain tiap frame saat FP agar tak menumpuk.
+
 ## 0.12.0 — 2026-09-17 (Cinematic Polish & World Connectivity)
 
 Patch besar dari feedback playtest: kamera scene-cut, posisi cerita bab 2,

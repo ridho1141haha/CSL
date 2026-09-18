@@ -302,6 +302,16 @@ kbd, .key {
 .minimal-hud.hurt::after { content: ''; position: absolute; inset: 0; box-shadow: inset 0 0 140px 30px #7f1d1d99; animation: hurt-fade 0.5s forwards; }
 @keyframes hurt-fade { from { opacity: 1; } to { opacity: 0; } }
 
+/* v0.13.0: first-person crosshair dot (center screen, non-interactive) */
+.fp-crosshair {
+  position: absolute; left: 50%; top: 50%;
+  width: 6px; height: 6px; margin: -3px 0 0 -3px;
+  border-radius: 50%;
+  background: rgba(240, 244, 248, 0.92);
+  box-shadow: 0 0 0 1.5px rgba(10, 12, 16, 0.55);
+  pointer-events: none;
+}
+
 .hud-top {
   position: absolute; top: 0; left: 0; right: 0;
   display: flex; align-items: center; gap: 10px;
