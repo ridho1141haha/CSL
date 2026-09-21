@@ -8,7 +8,7 @@ import { useStory } from '../stores/storyStore';
 import { QUESTS } from '../data/quests';
 import { DAYS, formatHhmm, periodFor } from '../game/systems/time';
 import { ZONE_BY_ID } from '../data/world';
-import { notifySound } from '../game/audio';
+import { audio, notifySound } from '../game/audio';
 import { pickActiveQuest, questTargetFor, distanceToTarget, type WaypointTarget } from '../game/waypoint';
 
 // v0.10.0: live objective distance for the HUD mission card. Polls (400ms,
@@ -53,6 +53,7 @@ function Meter({ label, value, color, width }: { label: string; value: string; c
 // HUD eksplorasi — implementasi mockup Stitch "03-exploration":
 // top bar (brand + jam), kartu vitals, kartu misi, tag zona,
 // prompt interaksi ber-bracket, dan chip kontrol bawah.
+// v0.14.0: kartu misi punya pilihan navigasi [TELEPORT] / [JALAN].
 export function Hud() {
   const hp = usePlayer((s) => s.hp);
   const maxHp = usePlayer((s) => s.maxHp);
@@ -69,6 +70,27 @@ export function Hud() {
   // v0.10.0: waypoint-backed mission card — title, objective AND live distance
   const { target, dist } = useObjective();
   const activeQuest = target ? QUESTS.find((q) => q.id === target.questId) ?? null : null;
+  // v0.14.0: mission navigation (Task 1). Teleport memindahkan Ren ke target
+  // via requestScene (fade out → place → fade in) — objective TIDAK otomatis
+  // selesai; kondisi objective tetap dievaluasi sistem yang ada (zona/flag/
+  // periode). Walk tidak mengambil alih kontrol — waypoint ◆ + jarak di HUD
+  // sudah aktif, jadi cukup menegaskan arah ke pemain.
+  const [walkHint, setWalkHint] = useState(false);
+  const sceneLoading = useGame((s) => s.sceneLoading);
+  const teleportToMission = () => {
+    const g = useGame.getState();
+    if (!target || g.sceneLoading) return;
+    audio.click();
+    g.requestScene('campus', [target.pos[0], target.pos[1] + 1.4]);
+    g.notify(`Menuju misi: ${target.label}`, 'info');
+  };
+  const walkToMission = () => {
+    if (!target) return;
+    audio.click();
+    setWalkHint(true);
+    window.setTimeout(() => setWalkHint(false), 3200);
+    useGame.getState().notify(`Ikuti penanda ◆ ke ${target.label} (${dist}m)`, 'info');
+  };
 
   return (
     <div className={`minimal-hud ${hurtFlash ? 'hurt' : ''}`}>
@@ -93,7 +115,7 @@ export function Hud() {
         <Meter label="FOKUS" value={`${Math.round(focus)} / 100`} color="amber" width={`${focus}%`} />
       </div>
 
-      <div className="obj-card">
+      <div className={`obj-card ${walkHint ? 'walk-hint' : ''}`}>
         <div className="obj-marker">M</div>
         <div className="obj-body">
           <b>{activeQuest?.type === 'side' ? 'MISI SAMPINGAN' : 'MISI UTAMA'}</b>
@@ -102,6 +124,16 @@ export function Hud() {
             {activeQuest ? activeQuest.title : 'PROLOG SMA YUSON'}
             {target && <i className="obj-dist">{dist > 4 ? ` // ${dist}m` : ' // DI SINI'}</i>}
           </span>
+          {target && (
+            <span className="obj-actions">
+              <button onClick={teleportToMission} disabled={sceneLoading} title="Pindah langsung ke lokasi misi">
+                TELEPORT
+              </button>
+              <button onClick={walkToMission} title="Tandai arah — jalan sendiri via waypoint">
+                JALAN
+              </button>
+            </span>
+          )}
         </div>
       </div>
 

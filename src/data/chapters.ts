@@ -1,4 +1,4 @@
-import type { ChapterDef, ChapterId, HoldKind } from '../types';
+import type { ChapterDef, ChapterId, HoldKind, SceneId } from '../types';
 
 export const CHAPTERS: Record<ChapterId, ChapterDef> = {
   // v0.7.0 — bab 1 & 2 mengikuti alur lambat baru (GDD §"Alur yang lebih lambat").
@@ -199,7 +199,12 @@ export const NODE_FX: Record<string, { fx: 'fp-to-tp' | 'fade-out' | 'fade-in' |
   ch4_bad_grad_1: { fx: 'fade-in' },
   ch4_good_grad_1: { fx: 'fade-in' },
   ch4_bad2_1: { fx: 'fade-in' },
-  // alur utama (tidak berubah)
+  // v0.14.0: scene-start yang distage (player teleport) kini selalu difade —
+  // transisi sinematik out→place→in, tidak ada teleport kasat mata
+  ch3_f2_1: { fx: 'fade-in' },
+  ch3_f2_win: { fx: 'fade-in' },
+  ch4_bad_1: { fx: 'fade-in' },
+  ch4_good_1: { fx: 'fade-in' },
   ch4_bad_warehouse: { fx: 'fade-out' },
   ch3_intro_2: { fx: 'fade-in' },
   ch2_intro_1: { fx: 'fade-in' },
@@ -339,6 +344,10 @@ const arisThanks: StorySpot = { pos: [5.2, 3.0], face: [2.0, 2.6], hold: 'stack'
 // GARIS MERAH: pengaturan aktor berulang (Siti koridor, letnan parkiran,
 // penyanderaan gang, kelulusan good/bad).
 const sitiHall: StorySpot = { pos: [-3.0, 23.5], face: [3, 26] };
+// v0.14.0: konfrontasi netral n2 pindah ke interior perpustakaan — sinkron
+// dengan pose kamera library_* (sebelumnya masih spot hall, tak pernah masuk
+// frame). Ren distage di sampingnya via REN_STAGING.
+const LIB_SITI: StorySpot = { pos: [30.0, 19.2], face: [29.2, 20.2] };
 const parkingLieutenants: StorySpot[] = [
   { pos: [33.2, 33.0], face: [30.5, 31.0] },
   { pos: [35.2, 34.6], face: [31.0, 32.0] },
@@ -425,14 +434,14 @@ export const SCENE_ACTORS: Record<string, OpeningCast> = {
   n1_5: { aris: { pos: [-4.0, 11.3], face: [-3.9, 12.4] } },
   n1_6: { aris: { pos: [-4.0, 11.3], face: [-9, 8.6] } },
   n1_7: { aris: { pos: [-4.0, 11.3], face: [-9, 8.6] } },
-  n2_1: { siti: { pos: [-3.0, 23.5], face: [3, 26] } },
-  n2_2: { siti: { pos: [-3.0, 23.5], face: [3, 26] } },
-  n2_3: { siti: { pos: [-3.0, 23.5], face: [3, 26] } },
-  n2_4: { siti: { pos: [-3.0, 23.5], face: [3, 26] } },
-  n2_5: { siti: { pos: [-3.0, 23.5], face: [3, 26] } },
-  n2_6: { siti: { pos: [-3.0, 23.5], face: [3, 26] } },
-  n2_7: { siti: { pos: [-3.0, 23.5], face: [3, 26] } },
-  n2_8: { siti: { pos: [-3.0, 23.5], face: [3, 26] } },
+  n2_1: { siti: LIB_SITI },
+  n2_2: { siti: LIB_SITI },
+  n2_3: { siti: LIB_SITI },
+  n2_4: { siti: LIB_SITI },
+  n2_5: { siti: LIB_SITI },
+  n2_6: { siti: LIB_SITI },
+  n2_7: { siti: LIB_SITI },
+  n2_8: { siti: LIB_SITI },
   n3_1: {
     bimo: { pos: [-4.0, 17.0], face: [-9, 17.4] },
     followers: [{ pos: [-5.4, 17.7], face: [-9, 17.4] }],
@@ -532,3 +541,158 @@ export const STUDY_QUESTIONS: { q: string; options: string[]; answer: number }[]
   { q: 'Ibu kota Provinsi Jawa Barat adalah...', options: ['Bandung', 'Semarang', 'Surabaya', 'Serang'], answer: 0 },
   { q: 'Pada ekosistem, organisme yang menguraikan bahan organik disebut...', options: ['Produsen', 'Konsumen', 'Detritivor/Decomposer', 'Herbivora'], answer: 2 },
 ];
+
+// ---------------------------------------------------------------------------
+// v0.14.0 — PLAYER STAGING (Task story-staging): posisi deterministik REN per
+// node cerita. Melengkapi SCENE_ACTORS (NPC) + CAM_BY_NODE (kamera) +
+// STORY_PROPS: sebuah story scene kini menentukan WHERE (scene+pos), WHO
+// (aktor), POSE, CAMERA, DIALOGUE — bukan cuma DIALOGUE.
+//
+// Aturan penempatan (dipatuhi test/staging.test.ts):
+//  - bab 2: semua spot x ≥ 4.4 (di dalam shaft tangga x -4..4, z -2..4 ada
+//    undakan — jangan menaruh aktor di sana).
+//  - spot mengikuti look-target pose kamera (CAM_BY_NODE) supaya Ren masuk
+//    frame, dan menghadap lawan bicara (face → posisi aktor).
+//  - node kombat TIDAK distage ulang saat fight berjalan (combat memegang
+//    penempatan musuh); staging dipakai di node dialog sebelum/ sesudahnya.
+//  - scene selain kampus WAJIB mengisi `scene` (rooftop/warehouse lokal).
+//  - opening FP (o1..o5) sengaja TIDAK distage: kamera FP memakai pose
+//    authoran + viewmodel tangan; badan Ren di spawn tidak terlihat.
+// ---------------------------------------------------------------------------
+export type PlayerStaging = {
+  pos: [number, number];
+  face?: [number, number];
+  /** wajib untuk node di scene non-kampus (koordinat lokal scene) */
+  scene?: SceneId;
+};
+
+const WATCH_STAIRS: [number, number] = [5.9, 0.7]; // timur shaft, selatan geng
+const STAIR_FACE_GANG: [number, number] = [6.6, 2.0];
+const STAIR_FACE_ARIS: [number, number] = [5.2, 3.0];
+const ROOFTOP_REN: PlayerStaging = { pos: [1.3, -4.3], face: [0.3, -5.6], scene: 'rooftop' };
+const WAREHOUSE_REN: PlayerStaging = { pos: [0.3, -2.4], face: [0, -4.2], scene: 'warehouse' };
+const HOSTAGE_REN: [number, number] = [5.0, -17.6]; // depan lingkaran sandera
+const HOSTAGE_FACE: [number, number] = [6.0, -21.5];
+const GATE_SOLO: [number, number] = [7.0, 42.8];
+const GATE_SOLO_FACE: [number, number] = [7.0, 44.6];
+const PARK_REN: [number, number] = [30.4, 30.6];
+const PARK_FACE: [number, number] = [34.0, 33.4];
+const CLASS_REN: [number, number] = [-3.4, 11.2];
+
+export const REN_STAGING: Record<string, PlayerStaging> = {
+  // ---- BAB 2: Kesalahan Kecil Aris (jalur timur tangga) ----
+  ch2_intro_1: { pos: WATCH_STAIRS, face: STAIR_FACE_GANG },
+  ch2_intro_2: { pos: WATCH_STAIRS, face: STAIR_FACE_GANG },
+  ch2_intro_3: { pos: [5.4, 1.2], face: STAIR_FACE_ARIS },
+  ch2_intro_4: { pos: [5.4, 1.2], face: STAIR_FACE_ARIS },
+  ch2_intro_5: { pos: [5.4, 1.2], face: STAIR_FACE_ARIS },
+  ch2_intro_6: { pos: [5.4, 1.2], face: STAIR_FACE_ARIS },
+  ch2_choice: { pos: [5.4, 1.2], face: STAIR_FACE_ARIS },
+  ch2_away_1: { pos: [4.6, 0.8], face: [6.0, 2.2] },
+  ch2_away_2: { pos: [4.6, 0.8], face: [6.0, 2.2] },
+  // sesudah duel menang (node kombat ch2_fight_* biar combat yang pegang)
+  ch2_win: { pos: [4.8, 1.6], face: [6.6, 2.0] },
+  ch2_win_2: { pos: [4.8, 1.6], face: [6.6, 2.0] },
+  ch2_win_3: { pos: [4.5, 2.2], face: STAIR_FACE_ARIS },
+  ch2_win_4: { pos: [4.5, 2.2], face: STAIR_FACE_ARIS },
+  ch2_win_5: { pos: [4.8, 1.6], face: [6.6, 2.0] },
+  ch2_win_6: { pos: [4.8, 1.6], face: [6.6, 2.0] },
+  // ---- BAB 3: pendekatan OSIS (Siti di lorong hall) ----
+  ch3_osis_1: { pos: [-1.2, 24.8], face: [-3.0, 23.5] },
+  ch3_osis_2: { pos: [-1.2, 24.8], face: [-3.0, 23.5] },
+  ch3_osis_3: { pos: [-1.2, 24.8], face: [-3.0, 23.5] },
+  ch3_osis_4: { pos: [-1.2, 24.8], face: [-3.0, 23.5] },
+  ch3_osis_5: { pos: [-1.2, 24.8], face: [-3.0, 23.5] },
+  ch3_osis_6: { pos: [-1.2, 24.8], face: [-3.0, 23.5] },
+  // ---- BAB 3: sergapan parkiran [FIGHT 2] + pasca-menang ----
+  ch3_f2_1: { pos: PARK_REN, face: PARK_FACE },
+  ch3_f2_2: { pos: PARK_REN, face: PARK_FACE },
+  ch3_f2_3: { pos: PARK_REN, face: PARK_FACE },
+  ch3_f2_win: { pos: [31.4, 32.0], face: [34.2, 33.4] },
+  ch3_f2_win_2: { pos: [31.4, 32.0], face: [34.2, 33.4] },
+  ch3_f2_win_3: { pos: [31.4, 32.0], face: [34.2, 33.4] },
+  // ---- BAB 3: rooftop (scene lokal; Bimo (0.3,-5.6)) ----
+  ch3_intro_1: ROOFTOP_REN,
+  ch3_intro_2: ROOFTOP_REN,
+  ch3_intro_3: ROOFTOP_REN,
+  ch3_intro_4: ROOFTOP_REN,
+  ch3_intro_5: ROOFTOP_REN,
+  ch3_accept_1: ROOFTOP_REN,
+  ch3_accept_2: ROOFTOP_REN,
+  ch3_reject_1: ROOFTOP_REN,
+  ch3_reject_2: ROOFTOP_REN,
+  // ---- RUTE BAD: montase eksekutor + gudang ----
+  ch4_bad_1: { pos: [-4.0, 17.0], face: [-1.5, 16.8] },
+  ch4_bad_2: { pos: CLASS_REN, face: [-4.0, 11.3] },
+  ch4_bad_3: { pos: CLASS_REN, face: [-4.0, 11.3] },
+  ch4_bad_warehouse: WAREHOUSE_REN,
+  ch4_bad_after: WAREHOUSE_REN,
+  ch4_bad_after_2: WAREHOUSE_REN,
+  // ---- RUTE RESISTANCE: montase (aktor courtyard) + penyanderaan ----
+  ch4_res_1: { pos: [7.4, 31.2], face: [6.0, 33.0] },
+  ch4_res_2: { pos: [7.4, 31.2], face: [6.0, 33.0] },
+  ch4_res_3: { pos: [7.4, 31.2], face: [6.0, 33.0] },
+  ch4_res_4: { pos: [7.4, 31.2], face: [6.0, 33.0] },
+  ch4_res_alley: { pos: HOSTAGE_REN, face: HOSTAGE_FACE },
+  ch4_res_alley_2: { pos: HOSTAGE_REN, face: HOSTAGE_FACE },
+  ch4_res_alley_3: { pos: HOSTAGE_REN, face: HOSTAGE_FACE },
+  ch4_res_alley_4: { pos: HOSTAGE_REN, face: HOSTAGE_FACE },
+  ch4_res_goons_win: { pos: [5.4, -19.0], face: [6.0, -22.0] },
+  ch4_res_goons_win_2: { pos: [5.4, -19.0], face: [6.0, -22.0] },
+  ch4_res_choice: { pos: [5.4, -19.0], face: [6.0, -22.0] },
+  // ---- GOOD: penyanderaan + rekaman Siti + penangkapan ----
+  ch4_good_1: { pos: HOSTAGE_REN, face: HOSTAGE_FACE },
+  ch4_good_2: { pos: HOSTAGE_REN, face: HOSTAGE_FACE },
+  ch4_good_3: { pos: HOSTAGE_REN, face: HOSTAGE_FACE },
+  ch4_good_4: { pos: [5.4, -19.0], face: [6.0, -22.0] },
+  // ---- KELULUSAN (gerbang utama) ----
+  ch4_neu_grad_1: { pos: GATE_SOLO, face: GATE_SOLO_FACE },
+  ch4_neu_grad_2: { pos: GATE_SOLO, face: GATE_SOLO_FACE },
+  ch4_neu_grad_3: { pos: GATE_SOLO, face: [8.4, 44.4] },
+  ch4_neu_grad_4: { pos: GATE_SOLO, face: [8.4, 44.4] },
+  ch4_neu_grad_5: { pos: GATE_SOLO, face: GATE_SOLO_FACE },
+  ch4_neu_grad_6: { pos: GATE_SOLO, face: GATE_SOLO_FACE },
+  ch4_bad_grad_1: { pos: [7.0, 42.2], face: [7.4, 43.5] },
+  ch4_bad_grad_2: { pos: [7.0, 42.2], face: [7.4, 43.5] },
+  ch4_bad_grad_3: { pos: [7.0, 42.2], face: [7.4, 43.5] },
+  ch4_good_grad_1: { pos: [6.6, 42.9], face: [7.2, 43.4] },
+  ch4_good_grad_2: { pos: [6.6, 42.9], face: [7.2, 43.4] },
+  ch4_good_grad_3: { pos: [6.6, 42.9], face: [7.2, 43.4] },
+  ch4_good_grad_4: { pos: [6.6, 42.9], face: [7.2, 43.4] },
+  ch4_good_grad_5: { pos: [6.6, 42.9], face: [7.2, 43.4] },
+  // ---- BAD ENDING 2: gang belakang, rasa menang yang pahit ----
+  ch4_bad2_1: { pos: [6.4, -20.4], face: [8.2, -22.6] },
+  ch4_bad2_2: { pos: [6.4, -20.4], face: [8.2, -22.6] },
+  ch4_bad2_3: { pos: [6.4, -20.4], face: [8.2, -22.6] },
+  ch4_bad2_4: { pos: [6.4, -20.4], face: [8.2, -22.6] },
+  ch4_bad2_5: { pos: [6.4, -20.4], face: [8.2, -22.6] },
+  // ---- RUTE NETRAL: montase "Dinding Dingin" ----
+  n1_1: { pos: CLASS_REN, face: [-4.0, 11.3] },
+  n1_2: { pos: CLASS_REN, face: [-4.0, 11.3] },
+  n1_3: { pos: CLASS_REN, face: [-4.0, 11.3] },
+  n1_4: { pos: CLASS_REN, face: [-4.0, 11.3] },
+  n1_5: { pos: CLASS_REN, face: [-4.0, 11.3] },
+  n1_6: { pos: CLASS_REN, face: [-4.0, 11.3] },
+  n1_7: { pos: CLASS_REN, face: [-4.0, 11.3] },
+  // v0.14.0 FIX: konfrontasi Siti kini BENAR-BENAR di interior perpustakaan
+  // (kamera library_* sudah dipotong ke sana sejak v0.8.0, tapi aktor Siti
+  // masih memakai spot hall — sekarang sinkron + Ren distage).
+  n2_1: { pos: [29.0, 20.4], face: [30.0, 19.2] },
+  n2_2: { pos: [29.0, 20.4], face: [30.0, 19.2] },
+  n2_3: { pos: [29.0, 20.4], face: [30.0, 19.2] },
+  n2_4: { pos: [29.0, 20.4], face: [30.0, 19.2] },
+  n2_5: { pos: [29.0, 20.4], face: [30.0, 19.2] },
+  n2_6: { pos: [29.0, 20.4], face: [30.0, 19.2] },
+  n2_7: { pos: [29.0, 20.4], face: [30.0, 19.2] },
+  n2_8: { pos: [29.0, 20.4], face: [30.0, 19.2] },
+  n3_1: { pos: [-2.9, 16.6], face: [-4.0, 17.0] },
+  n3_2: { pos: [-2.9, 16.6], face: [-4.0, 17.0] },
+  n3_3: { pos: [-2.9, 16.6], face: [-4.0, 17.0] },
+  n3_4: { pos: [-2.9, 16.6], face: [-4.0, 17.0] },
+  n3_5: { pos: [-2.9, 16.6], face: [-4.0, 17.0] },
+  n3_6: { pos: [-2.9, 16.6], face: [-4.0, 17.0] },
+  n4_1: { pos: CLASS_REN, face: [-12.2, 11.6] },
+  n4_2: { pos: CLASS_REN, face: [-12.2, 11.6] },
+  n4_3: { pos: CLASS_REN, face: [-12.2, 11.6] },
+  n4_4: { pos: CLASS_REN, face: [-12.2, 11.6] },
+};

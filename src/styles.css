@@ -381,6 +381,19 @@ kbd, .key {
 .obj-body b { font-size: 10px; letter-spacing: 0.14em; color: var(--amber); text-transform: uppercase; }
 .obj-body strong { font-size: 12px; line-height: 1.45; color: var(--text-hi); font-weight: 600; letter-spacing: 0.02em; }
 .obj-body span { font-size: 8px; letter-spacing: 0.18em; color: var(--faint); text-transform: uppercase; margin-top: 2px; }
+/* v0.14.0: mission navigation [TELEPORT]/[JALAN] — HUD punya pointer-events
+   none, jadi tombol harus mengaktifkannya kembali secara eksplisit */
+.obj-actions { display: flex; gap: 6px; margin-top: 6px; }
+.obj-actions button {
+  pointer-events: auto; cursor: pointer;
+  font-family: var(--mono); font-size: 8px; letter-spacing: 0.16em;
+  color: var(--amber); background: rgba(24, 26, 30, 0.72);
+  border: 1px solid rgba(245, 158, 11, 0.4); border-radius: 3px;
+  padding: 4px 9px; transition: border-color 0.15s, background 0.15s, color 0.15s;
+}
+.obj-actions button:hover { background: rgba(245, 158, 11, 0.14); color: var(--text-hi); border-color: var(--amber); }
+.obj-actions button:disabled { opacity: 0.4; cursor: default; }
+.obj-card.walk-hint { box-shadow: 0 0 0 1px var(--amber), 0 0 22px rgba(245, 158, 11, 0.35); transition: box-shadow 0.3s; }
 
 /* zone tag kanan atas bawah clock */
 .zone-tag {

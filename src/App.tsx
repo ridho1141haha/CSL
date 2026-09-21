@@ -14,7 +14,8 @@ import { useQuests } from './stores/questStore';
 import { useInventory } from './stores/inventoryStore';
 import { useFrame } from '@react-three/fiber';
 import { input } from './game/input';
-import { audio } from './game/audio';
+import { audio, bgm } from './game/audio';
+import { periodFor } from './game/systems/time';
 import { saveGame } from './game/save';
 import { mobile } from './game/mobile';
 import { perfState, PREWARM } from './game/runtime';
@@ -22,6 +23,7 @@ import { GraphicsManager, CullingManager, WorldReadyProbe } from './game/perf';
 import { OPENING_ROOT, OPENING_ACTORS, SCENE_ACTORS, type StorySpot } from './data/chapters';
 import { PLAYER_SPAWN } from './data/world';
 import { StoryPropFX } from './game/story/StoryProps';
+import { applyPlayerStaging } from './game/story/staging';
 import type { StoryPlacement } from './game/npc/Npc';
 
 import { World } from './game/world/World';
@@ -71,6 +73,30 @@ export default function App() {
   const boot = useGame((s) => s.boot);
   const pointerLocked = useGame((s) => s.pointerLocked);
   const fade = useGame((s) => s.fade);
+
+  // v0.14.0 — BGM monitor (Task 8): SATU-satunya pemanggil bgm.sync di game.
+  // Snapshot state 1x/detik → musicDecision (murni) → setTrack dengan fade
+  // out/in bila track berubah. Komponen lain TIDAK boleh main musik sendiri
+  // (anti-overlap audio): menu/combat/ending/tensi cerita/suasana hari
+  // semuanya lewat sini.
+  useEffect(() => {
+    const tick = () => {
+      const g = useGame.getState();
+      const st = useStory.getState();
+      bgm.sync({
+        phase: g.phase,
+        mode: g.mode,
+        scene: g.scene,
+        chapter: st.chapter,
+        route: st.route,
+        periodId: periodFor(g.clock.minutes).id,
+        endingId: g.ending?.id ?? null,
+      });
+    };
+    tick();
+    const id = window.setInterval(tick, 1000);
+    return () => window.clearInterval(id);
+  }, []);
   // v0.9.0: world prewarm (see PREWARM) — mounted during boot/menu on
   // desktop-class devices, always during play
   const worldMounted = phase === 'play' || PREWARM;
@@ -247,6 +273,7 @@ export default function App() {
               <InputJanitor />
               {mode === 'COMBAT' && <CombatScene />}
               {mode === 'CINEMATIC' && <CinematicActors />}
+              <StoryPlayerStaging />
               <FPViewModel />
             </>
           )}
@@ -384,6 +411,19 @@ function PointerLockHint() {
       </div>
     </div>
   );
+}
+
+// v0.14.0 — Story staging runner (Task 2/3): setiap node dialogue yang punya
+// data REN_STAGING memindahkan Ren ke titik cerita deterministik + menghadap-
+// kan dia. Input sudah terkunci saat DIALOGUE/CINEMATIC, dan scene-start
+// difade via NODE_FX — teleport tidak pernah terlihat kasar. Node tanpa data
+// (NPC talk, zone flavor, opening FP) tidak pernah disentuh → free roam utuh.
+function StoryPlayerStaging() {
+  const nodeId = useDialogue((s) => s.nodeId);
+  useEffect(() => {
+    if (nodeId) applyPlayerStaging(nodeId);
+  }, [nodeId]);
+  return null;
 }
 
 // Cinematic actor placement. v0.7.0: satu schema Spot { pos, face } untuk

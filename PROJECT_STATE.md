@@ -1,6 +1,41 @@
 # Project State
 
-Updated: 2026-09-18 (v0.13.0 — mode kamera first-person/third-person: head-cam FP hard-attach + toggle V + setelan persist, badan Ren auto-hide saat FP, orbit TPS ikut tinggi lantai Gedung B)
+Updated: 2026-09-18 (v0.14.0 — story staging Ren deterministik per node, cerita modular di src/data/story/ per chapter/route/ending, mission TELEPORT/JALAN di HUD, requestScene same-scene fade, BGM MusicDirector terpusat; 163 test)
+
+## v0.14.0 Snapshot (2026-09-18)
+
+**Story staging (WHERE/WHO/POSE/CAMERA/DIALOGUE):**
+- `REN_STAGING` (data/chapters.ts, PlayerStaging { pos, face?, scene? }) —
+  posisi deterministik Ren per node cerita. Diterapkan `<StoryPlayerStaging/>`
+  (App) via `applyPlayerStaging()` (game/story/staging.ts) saat node terbuka;
+  setPos → rigid-body teleport existing, facing langsung ke playerPos.facing.
+- Aturan: opening FP (o*) tidak distage; node kombat biar combat yang pegang;
+  scene non-kampus wajib field `scene` (rooftop/warehouse koordinat lokal);
+  bab 2 wajib x ≥ 4.4 (shaft tangga x -4..4 z -2..4 = undakan). Semua diuji
+  test/staging.test.ts. FIX n2: Siti + Ren kini di interior perpustakaan
+  (sinkron kamera library_*).
+- `startStoryScene(nodeId, cinematic?)` = pintu masuk deterministik (Task 3)
+  yang tetap satu jalur dengan trigger lain (staging otomatis di node open).
+
+**Struktur cerita (src/data/story/):**
+- opening / chapter2 / chapter3 / routes{neutral,bad,resistance} /
+  endings{neutralEnding,bad1Ending,goodEnding,bad2Ending} / npc / discoveries /
+  ambient + index.ts perakit. data/dialogue.ts = re-export shim (0 import
+  churn). endingResolver tetap murni; scene ending terpisah per file dan
+  teruji pairwise-disjoint (test/storyStructure.test.ts).
+
+**Mission nav & transition:**
+- HUD obj-card: [TELEPORT] (requestScene campus + fade; objective TIDAK auto-
+  selesai) / [JALAN] (hint waypoint ◆ + jarak, kontrol tetap pemain).
+- requestScene same-scene kini fade out→setPos→in (= transitionToScene);
+  sceneLoading guard anti-transisi-tumpuk.
+
+**BGM:**
+- audio.ts += MusicDirector + musicDecision (murni) + PATTERNS prosedural
+  (menu/school_day/school_evening/tension/combat/neutral/ending_*). Satu
+  pemantau interval-1s di App memanggil bgm.sync (komponen lain tidak boleh
+  main musik). Fade out→ganti→in via gain track di atas bus MUSIC; volume
+  tetap ikut setelan MUSIC. bgm.reset() dipakai saat ending/reset store.
 
 ## v0.13.0 Snapshot (2026-09-18)
 

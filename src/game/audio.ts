@@ -163,6 +163,21 @@ class AudioEngine {
     }
     this.ambientNodes = [];
   }
+
+  // ---- v0.14.0: accessors for the MusicDirector (BGM) ----
+  /** AudioContext only after a user gesture unlocked it; null otherwise. */
+  contextForMusic(): AudioContext | null {
+    if (!this.unlocked || !this.ensure()) return null;
+    return this.ctx;
+  }
+
+  musicBus(): GainNode {
+    return this.buses.music;
+  }
+
+  isUnlocked(): boolean {
+    return this.unlocked;
+  }
 }
 
 export const audio = new AudioEngine();
@@ -173,3 +188,153 @@ export function notifySound(kind: string) {
   else if (kind === 'social') audio.social();
   else if (kind === 'warn') audio.hurt();
 }
+
+// ============================================================================
+// v0.14.0 — BGM / MusicDirector (Task 8): SATU source of truth musik latar.
+// Semua track prosedural (WebAudio, tanpa file aset — konsisten dengan engine
+// SFX di atas), semua suara lewat bus 'music' + gain track sendiri sehingga
+// fade out → ganti → fade in mulus dan volume mengikuti setelan MUSIC.
+//
+// ATURAN PAKAI: komponen TIDAK boleh memanggil playMusic sendiri-sendiri.
+// Satu pemantau (interval 1 dtk di App) memanggil bgm.sync(snapshot) —
+// keputusan track ada di musicDecision() yang murni & teruji.
+// ============================================================================
+
+export type MusicTrack =
+  | 'menu'
+  | 'school_day'
+  | 'school_evening'
+  | 'tension'
+  | 'combat'
+  | 'neutral'
+  | 'ending_good'
+  | 'ending_neutral'
+  | 'ending_bad';
+
+export type MusicContext = {
+  phase: 'boot' | 'menu' | 'play';
+  mode: string;
+  scene: string;
+  chapter: number;
+  route: string;
+  periodId: string; // 'pagi' | 'istirahat' | 'makan_siang' | 'istirahat_siang' | 'pulang' | ... (systems/time)
+  endingId: 'true' | 'bitter' | 'bad' | 'neutral' | null;
+};
+
+/**
+ * Pure track decision (unit-testable). Urutan prioritas:
+ * menu → ending → combat → tension (scene/cerita bab 3-4) → rute netral →
+ * suasana sekolah per periode hari.
+ */
+export function musicDecision(ctx: MusicContext): MusicTrack | null {
+  if (ctx.phase === 'boot') return null;
+  if (ctx.phase === 'menu') return 'menu';
+  if (ctx.mode === 'ENDING') {
+    if (ctx.endingId === 'neutral') return 'ending_neutral';
+    if (ctx.endingId === 'true') return 'ending_good';
+    return 'ending_bad';
+  }
+  if (ctx.mode === 'COMBAT') return 'combat';
+  // scene non-kampus selalu menegangkan (rooftop penawaran, gudang)
+  if (ctx.scene !== 'campus' && ctx.mode !== 'MAIN_MENU') return 'tension';
+  // cerita bab 3-4 dalam mode sinematik/dialog = momen tensi
+  if ((ctx.mode === 'CINEMATIC' || ctx.mode === 'DIALOGUE' || ctx.mode === 'TRANSITION') && ctx.chapter >= 3) {
+    return 'tension';
+  }
+  // rute netral: dingin & hening
+  if (ctx.route === 'neutral' && ctx.chapter >= 3) return 'neutral';
+  // suasana harian — 'after' = Pulang Sekolah (sore)
+  if (ctx.periodId === 'after') return 'school_evening';
+  return 'school_day';
+}
+
+// ---- pattern library: tiap track = urutan step [frekuensi, tipe, volume] ----
+type Step = [freq: number, type: OscillatorType, vol: number];
+const R: Step = [0, 'sine', 0]; // rest
+const PATTERNS: Record<MusicTrack, { stepMs: number; steps: Step[] }> = {
+  menu:          { stepMs: 900, steps: [[262, 'sine', 0.05], [392, 'sine', 0.04], [330, 'sine', 0.04], [392, 'sine', 0.04]] },
+  school_day:    { stepMs: 700, steps: [[523, 'triangle', 0.035], R, [587, 'triangle', 0.03], R, [659, 'triangle', 0.035], R, [587, 'triangle', 0.03], [392, 'triangle', 0.03]] },
+  school_evening:{ stepMs: 820, steps: [[392, 'sine', 0.045], [466, 'sine', 0.035], [349, 'sine', 0.04], R, [311, 'sine', 0.035], R, [294, 'sine', 0.04], R] },
+  tension:       { stepMs: 640, steps: [[98, 'sawtooth', 0.05], R, [103, 'sawtooth', 0.04], R, [98, 'sawtooth', 0.05], R, R, [116, 'sawtooth', 0.04]] },
+  combat:        { stepMs: 170, steps: [[82, 'sawtooth', 0.07], [82, 'square', 0.04], [110, 'sawtooth', 0.06], [82, 'square', 0.03], [73, 'sawtooth', 0.07], [110, 'square', 0.04], [82, 'sawtooth', 0.06], [98, 'square', 0.04]] },
+  neutral:       { stepMs: 1100, steps: [[196, 'sine', 0.04], R, R, [233, 'sine', 0.03], R, R, [174, 'sine', 0.035], R] },
+  ending_good:   { stepMs: 760, steps: [[523, 'sine', 0.05], [659, 'sine', 0.045], [784, 'sine', 0.05], [659, 'sine', 0.04], [523, 'sine', 0.045], [392, 'sine', 0.04]] },
+  ending_neutral:{ stepMs: 980, steps: [[262, 'sine', 0.04], R, [311, 'sine', 0.03], R, [233, 'sine', 0.04], R, R, R] },
+  ending_bad:    { stepMs: 880, steps: [[110, 'sawtooth', 0.05], R, [104, 'sawtooth', 0.045], R, [92, 'sawtooth', 0.05], R, R, [82, 'sawtooth', 0.04]] },
+};
+
+class MusicDirector {
+  private track: MusicTrack | null = null;
+  private gain: GainNode | null = null;
+  private timer: number | null = null;
+  private step = 0;
+
+  current(): MusicTrack | null {
+    return this.track;
+  }
+
+  /** Ganti track dengan fade (out → stop → start → in). Same-track = no-op. */
+  setTrack(next: MusicTrack | null, fadeSec = 1.1): void {
+    if (next === this.track) return;
+    const ctx = audio.contextForMusic();
+    if (!ctx) {
+      // audio belum unlock / tidak tersedia — catat target saja;
+      // sync() berikutnya (setelah gesture pertama) akan memulai pattern-nya
+      this.track = next;
+      return;
+    }
+    // fade out track lama
+    if (this.gain && this.timer != null) {
+      const oldGain = this.gain;
+      const oldTimer = this.timer;
+      oldGain.gain.setTargetAtTime(0, ctx.currentTime, fadeSec / 3.5);
+      window.setTimeout(() => {
+        window.clearInterval(oldTimer);
+        try { oldGain.disconnect(); } catch { /* already */ }
+      }, fadeSec * 1000 + 120);
+    } else if (this.timer != null) {
+      window.clearInterval(this.timer);
+    }
+    this.timer = null;
+    this.gain = null;
+    this.track = next;
+    if (!next) return;
+    // fade in track baru
+    const g = ctx.createGain();
+    g.gain.value = 0;
+    g.connect(audio.musicBus());
+    const pat = PATTERNS[next];
+    this.gain = g;
+    this.step = 0;
+    g.gain.setTargetAtTime(1, ctx.currentTime, fadeSec / 3);
+    this.timer = window.setInterval(() => {
+      const s = pat.steps[this.step % pat.steps.length];
+      this.step++;
+      if (!audio.isUnlocked()) return;
+      const [f, type, vol] = s;
+      if (f <= 0) return;
+      const osc = ctx.createOscillator();
+      const og = ctx.createGain();
+      osc.type = type;
+      osc.frequency.value = f;
+      const t = ctx.currentTime;
+      og.gain.setValueAtTime(0, t);
+      og.gain.linearRampToValueAtTime(vol, t + 0.03);
+      og.gain.exponentialRampToValueAtTime(0.0001, t + (pat.stepMs / 1000) * 0.92);
+      osc.connect(og).connect(g);
+      osc.start(t);
+      osc.stop(t + (pat.stepMs / 1000) + 0.05);
+    }, pat.stepMs);
+  }
+
+  /** Dipanggil satu pemantau saja (App, 1 dtk) — keputusan via musicDecision. */
+  sync(ctx: MusicContext): void {
+    this.setTrack(musicDecision(ctx));
+  }
+
+  reset(): void {
+    this.setTrack(null, 0.4);
+  }
+}
+
+export const bgm = new MusicDirector();

@@ -1,5 +1,77 @@
 # Changelog
 
+## 0.14.0 — 2026-09-18 (Story Staging, Modularisasi Cerita, Mission Nav, BGM)
+
+Refactor + fitur atas 12-task brief: staging posisi Ren saat story scene,
+pemisahan file cerita per chapter/route/ending, navigasi misi
+(TELEPORT/JALAN), transisi fade terpusat, dan sistem BGM. Semua dibangun DI
+ATAS sistem existing — tidak ada sistem paralel, tidak ada state duplikat.
+
+### Story staging (prioritas #1 — posisi Ren saat cerita)
+- **REN_STAGING** (data/chapters.ts): tabel posisi deterministik Ren per node
+  cerita — melengkapi tabel per-node yang sudah ada (SCENE_ACTORS/OPENING_
+  ACTORS untuk NPC, CAM_BY_NODE untuk kamera, STORY_PROPS). Story scene kini
+  menentukan WHERE/WHO/POSE/CAMERA/DIALOGUE, bukan cuma DIALOGUE.
+- **story/staging.ts**: `applyPlayerStaging()` (pindah Ren + hadapkan; guard
+  scene; node tanpa data tidak disentuh → free roam utuh) + `startStoryScene()`
+  pintu masuk deterministik. Runner `<StoryPlayerStaging/>` di App memicu saat
+  node terbuka; input memang terkunci saat DIALOGUE/CINEMATIC, jadi pemain tak
+  melihat "Ren teleport".
+- **FIX n2**: konfrontasi Siti (rute netral) kini benar-benar di interior
+  perpustakaan — kamera library_* sudah memotong ke sana sejak v0.8.0, tapi
+  spot Siti masih di hall (tak pernah masuk frame).
+- NODE_FX += fade-in untuk scene-start yang distage (ch3_f2_1, ch3_f2_win,
+  ch4_bad_1, ch4_good_1) → transisi sinematik out→place→in konsisten.
+
+### Modularisasi cerita (prioritas #2)
+- dialogue.ts (781 baris) dipecah mekanis ke **src/data/story/**: opening.ts,
+  chapter2.ts, chapter3.ts, routes/{neutral,bad,resistance}.ts, endings/
+  {neutralEnding,bad1Ending,goodEnding,bad2Ending}.ts, npc.ts, discoveries.ts,
+  ambient.ts + index.ts (perakit graph + tabel runtime). dialogue.ts kini
+  re-export shim — semua import lama tak tersentuh.
+- **Ending terpisah dari resolver** (Task 5): endingResolver tetap murni
+  (state → Ending); scene ending tiap rute kini file sendiri, dijamin
+  terisolasi lewat test reachability (pairwise disjoint).
+
+### Mission navigation (Task 1)
+- Kartu misi HUD punya tombol **[TELEPORT]** dan **[JALAN]**. Teleport =
+  `requestScene('campus', pos_target)` (fade out → pindah → fade in); objektif
+  TIDAK otomatis selesai — kondisi objektif tetap dievaluasi sistem existing
+  (zona/flag/periode). Jalan = penekanan arah via waypoint ◆ + jarak HUD
+  (kontrol pemain tidak pernah diambil alih).
+- Target dipakai dari hook `useObjective()` existing — tidak ada schema misi
+  baru (aturan "pakai format existing").
+
+### Transition (Task 6/7)
+- `requestScene()` same-scene kini juga difade (out → setPos → in) — jadi
+  abstraction `transitionToScene` untuk semua perpindahan player (exit
+  rooftop/warehouse, teleport misi). sceneLoading mencegah transisi tumpuk.
+
+### BGM / soundtrack (Task 8)
+- **MusicDirector + musicDecision()** (audio.ts): satu source of truth musik.
+  Track prosedural (tanpa aset): menu, school_day, school_evening, tension,
+  combat, neutral, ending_good/ending_neutral/ending_bad. Ganti track selalu
+  fade out → ganti → fade in lewat gain sendiri di atas bus MUSIC.
+- Pemantau TUNGGAL (interval 1 dtk di App) memanggil `bgm.sync()` — komponen
+  lain tidak pernah memainkan musik sendiri (anti-overlap). Keputusan prioritas:
+  menu → ending → combat → tension (scene non-kampus / cerita bab 3-4) →
+  rute netral → suasana per periode hari.
+
+### Testing (Task 12)
+- 25 test baru: staging.test.ts (integritas REN_STAGING: node ada, scene benar,
+  bounds, aturan shaft tangga x≥4.4, guard scene; trigger/montage root wajib
+  distage), storyStructure.test.ts (komposisi modul == graph tunggal tanpa
+  duplikat, kepemilikan id per modul, ISOLASI ending pairwise + pemisahan
+  rute, runtime tables lengkap), bgm.test.ts (tabel keputusan + state
+  headless MusicDirector). Total 163 unit test hijau.
+- Regression: qa-mentor PASS, qa-walkability 12/12 (termasuk "staging bab 2
+  bebas tembok"), qa-nav PASS — CONSOLE_ERRORS none di semua skenario.
+
+### Tidak diubah (disengaja)
+- Alur cerita, kondisi ending, node text, combat, save/load, jadwal NPC,
+  quest conditions — semua graph data dipindah apa adanya (diverifikasi test
+  komposisi + storyFlow existing).
+
 ## 0.13.0 — 2026-09-18 (Mode Kamera First-Person & Third-Person)
 
 Permintaan user: "kasih mode thirdperson dan firstperson". Kamera gameplay kini
