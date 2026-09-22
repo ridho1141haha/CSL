@@ -177,6 +177,11 @@ export function StoryActors({ placements }: { placements: StoryPlacement[] }) {
 function StoryActor({ id, x, z, color, faceTo, sit, crouch, hold }: StoryPlacement) {
   const group = useRef<THREE.Group>(null);
   const anim = useRef(makeAnim());
+  // stale-position guard (v0.14.1, mirrors ScheduledNpc): when a story actor
+  // unmounts (scene change / next node without this actor) its last written
+  // position must not linger in actorPositions — a ghost from an older scene
+  // used to be picked up as a camera/acting target for unrelated scenes.
+  useEffect(() => () => { delete actorPositions[id]; }, [id]);
   useFrame(() => {
     const g = group.current;
     if (!g) return;

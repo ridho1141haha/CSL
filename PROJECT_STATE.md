@@ -1,6 +1,35 @@
 # Project State
 
-Updated: 2026-09-18 (v0.14.0 — story staging Ren deterministik per node, cerita modular di src/data/story/ per chapter/route/ending, mission TELEPORT/JALAN di HUD, requestScene same-scene fade, BGM MusicDirector terpusat; 163 test)
+Updated: 2026-09-22 (v0.14.1 — fix kamera sinematik mengikuti story scene aktif: resolver staging murni resolveCinematicCamera, ghost actorPositions dibersihkan, story scene ch2/pasca-kombat kini CINEMATIC, cameraStage lengkap & benar lokasi; 178 test)
+
+## v0.14.1 Snapshot (2026-09-22)
+
+**Kamera sinematik = milik story scene aktif (bukan tebakan):**
+- `resolveCinematicCamera(nodeId)` (game/story/staging.ts, murni & teruji):
+  `node.cam` (preset shot dialogue, speaker/listener wajib distage) →
+  pose authoran `CAM_BY_NODE` → null (CameraRig memframing Ren yang
+  distage — tidak ada lagi konstanta 'courtyard_view').
+- Kamera CINEMATIC TIDAK membaca registry live (actorPositions/npcPositions)
+  — posisi hantu scene lama (bullies kantin o4, gang tangga ch2, Bimo rooftop)
+  tidak lagi menyeret kamera dari scene aktif. Registry live hanya untuk mode
+  DIALOGUE (obrolan NPC yang memang berdiri di depan pemain).
+- `storyCastSpots(nodeId)` = ekspansi cast (konvensi id sama dgn CinematicActors);
+  `stagedEntityPosition(nodeId, id)` = posisi dari DATA staging.
+- `StoryActor` cleanup `actorPositions[id]` saat unmount (anti-hantu, cermin
+  guard ScheduledNpc).
+- Story scene selalu CINEMATIC: ch2 (`StoryDirector`) + 5 node onWin
+  (`finishCombatWin`) dibuka `cinematic=true` → aktor SCENE_ACTORS terpasang,
+  pose authoran aktif.
+- cameraStage/actorStages dilengkapi dari audit 146 node: ch2_close,
+  ch4_bad_4/4b, ch3_osis_* (hall_* memframing spot Siti), ch4_res_1/4
+  (courtyard); Bimo rooftop/gudang + Aris/Siti courtyard pindah ke
+  SCENE_ACTORS (hardcode App dihapus).
+- Guard test (test/cinema.test.ts): INVARIANT LOKASI — look-target pose
+  wajib ≤18 m dari entity scene yang distage; semua node sinematik wajib
+  punya keputusan kamera; regresi hantu kantin/kelas/rooftop.
+- Follow-up (bukan kamera): ch2_win_6 (Bimo menyaksi) & n3_2/n3_4 (suara
+  gang) speaker sah tapi aktornya belum distage — kamera aman (pose authoran),
+  konten render menyusul bila diperlukan.
 
 ## v0.14.0 Snapshot (2026-09-18)
 

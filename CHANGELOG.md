@@ -1,5 +1,56 @@
 # Changelog
 
+## 0.14.1 — 2026-09-22 (Fix Kamera Sinematik: Mengikuti Story Scene Aktif)
+
+Fix bug user: "story berlangsung di satu lokasi (kelas/tangga), kamera
+sinematik malah menyorot area lain (kantin)". Audit dulu, baru coding —
+tanpa if/else scene, tanpa hardcode koordinat, tanpa sistem duplikat.
+
+### Root cause (audit)
+1. Kamera CINEMATIC memprioritaskan speaker-shot dari posisi LIVE registry
+   global (`actorPositions ?? npcPositions`) tanpa memvalidasi entity itu
+   bagian dari scene aktif — posisi hantu scene lama (bullies kantin dari
+   opening o4, gang tangga dari ch2, Bimo rooftop) menyeret kamera.
+2. `StoryActor` tidak membersihkan `actorPositions` saat unmount (hantu
+   lintas scene; `ScheduledNpc` sudah punya guard, StoryActor belum).
+3. Dua pintu story scene terbuka di mode DIALOGUE (bukan CINEMATIC):
+   ch2 (`StoryDirector`) dan 5 lanjutan pasca-kombat (`finishCombatWin`)
+   → aktor cerita tak ter-mount, pose authoran tak jalan.
+4. Fallback statis `'courtyard_view'` (tebakan lokasi) untuk node tanpa
+   CAM_BY_NODE, plus beberapa cameraStage authoran yang menunjuk scene lain.
+
+### Perbaikan arsitektur (story scene memiliki kamera)
+- **story/staging.ts** — resolver murni `resolveCinematicCamera(nodeId)`:
+  urutan `node.cam` (shot eksplisit dialogue, divalidasi ke cast node) →
+  pose authoran `CAM_BY_NODE` → null (caller memframing Ren yang distage).
+  Kamera sinematik TIDAK lagi membaca registry live. Helper baru:
+  `storyCastSpots()` (ekspansi cast, konvensi id = CinematicActors) +
+  `stagedEntityPosition()` (posisi dari DATA staging; 'ren' → playerPos).
+- **camera/CameraRig.tsx** — cabang CINEMATIC konsumsi resolver di atas;
+  fallback konstanta courtyard dihapus. `shotForNode` live TETAP untuk
+  mode DIALOGUE (obrolan NPC ≤2.3 m — posisi live memang scene-nya).
+- **npc/Npc.tsx** — `StoryActor` cleanup `actorPositions[id]` saat unmount
+  (cermin guard ScheduledNpc) — hantu punah di sumbernya.
+- **StoryDirector / combat.finishCombatWin** — ch2 + node onWin kini
+  dibuka `cinematic=true` (story scene = CINEMATIC, konsisten semua scene).
+- **Data staging (chapters.ts)** — cameraStage lengkap & benar lokasi:
+  `ch2_close`→stairs_wide (semula jatuh ke courtyard), `ch4_bad_4/4b`→
+  classroom_close (semula warehouse_close; scene masih kelas),
+  `ch3_osis_*`→hall_view/hall_close (semula corridor_* yang meleset ±22 m
+  dari spot Siti), `ch4_res_1/4`→courtyard_view (semula alley_wide, 53 m
+  dari aktor courtyard). ActorStages dipindah ke data: Bimo rooftop
+  (10 node ch3), Bimo gudang (ch4_bad_after*), Aris+Siti courtyard
+  (ch4_res_1..4) — hardcode CinematicActors di App dihapus (data tunggal).
+- Multi-shot per scene TETAP didukung tanpa sistem baru: 1 scene = rantai
+  node (tiap node = shot), node bisa memilih preset via `cam:`.
+
+### Test
+- **test/cinema.test.ts** baru (15 test): regresi hantu kantin/kelas/
+  rooftop, kelengkapan cameraStage semua node sinematik, INVARIANT LOKASI
+  (look-target pose wajib dekat entity scene distage), pintu masuk scene
+  siap CINEMATIC, node.cam validasi staging. Total 178 test (17 file).
+- Verifikasi: `npm test` 178 ✓ · `tsc -b` ✓ · `vite build` ✓.
+
 ## 0.14.0 — 2026-09-18 (Story Staging, Modularisasi Cerita, Mission Nav, BGM)
 
 Refactor + fitur atas 12-task brief: staging posisi Ren saat story scene,

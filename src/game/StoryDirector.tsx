@@ -302,7 +302,11 @@ export function StoryDirector() {
       !story.flags.includes('ch2_scene_opened')
     ) {
       story.setFlag('ch2_scene_opened');
-      dialogue.open('ch2_intro_1');
+      // v0.14.1: story scene berjalan CINEMATIC — sama dengan scene cerita
+      // lain — supaya staging Ren + aktor SCENE_ACTORS terpasang dan kamera
+      // memakai cameraStage authoran (stairs_*), bukan speaker-shot dari
+      // registry live yang bisa memuat posisi hantu scene lain.
+      dialogue.open('ch2_intro_1', true);
       return;
     }
 

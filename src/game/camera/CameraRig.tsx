@@ -14,6 +14,7 @@ import { SHOT_PRESETS, DEFAULT_SHOT } from '../../data/shots';
 import { getDialogue } from '../../data/dialogue';
 import { resolveCast, entityPosition } from '../systems/acting';
 import { computeShot, type ShotResult } from '../systems/shot';
+import { resolveCinematicCamera } from '../story/staging';
 import { clampPitch, fpLookDir, reclampOnSwitch, FP_EYE, type CamMode } from './mode';
 
 const lerpV = new THREE.Vector3();
@@ -40,11 +41,18 @@ export function isPoseCut(
 }
 
 // ---------------------------------------------------------------------------
-// Dialogue shot resolution (mentor feedback #2).
+// Dialogue shot resolution (mentor feedback #2) — DIALOGUE MODE ONLY.
 // Speaker-driven framing computed from LIVE entity positions. Resolution chain
 // per node: SHOT_PRESETS[node.cam] → DEFAULT_SHOT[speaker] → medium_speaker.
 // Returns null when nothing is framable (FP opening, narrator-only lines,
-// no placed entities) — callers fall back to authored static poses.
+// no placed entities) — callers fall back to the orbit rig.
+//
+// v0.14.1: CINEMATIC story scenes NO LONGER use this path. Live registries
+// (actorPositions/npcPositions) are global across scenes, so an unstaged
+// speaker used to resolve to a ghost position from an older scene (e.g. the
+// opening's canteen bullies) and yank the camera away from the active story
+// scene. Cinematic nodes resolve through resolveCinematicCamera() (story
+// staging data) instead — see the CINEMATIC branch below.
 // ---------------------------------------------------------------------------
 function shotForNode(nodeId: string | null): ShotResult | null {
   if (!nodeId) return null;
@@ -226,10 +234,9 @@ export function CameraRig() {
       if (node && node !== lastNode.current) {
         lastNode.current = node;
       }
-      const poseKey = (node && CAM_BY_NODE[node]) || (fp.current ? 'fp_gate' : 'courtyard_view');
+      const poseKey = (node && CAM_BY_NODE[node]) || 'fp_gate';
       const pose = CAMERA_POSES[poseKey] ?? CAMERA_POSES.fp_gate;
       const openingFp = !story.flags.includes('opening_complete');
-
       if (openingFp) {
         // v0.12.0: hard cut between scenes, smooth head-cam inside a scene
         const cut = poseKey !== lastPose.current.key && isPoseCut(lastPose.current.key === poseKey ? null : lastPose.current.pos, { x: pose.pos[0], y: pose.pos[1], z: pose.pos[2] });
@@ -292,13 +299,19 @@ export function CameraRig() {
           game.setMode('GAMEPLAY');
           return;
         }
-        // speaker-driven shot first (mentor #2); authored static pose fallback
-        const shot = shotForNode(dialogue.nodeId);
-        if (shot) {
-          applyShot(camera, lookAt.current, shot, dt, reduced);
-        } else {
+        // v0.14.1: the ACTIVE STORY SCENE owns the camera. Resolution comes
+        // from staging data only — node.cam shot (validated against the node's
+        // cast) → authored CAM_BY_NODE pose → frame the staged Ren. Live
+        // registries are never consulted here, so a ghost position from an
+        // older scene (opening canteen bullies, previous rooftop staging)
+        // can no longer pull the camera away from the scene in progress.
+        const cam = resolveCinematicCamera(dialogue.nodeId);
+        if (cam?.kind === 'shot') {
+          applyShot(camera, lookAt.current, cam.shot, dt, reduced);
+        } else if (cam?.kind === 'pose') {
+          const pose = CAMERA_POSES[cam.key]!;
           // v0.12.0: same hard-cut rule for third-person montage poses
-          const cut = poseKey !== lastPose.current.key && isPoseCut(lastPose.current.key === poseKey ? null : lastPose.current.pos, { x: pose.pos[0], y: pose.pos[1], z: pose.pos[2] });
+          const cut = cam.key !== lastPose.current.key && isPoseCut(lastPose.current.key === cam.key ? null : lastPose.current.pos, { x: pose.pos[0], y: pose.pos[1], z: pose.pos[2] });
           if (cut || reduced) {
             camera.position.set(pose.pos[0], pose.pos[1], pose.pos[2]);
             lookAt.current.set(pose.look[0], pose.look[1], pose.look[2]);
@@ -307,9 +320,15 @@ export function CameraRig() {
             camera.position.lerp(lerpV.set(pose.pos[0], pose.pos[1], pose.pos[2]), k);
             lookAt.current.lerp(lookV.set(pose.look[0], pose.look[1], pose.look[2]), k);
           }
-          lastPose.current.key = poseKey;
+          lastPose.current.key = cam.key;
           lastPose.current.pos.copy(camera.position);
           camera.lookAt(lookAt.current);
+        } else {
+          // no authored camera staging for this node → frame the staged Ren
+          // (medium single). Ren is placed by applyPlayerStaging before the
+          // dialogue shows, so this default can never point at another zone.
+          const shot = computeShot(SHOT_PRESETS.medium_speaker, { x: playerPos.x, z: playerPos.z }, null);
+          applyShot(camera, lookAt.current, shot, dt, reduced);
         }
       }
       return;

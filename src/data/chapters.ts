@@ -78,6 +78,9 @@ export const CAM_BY_NODE: Record<string, string> = {
   ch2_win_4: 'stairs_aris',
   ch2_win_5: 'stairs_wide',
   ch2_win_6: 'stairs_close',
+  // v0.14.1: penutup bab 2 kini punya cameraStage — sebelumnya jatuh ke
+  // fallback 'courtyard_view' (tebakan lokasi) padahal scene masih di tangga.
+  ch2_close: 'stairs_wide',
   // ---- rute netral: Dinding Dingin (montage) ----
   n1_1: 'classroom_view',
   n1_2: 'classroom_close',
@@ -114,12 +117,15 @@ export const CAM_BY_NODE: Record<string, string> = {
   ch4_neu_grad_6: 'grad_gate',
   // rooftop & late-story cinematics (GARIS MERAH)
   // ---- bab 3 rute aksi: pendekatan OSIS + sergapan parkiran ----
-  ch3_osis_1: 'corridor_view',
-  ch3_osis_2: 'corridor_close',
-  ch3_osis_3: 'corridor_close',
-  ch3_osis_4: 'corridor_close',
-  ch3_osis_5: 'corridor_close',
-  ch3_osis_6: 'corridor_view',
+  // v0.14.1: pose lama corridor_* mewarisi framing montase n3 (koridor z≈17)
+  // padahal Siti distage di hall z≈23.5 — kamera meleset ±22 m dari lokasi
+  // scene. hall_view/hall_close memframing persis spot Siti (look -3,23.5).
+  ch3_osis_1: 'hall_view',
+  ch3_osis_2: 'hall_close',
+  ch3_osis_3: 'hall_close',
+  ch3_osis_4: 'hall_close',
+  ch3_osis_5: 'hall_close',
+  ch3_osis_6: 'hall_view',
   ch3_f2_1: 'pk_ambush',
   ch3_f2_2: 'pk_close',
   ch3_f2_3: 'pk_close',
@@ -140,8 +146,11 @@ export const CAM_BY_NODE: Record<string, string> = {
   ch4_bad_1: 'corridor_view',
   ch4_bad_2: 'classroom_close',
   ch4_bad_3: 'classroom_view',
-  ch4_bad_4: 'warehouse_close',
-  ch4_bad_4b: 'warehouse_close',
+  // v0.14.1: dua node ini masih di konteks KELAS (pindah gudang terjadi di
+  // ch4_bad_warehouse) — pose lama 'warehouse_close' memotret area gudang
+  // jauh dari scene aktif.
+  ch4_bad_4: 'classroom_close',
+  ch4_bad_4b: 'classroom_close',
   ch4_bad_warehouse: 'whin',
   ch4_bad_after: 'whin_close',
   ch4_bad_after_2: 'whin',
@@ -150,10 +159,13 @@ export const CAM_BY_NODE: Record<string, string> = {
   ch4_bad_grad_2: 'grad_gate',
   ch4_bad_grad_3: 'grad_gate',
   // ---- resistance: penyanderaan + FINAL BOSS + CHOICE 3 ----
-  ch4_res_1: 'alley_wide',
+  // GARIS MERAH — montase resistance: kampanye hukuman di COURTYARD (aktor
+  // distage courtyard; v0.14.1: alley_wide lama memotret gang belakang 53 m
+  // dari scene aktif)
+  ch4_res_1: 'courtyard_view',
   ch4_res_2: 'courtyard_view',
   ch4_res_3: 'courtyard_view',
-  ch4_res_4: 'alley_wide',
+  ch4_res_4: 'courtyard_view',
   ch4_res_alley: 'alley_wide',
   ch4_res_alley_2: 'alley_close',
   ch4_res_alley_3: 'alley_wide',
@@ -360,6 +372,14 @@ const alleyCircle: StorySpot[] = [
   { pos: [7.5, -20.6], face: [6.0, -22.0] },
 ];
 const bimoAlley: StorySpot = { pos: [8.4, -22.8], face: [6.0, -21.5] };
+// montase resistance (courtyard) — verbatim dari hardcode lama CinematicActors
+const RES_COURTYARD_ARIS: StorySpot = { pos: [6, 33] };
+const RES_COURTYARD_SITI: StorySpot = { pos: [4.5, 34.5] };
+// rooftop scene (koordinat lokal scene) — verbatim dari hardcode lama
+// CinematicActors: Bimo di parapet utara menghadap kota
+const ROOFTOP_BIMO: StorySpot = { pos: [0.3, -5.6], face: [0, -10] };
+// interior gudang (koordinat lokal scene) — Bimo menghadap Ren (WAREHOUSE_REN)
+const WAREHOUSE_BIMO: StorySpot = { pos: [0.0, -4.6], face: [0.3, -2.4] };
 const sitiHidden: StorySpot = { pos: [12.5, -22.0], face: [6.0, -22.0] };
 const gradAris: StorySpot = { pos: [7.2, 43.4], face: [6.4, 44.6] };
 const gradSiti: StorySpot = { pos: [8.4, 44.4], face: [6.8, 43.2] };
@@ -402,6 +422,30 @@ export const SCENE_ACTORS: Record<string, OpeningCast> = {
   ch3_f2_win: { bullies: parkingLieutenants },
   ch3_f2_win_2: { bullies: parkingLieutenants },
   ch3_f2_win_3: { bullies: parkingLieutenants },
+  // GARIS MERAH — rooftop: penawaran Bimo (scene lokal; aktor via data —
+  // v0.14.1 pindah dari hardcode CinematicActors ke SCENE_ACTORS supaya
+  // node.cam speaker-shot tervalidasi terhadap cast yang sama)
+  ch3_intro_1: { bimo: ROOFTOP_BIMO },
+  ch3_intro_2: { bimo: ROOFTOP_BIMO },
+  ch3_intro_3: { bimo: ROOFTOP_BIMO },
+  ch3_intro_4: { bimo: ROOFTOP_BIMO },
+  ch3_intro_5: { bimo: ROOFTOP_BIMO },
+  ch3_choice: { bimo: ROOFTOP_BIMO },
+  ch3_accept_1: { bimo: ROOFTOP_BIMO },
+  ch3_accept_2: { bimo: ROOFTOP_BIMO },
+  ch3_reject_1: { bimo: ROOFTOP_BIMO },
+  ch3_reject_2: { bimo: ROOFTOP_BIMO },
+  // GARIS MERAH — montase resistance (courtyard): Aris & Siti korban hukuman
+  // v0.14.1: pindah dari hardcode CinematicActors ke SCENE_ACTORS supaya
+  // node.cam (close_speaker) tervalidasi terhadap cast yang sama
+  ch4_res_1: { aris: RES_COURTYARD_ARIS, siti: RES_COURTYARD_SITI },
+  ch4_res_2: { aris: RES_COURTYARD_ARIS, siti: RES_COURTYARD_SITI },
+  ch4_res_3: { aris: RES_COURTYARD_ARIS, siti: RES_COURTYARD_SITI },
+  ch4_res_4: { aris: RES_COURTYARD_ARIS, siti: RES_COURTYARD_SITI },
+  // GARIS MERAH — pasca gudang: Bimo menyerahkan wilayah (scene lokal gudang;
+  // spot persis di look-target whin_close — Ren distage menghadapinya)
+  ch4_bad_after: { bimo: WAREHOUSE_BIMO },
+  ch4_bad_after_2: { bimo: WAREHOUSE_BIMO },
   // GARIS MERAH — montase bad: Aris menjauh (kelas)
   ch4_bad_3: { aris: { pos: [-4.0, 11.3], face: [-9, 8.6] } },
   // GARIS MERAH — kelulusan bad: pengikut geng baru
@@ -666,6 +710,9 @@ export const REN_STAGING: Record<string, PlayerStaging> = {
   ch4_bad2_3: { pos: [6.4, -20.4], face: [8.2, -22.6] },
   ch4_bad2_4: { pos: [6.4, -20.4], face: [8.2, -22.6] },
   ch4_bad2_5: { pos: [6.4, -20.4], face: [8.2, -22.6] },
+  // v0.14.1: penutup bab 2 (setelah Bimo "...Tidak buruk.") — deterministik,
+  // kamera stairs_wide memframing titik ini
+  ch2_close: { pos: [4.8, 1.6], face: [6.6, 2.0] },
   // ---- RUTE NETRAL: montase "Dinding Dingin" ----
   n1_1: { pos: CLASS_REN, face: [-4.0, 11.3] },
   n1_2: { pos: CLASS_REN, face: [-4.0, 11.3] },

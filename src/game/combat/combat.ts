@@ -386,5 +386,9 @@ export function finishCombatWin() {
   resetCombatRuntime();
   enemyPos.active = false;
   game.setMode('GAMEPLAY');
-  if (onWin) useDialogue.getState().open(onWin);
+  // v0.14.1: lanjutan cerita pasca-kombat adalah STORY SCENE — selalu
+  // CINEMATIC, sama seperti scene cerita lain, supaya staging Ren + aktor
+  // SCENE_ACTORS terpasang dan kamera memakai cameraStage authoran (bukan
+  // speaker-shot dari registry live yang bisa memuat posisi hantu scene lain).
+  if (onWin) useDialogue.getState().open(onWin, true);
 }
