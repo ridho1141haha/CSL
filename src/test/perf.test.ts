@@ -1,5 +1,12 @@
 import { describe, it, expect } from 'vitest';
-import { QUALITY_PRESETS, resolveQuality, qualityConfig } from '../game/quality';
+import {
+  QUALITY_PRESETS,
+  resolveQuality,
+  qualityConfig,
+  lowSpecProfile,
+  adaptiveDpr,
+  ADAPTIVE_DPR_FLOOR,
+} from '../game/quality';
 import {
   registerCull,
   unregisterCull,
@@ -53,6 +60,33 @@ describe('quality presets — PBR shader-cost knobs (v0.14.2)', () => {
   });
 });
 
+describe('quality presets — weak profile + adaptive dpr (v0.14.3)', () => {
+  it('lowSpecProfile: weak device tier OR user-selected RENDAH', () => {
+    // device tier decides when auto
+    expect(lowSpecProfile('auto', 'low')).toBe(true);
+    expect(lowSpecProfile('auto', 'high')).toBe(false);
+    // explicit RENDAH means weak profile on ANY device (the laptop report)
+    expect(lowSpecProfile('low', 'high')).toBe(true);
+    // better presets never flag a healthy tier
+    expect(lowSpecProfile('medium', 'high')).toBe(false);
+    expect(lowSpecProfile('high', 'high')).toBe(false);
+  });
+
+  it('adaptiveDpr steps down on low fps, holds in the band, recovers on high', () => {
+    // drop: 15% per step, never below the floor
+    expect(adaptiveDpr(1, 1, 30)).toBe(0.85);
+    expect(adaptiveDpr(1, 0.85, 30)).toBeCloseTo(0.72, 2);
+    expect(adaptiveDpr(1, 0.6, 10)).toBe(ADAPTIVE_DPR_FLOOR);
+    expect(adaptiveDpr(2, 0.6, 0)).toBe(ADAPTIVE_DPR_FLOOR);
+    // band 42..56: hold
+    expect(adaptiveDpr(1, 0.85, 50)).toBe(0.85);
+    // recover: climbs back toward base, never beyond it
+    expect(adaptiveDpr(1, 0.85, 60)).toBe(1);
+    expect(adaptiveDpr(1, 1, 60)).toBe(1);
+    expect(adaptiveDpr(1.5, 0.85, 60)).toBe(1);
+  });
+});
+
 describe('cull registry + decision (v0.9.0)', () => {
   it('registers and unregisters entries with unique ids', () => {
     resetCullRegistry();
@@ -95,6 +129,17 @@ describe('cull registry + decision (v0.9.0)', () => {
     const mezz = { center: [0, 8, 0] as [number, number, number], radius: 5, mode: 'interior' as const };
     // 8m up, range 6 → hidden even though x/z overlap
     expect(cullDecision(mezz, origin, { interiorRange: 6, margin: 6, inFrustum: true })).toBe(true);
+  });
+
+  it('v0.14.3 fog culling: bundles fully past farRange hide even in frustum', () => {
+    const entry = { center: [200, 0, 0] as [number, number, number], radius: 10, mode: 'frustum' as const };
+    // near edge at 190m, farRange 110 → 100% fogged → hidden despite frustum
+    expect(cullDecision(entry, origin, { interiorRange: 42, margin: 6, inFrustum: true, farRange: 110 })).toBe(true);
+    // near edge still inside the fog (115-10=105 < 110) → keep visible
+    const nearFog = { center: [115, 0, 0] as [number, number, number], radius: 10, mode: 'frustum' as const };
+    expect(cullDecision(nearFog, origin, { interiorRange: 42, margin: 6, inFrustum: true, farRange: 110 })).toBe(false);
+    // no farRange = legacy behavior (in-frustum bundle stays)
+    expect(cullDecision(entry, origin, { interiorRange: 42, margin: 6, inFrustum: true })).toBe(false);
   });
 
   it('prewarm flag exists and perfState tracks readiness', () => {

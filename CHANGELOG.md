@@ -1,5 +1,48 @@
 # Changelog
 
+## 0.14.3 — 2026-09-22 (RENDAH Masih Patah-patah di Laptop: Draw Call & Adaptif)
+
+Lanjutan laporan user: "kenapa kok masih patah-patah di laptopku, padahal
+settingnya udah RENDAH". Audit menemukan knob performa yang TIDAK ikut
+preset — semuanya mengikuti device tier saja.
+
+### Root cause (audit)
+1. **Draw call tidak tersentuh preset.** Tiap figur ≈ 30 mesh; 14 pelajar
+   ambient + ~5 NPC utama ≈ 570 draw call — crowd halving hanya jalan untuk
+   `mobile.lowSpec` (HP), laptop tier 'high' selalu dapat crowd penuh.
+2. **MSAA tidak bisa mati di RENDAH.** `antialias: !mobile.lowSpec` adalah
+   atribut context — laptop (tier high) terus membayar MSAA walau preset
+   RENDAH; GraphicsManager tidak bisa mengubahnya live.
+3. **Bangunan di luar fog tetap dirender.** cullDecision hanya mengenal
+   frustum + interiorRange; bundle 150 m+ yang 100% tertelan fog tetap
+   masuk draw call setiap frame.
+4. **Kain NPC ber-peta penuh.** weave normal+rough map aktif di semua figur
+   walau RENDAH (materi cache dibuat tanpa peduli preset).
+5. Tidak ada jaring pengaman FPS — dpr mentok di preset walau GPU kewalahan.
+
+### Perbaikan
+- **`lowSpecProfile(quality, tier)`** (quality.ts, murni): profil lemah =
+  perangkat tier low ATAU user memilih RENDAH. Dipakai:
+  - crowd ambient DITURUNKAN LIVE di Npcs (subscribe quality),
+  - MSAA off + shadow 'basic' via `BOOT_LOW` (App, berlaku sejak reload —
+    atribut context tidak bisa live),
+  - peta kain (weave normal/rough) tidak dibangun saat boot (Character).
+- **Fog culling** (runtime.cullDecision + opt `farRange`): bundle yang
+  tepi terdekatnya melewati fogFar disembunyikan walau di frustum — warna
+  pikselnya memang sudah = warna fog. CullingManager mengirim fogFar preset.
+- **Adaptive dpr** (quality.adaptiveDpr murni + loop di GraphicsManager):
+  1.2 s/window; FPS <42 → dpr turun 15% bertahap (floor 0.55), FPS >56 →
+  naik pelan kembali ke dpr preset. Ganti preset me-reset state adaptif.
+- NPC/ pelajar: `visible=false` ketika jarak kamera > fogFar−25 (≥45 m) —
+  dicek sebelum freeze CINEMATIC; jarak interaksi/dialog (≤3.5 m) jauh di
+  dalam radius, jadi gameplay & cutscene kebal.
+
+### Test
+- test/perf.test.ts +3 blok: lowSpecProfile (tier vs RENDAH), adaptiveDpr
+  (drop/hold/recover/floor), fog culling (hide past farRange, keep di
+  tepi fog, perilaku legacy tanpa farRange) → 184/184 hijau.
+- Verify: tsc -b ✓ · vite build ✓ · qa-nav (headless): CONSOLE_ERRORS none.
+
 ## 0.14.2 — 2026-09-22 (Optimasi PBR: Tekstur & Refleksi Lebih Ringan)
 
 Fix laporan user: "texture pbr terlalu berat apalagi refleksi cahayanya".

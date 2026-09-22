@@ -105,6 +105,34 @@ export function qualityConfig(selected: Quality, tier: Tier): QualityConfig {
   return QUALITY_PRESETS[resolveQuality(selected, tier)];
 }
 
+// ---------------------------------------------------------------------------
+// v0.14.3 — "masih patah-patah padahal udah RENDAH" (laptop lemah)
+//
+// Audit: tier-based low-spec treatments (ambient crowd halving, MSAA off,
+// cloth maps off) hanya mengikuti DEVICE tier — laptop sentuh/tier 'high'
+// mendapat 19 figur × ~30 mesh + MSAA + peta kain full walau preset RENDAH.
+// Knob draw-call & context juga tidak bisa berubah live, jadi:
+//   lowSpecProfile — dipakai untuk halaman/ctx-level (AA) & crowd: TRUE juga
+//   ketika USER memilih RENDAH, bukan cuma perangkat lemah.
+//   adaptiveDpr    — jaring pengaman: FPS terjun → turunkan dpr bertahap
+//   (fill-rate), FPS sehat → naik pelan ke dpr preset. Murni & teruji.
+// ---------------------------------------------------------------------------
+
+/** Weak-profile flag: weak device OR user-selected RENDAH. Pure & testable. */
+export function lowSpecProfile(selected: Quality, tier: Tier): boolean {
+  return tier === 'low' || resolveQuality(selected, tier) === 'low';
+}
+
+/** Dpr floor for the adaptive loop — blurry, but the game stays playable. */
+export const ADAPTIVE_DPR_FLOOR = 0.55;
+
+/** One adaptive step. Pure — drop on sustained low fps, recover on healthy. */
+export function adaptiveDpr(base: number, current: number, fps: number): number {
+  if (fps < 42) return Math.max(ADAPTIVE_DPR_FLOOR, Math.round(current * 0.85 * 100) / 100);
+  if (fps > 56 && current < base) return Math.min(base, Math.round((current / 0.85) * 100) / 100);
+  return current;
+}
+
 export const QUALITY_LABELS: Record<Quality, string> = {
   auto: 'OTOMATIS',
   high: 'TINGGI',

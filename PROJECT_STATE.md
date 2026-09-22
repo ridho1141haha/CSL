@@ -1,6 +1,29 @@
 # Project State
 
-Updated: 2026-09-22 (v0.14.2 — optimasi PBR: knob kualitas baru `pbrMaps` + `envMul`; RENDAH = PBR albedo-only tanpa IBL, refleksi global diredam TINGGI 0.8 / SEDANG 0.5 / RENDAH 0; 181 test)
+Updated: 2026-09-22 (v0.14.3 — laptop patah-patah walau RENDAH: lowSpecProfile (RENDAH = profil lemah di device mana pun), crowd halving live, MSAA off sejak boot, fog culling bundle, NPC distance visibility, adaptive dpr floor 0.55; 184 test)
+
+## v0.14.3 Snapshot (2026-09-22)
+
+**Preset RENDAH kini = profil lemah penuh, bukan cuma knob shader:**
+- Audit kelanjutan "masih patah-patah": draw call (19 figur × ~30 mesh),
+  MSAA context attr, bundle di luar fog, kain ber-peta, dan dpr mentok —
+  semuanya mengikuti device tier, bukan preset.
+- `lowSpecProfile(quality, tier)` (quality.ts, murni): tier low ATAU RENDAH.
+  - Npcs: crowd ambient 14→7 LIVE (subscribe quality).
+  - App `BOOT_LOW`: MSAA off + shadows 'basic' (berlaku sejak reload).
+  - Character: weave normal/rough map kain tak dibangun saat boot lemah.
+- Fog culling: `cullDecision` +opt `farRange` (fogFar) — bundle yang tepi
+  terdekatnya > fogFar disembunyikan walau di frustum (piksel = warna fog).
+- NPC distance visibility: `visible=false` bila kamera > fogFar−25 (≥45 m);
+  interaksi (≤3.5 m) & cutscene (≤ ~20 m) aman; dicek sebelum freeze
+  CINEMATIC.
+- Adaptive dpr (murni `adaptiveDpr` + loop GraphicsManager): window 1.2 s,
+  <42 fps turun 15%/langkah (floor 0.55), >56 fps pulih ke preset; ganti
+  preset reset. worldReady guard mengabaikan spike boot.
+- Test: perf.test.ts +3 (lowSpecProfile, adaptiveDpr, fog culling) →
+  184/184 · tsc -b ✓ · build ✓ · qa-nav CONSOLE_ERRORS none.
+- Follow-up (kalau masih ada keluhan): merge geometri statik / instancing
+  prop berulang (pohon/bangku) — refactor lebih besar, belum diperlukan.
 
 ## v0.14.2 Snapshot (2026-09-22)
 

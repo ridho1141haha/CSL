@@ -3,7 +3,7 @@ import { useFrame, useThree } from '@react-three/fiber';
 import * as THREE from 'three';
 import { cullRegistry, cullDecision, perfState } from './runtime';
 import { useSettings } from '../stores/settingsStore';
-import { qualityConfig } from './quality';
+import { qualityConfig, adaptiveDpr } from './quality';
 import { mobile } from './mobile';
 
 // ============================================================================
@@ -35,8 +35,19 @@ export function GraphicsManager() {
   const setDpr = useThree((s) => s.setDpr);
   const gl = useThree((s) => s.gl);
 
+  // v0.14.3 adaptive dpr — safety net for weak GPUs (user laptop still
+  // stuttered at RENDAH). ~1 FPS sample per window; sustained <42 fps steps
+  // dpr down 15% (floor 0.55), sustained >56 fps climbs back toward the
+  // preset dpr. Pure logic lives in quality.adaptiveDpr (unit-tested).
+  const base = useRef(qualityConfig(quality, mobile.tier).dpr);
+  const cur = useRef(base.current);
+  const acc = useRef(0);
+  const frames = useRef(0);
+
   useEffect(() => {
     const cfg = qualityConfig(quality, mobile.tier);
+    base.current = cfg.dpr;
+    cur.current = cfg.dpr; // preset changes reset the adaptive state
     setDpr(cfg.dpr);
     if (gl.shadowMap.enabled !== cfg.shadows) {
       gl.shadowMap.enabled = cfg.shadows;
@@ -44,6 +55,21 @@ export function GraphicsManager() {
       gl.shadowMap.needsUpdate = true;
     }
   }, [quality, setDpr, gl]);
+
+  useFrame((_, deltaRaw) => {
+    if (!perfState.worldReady) return; // ignore boot/compile spikes
+    acc.current += deltaRaw;
+    frames.current++;
+    if (acc.current < 1.2) return; // 1.2s window = stable sample + hysteresis
+    const fps = frames.current / acc.current;
+    acc.current = 0;
+    frames.current = 0;
+    const next = adaptiveDpr(base.current, cur.current, fps);
+    if (next !== cur.current) {
+      cur.current = next;
+      setDpr(next);
+    }
+  });
 
   return null;
 }
@@ -82,6 +108,7 @@ export function CullingManager() {
         interiorRange: cfg.interiorRange,
         margin: cfg.cullMargin,
         inFrustum,
+        farRange: cfg.fogFar, // v0.14.3: bundles fully past the fog are invisible
       });
       o.visible = !shouldHide;
       if (shouldHide) hidden++;

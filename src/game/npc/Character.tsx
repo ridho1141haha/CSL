@@ -2,8 +2,16 @@ import { useRef, type MutableRefObject } from 'react';
 import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
 import { mobile } from '../mobile';
+import { useSettings } from '../../stores/settingsStore';
+import { lowSpecProfile } from '../quality';
 import { acting, tickActing, type ActingState } from '../systems/acting';
 import type { HoldKind } from '../../types';
+
+// v0.14.3: cloth weave normal/rough maps cost fragment work on every
+// character pixel (19 figures × ~30 meshes on screen). Materials are cached
+// per color at creation, so the profile is read ONCE at boot — a preset
+// switch applies on the next session (same boot-time semantics as AA/segments).
+const BOOT_LOW = lowSpecProfile(useSettings.getState().quality, mobile.tier);
 
 // Animatable runtime state shared between owner controller and figure.
 export type FigureAnim = {
@@ -144,9 +152,9 @@ function fabricMat(color: string, rough = 0.68): THREE.MeshStandardMaterial {
       color,
       roughness: rough,
       metalness: 0.0,
-      normalMap: weaveNormal() ?? undefined,
+      normalMap: BOOT_LOW ? undefined : (weaveNormal() ?? undefined),
       normalScale: new THREE.Vector2(0.55, 0.55),
-      roughnessMap: weaveRough() ?? undefined,
+      roughnessMap: BOOT_LOW ? undefined : (weaveRough() ?? undefined),
       envMapIntensity: 0.5,
     });
     matCache.set(key, m);

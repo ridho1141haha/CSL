@@ -3,12 +3,23 @@ import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
 import { useGame } from '../../stores/gameStore';
 import { useStory } from '../../stores/storyStore';
+import { useSettings } from '../../stores/settingsStore';
 import { playerPos, npcPositions, actorPositions } from '../runtime';
 import { mobile } from '../mobile';
+import { lowSpecProfile, qualityConfig } from '../quality';
 import { Figure, makeAnim } from './Character';
 import { NPCS, AMBIENT_STUDENTS, NPC_BY_ID } from '../../data/npcs';
 import { periodFor } from '../systems/time';
 import type { HoldKind } from '../../types';
+
+// v0.14.3: crowd/figures are the heaviest draw-call source (each Figure is
+// ~30 meshes — 14 students ≈ 420 calls). Weak GPU profile (device tier low
+// OR preset RENDAH) gets the halved crowd — see <Npcs> below (live-reactive).
+
+/** Hide radius: NPCs past it sit deep inside fog — invisible anyway. */
+function figureHideR(): number {
+  return Math.max(45, qualityConfig(useSettings.getState().quality, mobile.tier).fogFar - 25);
+}
 
 // Ambient students: light, non-collidable wanderers for crowd life.
 function Student({ home, wander, color, seed }: { home: [number, number]; wander: number; color: string; seed: number }) {
@@ -17,10 +28,17 @@ function Student({ home, wander, color, seed }: { home: [number, number]; wander
   const t = useRef(seed * 7.3);
   const target = useRef({ x: home[0], z: home[1] });
 
-  useFrame((_, dtRaw) => {
+  useFrame((state, dtRaw) => {
     const dt = Math.min(dtRaw, 0.05);
     const g = group.current;
     if (!g) return;
+    // v0.14.3 distance visibility — checked before mode freezes so the flag
+    // also settles during cutscenes (story shots stay ≤ ~20 m from the cast,
+    // far inside the hide radius; fog masks the pop at ~85-90% fogged).
+    const R = figureHideR();
+    const c = state.camera.position;
+    const cd2 = (g.position.x - c.x) ** 2 + (g.position.z - c.z) ** 2;
+    g.visible = cd2 < R * R;
     const game = useGame.getState();
     if (game.mode === 'CINEMATIC') return; // frozen during cutscenes
     t.current += dt;
@@ -61,9 +79,15 @@ export function Npcs({ hideMain = false }: { hideMain?: boolean }) {
   );
   // v0.5.0 mobile tier: halve the ambient crowd on phones (draw-call budget —
   // each figure is ~30 meshes; 14 figures ≈ 420 calls is too much for low GPUs)
+  // v0.14.3: preset RENDAH now gets the same treatment — and LIVE (subscribes
+  // to quality; tier alone used to give weak laptops the full-fat crowd).
+  const quality = useSettings((s) => s.quality);
   const ambient = useMemo(
-    () => (mobile.lowSpec ? AMBIENT_STUDENTS.filter((_, i) => i % 2 === 0) : AMBIENT_STUDENTS),
-    [],
+    () =>
+      lowSpecProfile(quality, mobile.tier)
+        ? AMBIENT_STUDENTS.filter((_, i) => i % 2 === 0)
+        : AMBIENT_STUDENTS,
+    [quality],
   );
 
   return (
@@ -89,10 +113,15 @@ function ScheduledNpc({ id }: { id: string }) {
   // the dialogue camera and acting system would aim at a ghost.
   useEffect(() => () => { delete npcPositions[id]; }, [id]);
 
-  useFrame((_, dtRaw) => {
+  useFrame((state, dtRaw) => {
     const dt = Math.min(dtRaw, 0.05);
     const g = group.current;
     if (!g || !def) return;
+    // v0.14.3 distance visibility (same contract as Student above)
+    const R = figureHideR();
+    const c = state.camera.position;
+    const cd2 = (g.position.x - c.x) ** 2 + (g.position.z - c.z) ** 2;
+    g.visible = cd2 < R * R;
     const game = useGame.getState();
 
     // period waypoint

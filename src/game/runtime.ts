@@ -66,10 +66,17 @@ export function resetCullRegistry(): void {
 export function cullDecision(
   entry: Pick<CullEntry, 'center' | 'radius' | 'mode'>,
   camPos: { x: number; y: number; z: number },
-  opts: { interiorRange: number; margin: number; inFrustum: boolean },
+  opts: { interiorRange: number; margin: number; inFrustum: boolean; farRange?: number },
 ): boolean {
   const d2 = (entry.center[0] - camPos.x) ** 2 + (entry.center[1] - camPos.y) ** 2 + (entry.center[2] - camPos.z) ** 2;
   if (entry.mode === 'interior' && d2 > opts.interiorRange * opts.interiorRange) return true; // hide
+  // v0.14.3 fog culling: beyond fogFar the fragment color IS the fog color, so
+  // a bundle whose near edge sits past it contributes nothing on screen —
+  // hidden even while inside the frustum (radius keeps the near edge safe).
+  if (opts.farRange !== undefined) {
+    const far = opts.farRange + entry.radius;
+    if (d2 > far * far) return true; // fully fogged out → hide
+  }
   if (opts.inFrustum) return false; // visible
   const reach = entry.radius + opts.margin;
   return d2 > reach * reach; // fully outside frustum AND far → hide

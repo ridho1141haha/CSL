@@ -35,6 +35,7 @@ import { StoryDirector } from './game/StoryDirector';
 import { resetCombatRuntime } from './game/combat/combat';
 import { nextMode } from './game/camera/mode';
 import { useSettings } from './stores/settingsStore';
+import { lowSpecProfile } from './game/quality';
 import { SCENES } from './data/world';
 
 import { MainMenu } from './game-ui/MainMenu';
@@ -64,6 +65,12 @@ const BOOT_MIN_MS = 1600;
 // headless test shells) worldReady never flips, so we proceed shortly after
 // the minimum window instead of hanging the loading screen
 const BOOT_FAILSAFE_MS = 5100;
+
+// v0.14.3: weak-GPU profile at boot — weak device tier OR user-selected
+// RENDAH (persisted). Context-level knobs (MSAA, basic shadows) cannot change
+// live, so they key off this boot-time flag: picking RENDAH + reloading the
+// page gives the full low-spec treatment (crowd halving applies live, see Npc).
+const BOOT_LOW = lowSpecProfile(useSettings.getState().quality, mobile.tier);
 
 export default function App() {
   const phase = useGame((s) => s.phase);
@@ -223,14 +230,16 @@ export default function App() {
     <div className="app">
       <Canvas
         camera={{ position: [7, 1.62, 44], fov: 60, near: 0.1, far: 500 }}
-        shadows={mobile.lowSpec ? 'basic' : true}
+        shadows={BOOT_LOW ? 'basic' : true}
         // v0.5.0 mobile tier: dpr cap 1.5 + antialias off on phones — the v0.4.x
         // full-fat config (dpr 2 + MSAA + 2048 shadows) could kill the GPU loop
         // on mid-range Android = the "blank world" report. v0.9.0: GraphicsManager
         // re-applies dpr/shadows live from the quality preset.
+        // v0.14.3: MSAA off also when the boot profile is weak (preset RENDAH on
+        // any device — a weak laptop kept paying MSAA fill-rate at RENDAH).
         dpr={mobile.dpr}
         gl={{
-          antialias: !mobile.lowSpec,
+          antialias: !BOOT_LOW,
           toneMapping: THREE.ACESFilmicToneMapping,
           toneMappingExposure: 1.0,
           powerPreference: 'high-performance',
