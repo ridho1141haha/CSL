@@ -638,6 +638,9 @@ export function getBaseSet(name: SurfaceName): PbrSet {
 // Textures cloned per repeat combination (clone shares the canvas image).
 const REPEAT_CACHE = new Map<string, PbrSet>();
 
+/** Shared neutral normal scale — one allocation, never mutated per render. */
+const NORMAL_SCALE = new THREE.Vector2(1, 1);
+
 export function getPbr(name: SurfaceName, rx = 1, ry = 1): PbrSet {
   if (rx === 1 && ry === 1) return getBaseSet(name);
   const key = `${name}|${rx}|${ry}`;
@@ -676,12 +679,22 @@ export type PbrProps = {
 /** `<Pbr />` is a drop-in for <meshStandardMaterial> with PBR maps. */
 export function Pbr({ name, repeat = [1, 1], color = '#ffffff', roughness = 1, metalness = 0, emissive, emissiveIntensity, transparent, opacity, envMapIntensity = 0.55, side }: PbrProps) {
   const set = useMemo(() => getPbr(name, repeat[0], repeat[1]), [name, repeat[0], repeat[1]]);
+  // v0.14.2: shader-cost follows the quality preset (live). RENDAH drops the
+  // normal+roughness maps entirely — the fragment shader loses the TBN rebuild
+  // and two texture samples per pixel; authored `roughness` stays as a scalar
+  // so the matte/gloss intent survives. Reactivity: subscribing to `quality`
+  // re-renders every <Pbr> once when the user switches preset (rare event).
+  const quality = useSettings((s) => s.quality);
+  const withMaps = qualityConfig(quality, mobile.tier).pbrMaps;
   return (
     <meshStandardMaterial
+      // remount on feature flip → fresh program (map add/remove on a live
+      // material is shader-relevant; a new instance is unconditionally safe)
+      key={withMaps ? 'pbr-maps' : 'pbr-flat'}
       map={set.map}
-      normalMap={set.normalMap}
-      normalScale={new THREE.Vector2(1, 1)}
-      roughnessMap={set.roughnessMap}
+      normalMap={withMaps ? set.normalMap : null}
+      normalScale={NORMAL_SCALE}
+      roughnessMap={withMaps ? set.roughnessMap : null}
       color={color}
       roughness={roughness}
       metalness={metalness}

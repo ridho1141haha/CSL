@@ -1,5 +1,46 @@
 # Changelog
 
+## 0.14.2 — 2026-09-22 (Optimasi PBR: Tekstur & Refleksi Lebih Ringan)
+
+Fix laporan user: "texture pbr terlalu berat apalagi refleksi cahayanya".
+Audit dulu, baru coding — knob baru MASUK ke sistem kualitas existing
+(v0.9.0 preset + v0.12.0 texScale), bukan sistem paralel.
+
+### Root cause (audit)
+1. **Refleksi cahaya** = IBL dari `<Environment frames={1}>` lokal (Lightformer,
+   World.tsx ×3 scene) → `scene.environment` → SEMUA material standard
+   (~90 `<Pbr>` + puluhan material + badan NPC) menghitung indirect specular +
+   indirect diffuse **per piksel**, terus-menerus — istilah PBR termahal.
+2. **Tekstur berat** = setiap `<Pbr>` memakai map + normalMap + roughnessMap →
+   fragment shader melakukan rebuild TBN + 3 sampel tekstur + GGX per piksel
+   di seluruh dunia. VRAM sudah hemat sejak v0.12.0; yang berat adalah biaya
+   shader-nya, bukan memorinya.
+
+### Perbaikan (2 knob baru di quality.ts — pola texScale v0.12.0)
+- **`pbrMaps: boolean`** — RENDAH melepas normalMap+roughnessMap dari semua
+  `<Pbr>` (albedo saja): tanpa TBN rebuild, 2 sampel/px lebih sedikit.
+  Roughness tetap skalar hasil art direction (matte/gloss tidak hilang).
+  Live: `<Pbr>` subscribe quality; remount material saat fitur berubah
+  (program shader baru, aman tanpa trik needsUpdate).
+- **`envMul: number`** — pengali global refleksi environment. RENDAH = 0 →
+  `<Environment>` TIDAK di-mount (scene.environment null) → semua material
+  dikompilasi TANPA blok IBL sama sekali. SEDANG ×0.5, TINGGI ×0.8
+  (refleksi default ikut diredam — keluhan utama user).
+- WarehouseScene kini membaca `cfg` (hanya envMul; fog/lampu gelap tetap
+  quality-independent by design).
+
+### Efek per preset
+- RENDAH: tanpa IBL + tanpa normal/rough map + (sudah) tanpa langit/bayangan/
+  tekstur 128px — mode paling ringan untuk GPU lemah.
+- SEDANG: refleksi −50% (0.5), peta PBR utuh.
+- TINGGI: refleksi −20% (0.4 vs 0.5), peta PBR utuh — visual hampir tak
+  berubah.
+
+### Test
+- test/perf.test.ts +3: envMul menurun TINGGI→RENDAH & RENDAH = 0; envMul
+  tidak pernah > 1; RENDAH tanpa pbrMaps, lainnya utuh.
+- Verify: tsc -b bersih; 181 unit test hijau (17 file); vite build sukses.
+
 ## 0.14.1 — 2026-09-22 (Fix Kamera Sinematik: Mengikuti Story Scene Aktif)
 
 Fix bug user: "story berlangsung di satu lokasi (kelas/tangga), kamera

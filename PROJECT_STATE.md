@@ -1,6 +1,27 @@
 # Project State
 
-Updated: 2026-09-22 (v0.14.1 — fix kamera sinematik mengikuti story scene aktif: resolver staging murni resolveCinematicCamera, ghost actorPositions dibersihkan, story scene ch2/pasca-kombat kini CINEMATIC, cameraStage lengkap & benar lokasi; 178 test)
+Updated: 2026-09-22 (v0.14.2 — optimasi PBR: knob kualitas baru `pbrMaps` + `envMul`; RENDAH = PBR albedo-only tanpa IBL, refleksi global diredam TINGGI 0.8 / SEDANG 0.5 / RENDAH 0; 181 test)
+
+## v0.14.2 Snapshot (2026-09-22)
+
+**Biaya shader PBR kini mengikuti preset kualitas (bukan cuma VRAM):**
+- Laporan user: "texture pbr terlalu berat apalagi refleksi cahayanya".
+- Audit: refleksi = IBL `<Environment frames={1}>` lokal (World.tsx ×3) yang
+  menghidupkan indirect specular+diffuse di SEMUA material standard per piksel;
+  tekstur berat = map+normalMap+roughnessMap per `<Pbr>` (TBN rebuild + 3
+  sampel + GGX per piksel). VRAM bukan masalah (v0.12.0), shader-cost iya.
+- `quality.ts` +2 knob (pola texScale): `pbrMaps` (false → `<Pbr>` albedo-only,
+  roughness tetap skalar) & `envMul` (0 → `<Environment>` tak di-mount →
+  scene.environment null → material dikompilasi tanpa blok IBL).
+- Nilai: TINGGI {pbrMaps:1, envMul:0.8} · SEDANG {1, 0.5} · RENDAH {0, 0}.
+- Live switching: `<Pbr>` subscribe quality (remount material saat fitur
+  flip — program baru dijamin benar); World membaca cfg per scene; gudang
+  kini baca cfg hanya utk envMul (fog/lampu tetap quality-independent).
+- Semua perubahan di sistem existing (quality.ts preset, pbr.tsx Pbr,
+  World.tsx scene) — tanpa sistem paralel; geometri/culling/story tak disentuh.
+- Test: perf.test.ts +3 (urutan envMul, RENDAH=0, pbrMaps RENDAH off).
+- Verify: tsc -b ✓ · 181/181 test ✓ · vite build ✓. Chip BUILD Screens yang
+  tertinggal 0.14.0 ikut disamakan ke 0.14.2.
 
 ## v0.14.1 Snapshot (2026-09-22)
 

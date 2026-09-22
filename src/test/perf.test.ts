@@ -35,6 +35,24 @@ describe('quality presets (v0.9.0)', () => {
   });
 });
 
+describe('quality presets — PBR shader-cost knobs (v0.14.2)', () => {
+  it('reflection strength (envMul) decreases high → low, RENDAH has none', () => {
+    expect(QUALITY_PRESETS.high.envMul).toBeGreaterThan(QUALITY_PRESETS.medium.envMul);
+    expect(QUALITY_PRESETS.medium.envMul).toBeGreaterThan(0);
+    expect(QUALITY_PRESETS.low.envMul).toBe(0);
+  });
+
+  it('envMul never boosts beyond the authored look', () => {
+    expect(QUALITY_PRESETS.high.envMul).toBeLessThanOrEqual(1);
+  });
+
+  it('RENDAH drops normal/roughness maps (albedo-only PBR); other tiers keep them', () => {
+    expect(QUALITY_PRESETS.high.pbrMaps).toBe(true);
+    expect(QUALITY_PRESETS.medium.pbrMaps).toBe(true);
+    expect(QUALITY_PRESETS.low.pbrMaps).toBe(false);
+  });
+});
+
 describe('cull registry + decision (v0.9.0)', () => {
   it('registers and unregisters entries with unique ids', () => {
     resetCullRegistry();

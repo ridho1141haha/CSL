@@ -35,6 +35,19 @@ export type QualityConfig = {
   // geometri/culling. Dibaca pbr.ts saat tekstur pertama dibangun.
   texScale: number;
   aniso: number;
+  // v0.14.2 "PBR ringan": user lapor "texture pbr terlalu berat apalagi
+  // refleksi cahayanya". Dua knob shader-cost (bukan VRAM):
+  //   pbrMaps  — false → <Pbr> melepas normalMap+roughnessMap (albedo saja:
+  //              tanpa TBN rebuild + 2 sample/px lebih sedikit di fragmen).
+  //              Roughness tetap sebagai skalar hasil art direction.
+  //   envMul   — pengali global refleksi environment (IBL). 0 → <Environment>
+  //              TIDAK di-mount sama sekali (World.tsx) → scene.environment
+  //              null → SEMUA material standard dikompilasi TANPA blok IBL
+  //              (indirect specular "refleksi cahaya" + indirect diffuse
+  //              hilang dari shader, hemat per-piksel di seluruh dunia).
+  //              Nilai lain mengali environmentIntensity <Environment>.
+  pbrMaps: boolean;
+  envMul: number;
 };
 
 export const QUALITY_PRESETS: Record<Resolved, QualityConfig> = {
@@ -49,6 +62,8 @@ export const QUALITY_PRESETS: Record<Resolved, QualityConfig> = {
     cullMargin: 6,
     texScale: 1,
     aniso: 4,
+    pbrMaps: true,
+    envMul: 0.8,
   },
   medium: {
     dpr: 1.5,
@@ -61,6 +76,8 @@ export const QUALITY_PRESETS: Record<Resolved, QualityConfig> = {
     cullMargin: 8,
     texScale: 0.75,
     aniso: 2,
+    pbrMaps: true,
+    envMul: 0.5,
   },
   low: {
     dpr: 1,
@@ -73,6 +90,8 @@ export const QUALITY_PRESETS: Record<Resolved, QualityConfig> = {
     cullMargin: 10,
     texScale: 0.5,
     aniso: 1,
+    pbrMaps: false,
+    envMul: 0,
   },
 };
 
