@@ -11,7 +11,8 @@ import type { HoldKind } from '../../types';
 // character pixel (19 figures × ~30 meshes on screen). Materials are cached
 // per color at creation, so the profile is read ONCE at boot — a preset
 // switch applies on the next session (same boot-time semantics as AA/segments).
-const BOOT_LOW = lowSpecProfile(useSettings.getState().quality, mobile.tier);
+// v0.14.4: exported — Npc.tsx reuses it for the ambient-crowd `trim` prop.
+export const BOOT_LOW = lowSpecProfile(useSettings.getState().quality, mobile.tier);
 
 // Animatable runtime state shared between owner controller and figure.
 export type FigureAnim = {
@@ -54,6 +55,11 @@ type Props = {
   pants?: string;
   skirt?: string;     // presence swaps legwear for a skirt
   hair?: { color: string; style: 'short' | 'wave' | 'ponytail' | 'buzz' };
+  // v0.14.4: crowd trim — skip micro-detail meshes (buttons, eye catchlights,
+  // hem band) for background figures that never appear in close-ups. Saves
+  // ~5 draw calls × N crowd figures on weak profiles; main cast/Player/cutscene
+  // actors stay full-detail.
+  trim?: boolean;
 };
 
 const SKIN_DEFAULT = '#f2c9a4';
@@ -194,7 +200,7 @@ function hardMat(color: string, rough = 0.4): THREE.MeshStandardMaterial {
 
 // ---------- component ----------
 
-export function Figure({ anim, color, accent, scale = 1, nameTag, tag, actId, hold, skin = SKIN_DEFAULT, pants = PANTS_DEFAULT, skirt, hair }: Props) {
+export function Figure({ anim, color, accent, scale = 1, nameTag, tag, actId, hold, skin = SKIN_DEFAULT, pants = PANTS_DEFAULT, skirt, hair, trim = false }: Props) {
   const root = useRef<THREE.Group>(null);
   const legL = useRef<THREE.Group>(null);
   const legR = useRef<THREE.Group>(null);
@@ -227,6 +233,13 @@ export function Figure({ anim, color, accent, scale = 1, nameTag, tag, actId, ho
     const a = anim.current;
     if (!root.current) return;
     const g = root.current;
+    // v0.14.4: distance-hidden figures skip the whole anim body — owners set
+    // the PARENT group invisible past the hide radius (Npc.tsx) and first-person
+    // hides the player body the same way (Player.tsx). visible=false skips the
+    // render but NOT this callback; the lerps below were burning CPU for ~14
+    // fogged figures every frame. Phase simply freezes while hidden and the
+    // blends catch up within a frame or two of becoming visible again.
+    if (!g.visible || (g.parent && !g.parent.visible)) return;
     if (a.down) {
       g.rotation.x = THREE.MathUtils.lerp(g.rotation.x, -Math.PI / 2.2, 0.12);
       g.position.y = THREE.MathUtils.lerp(g.position.y, 0.12, 0.12);
@@ -344,11 +357,13 @@ export function Figure({ anim, color, accent, scale = 1, nameTag, tag, actId, ho
         <mesh position={[0, -0.235, 0]} material={skirt ? fabSkirt! : fabPants}>
           <cylinderGeometry args={[0.128, 0.146, 0.1, seg.cyl]} />
         </mesh>
-        {/* shirt hem shadow band */}
-        <mesh position={[0, -0.205, 0]}>
-          <cylinderGeometry args={[0.15, 0.154, 0.05, seg.cyl]} />
-          <meshStandardMaterial color="#00000033" transparent opacity={0.16} roughness={0.85} />
-        </mesh>
+        {/* shirt hem shadow band (v0.14.4: crowd trim — transparent = extra sort) */}
+        {!trim && (
+          <mesh position={[0, -0.205, 0]}>
+            <cylinderGeometry args={[0.15, 0.154, 0.05, seg.cyl]} />
+            <meshStandardMaterial color="#00000033" transparent opacity={0.16} roughness={0.85} />
+          </mesh>
+        )}
         {/* collar — V pair */}
         <mesh position={[-0.052, 0.245, 0.068]} rotation={[0.35, 0, 0.5]} material={fabAccent}>
           <boxGeometry args={[0.085, 0.045, 0.016]} />
@@ -363,13 +378,17 @@ export function Figure({ anim, color, accent, scale = 1, nameTag, tag, actId, ho
         <mesh position={[0, 0.245, 0.125]} rotation={[0.06, 0, 0]} material={fabAccent}>
           <boxGeometry args={[0.05, 0.045, 0.024]} />
         </mesh>
-        {/* buttons */}
-        <mesh position={[0, 0.06, 0.136]} material={hardMat('#e8eaf0', 0.3)}>
-          <sphereGeometry args={[0.011, 6, 6]} />
-        </mesh>
-        <mesh position={[0, -0.04, 0.14]} material={hardMat('#e8eaf0', 0.3)}>
-          <sphereGeometry args={[0.011, 6, 6]} />
-        </mesh>
+        {/* buttons (v0.14.4: crowd trim — 0.011 r spheres, invisible past 2 m) */}
+        {!trim && (
+          <>
+            <mesh position={[0, 0.06, 0.136]} material={hardMat('#e8eaf0', 0.3)}>
+              <sphereGeometry args={[0.011, 6, 6]} />
+            </mesh>
+            <mesh position={[0, -0.04, 0.14]} material={hardMat('#e8eaf0', 0.3)}>
+              <sphereGeometry args={[0.011, 6, 6]} />
+            </mesh>
+          </>
+        )}
 
         {/* neck */}
         <mesh position={[0, 0.315, 0.005]} material={mSkin}>
@@ -401,9 +420,11 @@ export function Figure({ anim, color, accent, scale = 1, nameTag, tag, actId, ho
               <mesh position={[0, 0, 0.014]} material={mEyeDark}>
                 <sphereGeometry args={[0.012, 8, 8]} />
               </mesh>
-              <mesh position={[0.004 * s, 0.005, 0.022]} material={hardMat('#ffffff', 0.1)}>
-                <sphereGeometry args={[0.004, 6, 6]} />
-              </mesh>
+              {!trim && (
+                <mesh position={[0.004 * s, 0.005, 0.022]} material={hardMat('#ffffff', 0.1)}>
+                  <sphereGeometry args={[0.004, 6, 6]} />
+                </mesh>
+              )}
             </group>
           ))}
           {/* brows */}

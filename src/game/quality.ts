@@ -16,7 +16,7 @@
 // safe preset while desktops keep the full look.
 // ============================================================================
 
-import type { Tier } from './mobile';
+import { mobile, type Tier, type GpuClass } from './mobile';
 
 export type Quality = 'auto' | 'high' | 'medium' | 'low';
 export type Resolved = Exclude<Quality, 'auto'>;
@@ -95,10 +95,22 @@ export const QUALITY_PRESETS: Record<Resolved, QualityConfig> = {
   },
 };
 
-/** Pure mapping — unit-testable without a DOM. */
-export function resolveQuality(selected: Quality, tier: Tier): Resolved {
+/** Pure mapping — unit-testable without a DOM.
+ *
+ * v0.14.4: 'auto' now also reads the GPU class (mobile.gpu, sniffed once at
+ * boot). Measured on an AMD Radeon iGPU laptop: the old auto rule gave it
+ * TINGHI (dpr 2.0 + MSAA + 2048 shadows + full IBL) → 18 FPS. New rule:
+ *   soft → RENDAH (CPU rasterizer, no real GPU)
+ *   igpu → SEDANG (integrated laptop chip: dpr 1.5 + 1024 shadows)
+ *   tier low (phones) → SEDANG (unchanged since v0.9.0)
+ *   dgpu / unknown → TINGHI (desktops keep the full look)
+ * Explicit user selections always win — only 'auto' consults the hardware.
+ */
+export function resolveQuality(selected: Quality, tier: Tier, gpu: GpuClass = mobile.gpu): Resolved {
   if (selected !== 'auto') return selected;
-  return tier === 'low' ? 'medium' : 'high';
+  if (gpu === 'soft') return 'low';
+  if (tier === 'low' || gpu === 'igpu') return 'medium';
+  return 'high';
 }
 
 export function qualityConfig(selected: Quality, tier: Tier): QualityConfig {
@@ -118,9 +130,16 @@ export function qualityConfig(selected: Quality, tier: Tier): QualityConfig {
 //   (fill-rate), FPS sehat → naik pelan ke dpr preset. Murni & teruji.
 // ---------------------------------------------------------------------------
 
-/** Weak-profile flag: weak device OR user-selected RENDAH. Pure & testable. */
-export function lowSpecProfile(selected: Quality, tier: Tier): boolean {
-  return tier === 'low' || resolveQuality(selected, tier) === 'low';
+/** Weak-profile flag: weak device OR user-selected RENDAH. Pure & testable.
+ *
+ * v0.14.4: an iGPU laptop on SEDANG (its new 'auto' default) joins the weak
+ * budget — MSAA off, crowd halved, cloth maps off. Discrete-GPU desktops on
+ * SEDANG do NOT (they can afford the full crowd), and an explicit TINGHI on
+ * any device stays full-fat (the user insisted; adaptive dpr is the net).
+ */
+export function lowSpecProfile(selected: Quality, tier: Tier, gpu: GpuClass = mobile.gpu): boolean {
+  const resolved = resolveQuality(selected, tier, gpu);
+  return tier === 'low' || resolved === 'low' || (resolved === 'medium' && gpu === 'igpu');
 }
 
 /** Dpr floor for the adaptive loop — blurry, but the game stays playable. */

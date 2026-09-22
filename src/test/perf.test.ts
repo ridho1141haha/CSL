@@ -16,6 +16,7 @@ import {
   perfState,
   PREWARM,
 } from '../game/runtime';
+import { classifyGpu } from '../game/mobile';
 
 describe('quality presets (v0.9.0)', () => {
   it('orders presets from full-fat (high) to lean (low)', () => {
@@ -84,6 +85,51 @@ describe('quality presets — weak profile + adaptive dpr (v0.14.3)', () => {
     expect(adaptiveDpr(1, 0.85, 60)).toBe(1);
     expect(adaptiveDpr(1, 1, 60)).toBe(1);
     expect(adaptiveDpr(1.5, 0.85, 60)).toBe(1);
+  });
+});
+
+describe('quality presets — GPU-aware auto resolution (v0.14.4)', () => {
+  it('classifyGpu reads real renderer strings', () => {
+    // the reporting laptop — AMD Radeon iGPU over D3D11 (ANGLE string)
+    expect(classifyGpu('ANGLE (AMD, AMD Radeon(TM) Graphics Direct3D11 vs_5_0 ps_5_0, D3D11)')).toBe('igpu');
+    expect(classifyGpu('ANGLE (Intel, Intel(R) UHD Graphics Direct3D11, D3D11)')).toBe('igpu');
+    expect(classifyGpu('Mesa Intel(R) Iris(R) Xe Graphics (TGL GT2)')).toBe('igpu');
+    expect(classifyGpu('ANGLE (AMD, AMD Radeon 780M Graphics Direct3D11, D3D11)')).toBe('igpu');
+    expect(classifyGpu('ANGLE (Intel, Intel(R) Arc(TM) Graphics Direct3D11, D3D11)')).toBe('igpu');
+    // discrete cards keep the full-fat default
+    expect(classifyGpu('ANGLE (NVIDIA, NVIDIA GeForce RTX 3060 Direct3D11 vs_5_0 ps_5_0, D3D11)')).toBe('dgpu');
+    expect(classifyGpu('ANGLE (AMD, AMD Radeon RX 6600 Direct3D11 vs_5_0 ps_5_0, D3D11)')).toBe('dgpu');
+    expect(classifyGpu('AMD Radeon Pro W6800')).toBe('dgpu');
+    expect(classifyGpu('NVIDIA T1000')).toBe('dgpu');
+    // CPU rasterizers = the weakest class
+    expect(classifyGpu('SwiftShader')).toBe('soft');
+    expect(classifyGpu('llvmpipe (LLVM 15.0.4, 256 bits)')).toBe('soft');
+    // Apple / unrecognized strings keep the pre-v0.14.4 behavior
+    expect(classifyGpu('Apple M1')).toBe('unknown');
+    expect(classifyGpu('')).toBe('unknown');
+  });
+
+  it("resolveQuality('auto') drops an iGPU laptop to SEDANG, a soft GPU to RENDAH", () => {
+    // the exact regression from the perf report: 8-core laptop, tier 'high',
+    // integrated Radeon → used to resolve TINGHI (dpr 2.0, 18 FPS measured)
+    expect(resolveQuality('auto', 'high', 'igpu')).toBe('medium');
+    expect(resolveQuality('auto', 'high', 'soft')).toBe('low');
+    expect(resolveQuality('auto', 'high', 'dgpu')).toBe('high');
+    expect(resolveQuality('auto', 'high', 'unknown')).toBe('high');
+    // phones unchanged
+    expect(resolveQuality('auto', 'low', 'igpu')).toBe('medium');
+    // explicit selection always wins over hardware hints
+    expect(resolveQuality('high', 'high', 'igpu')).toBe('high');
+    expect(resolveQuality('low', 'low', 'dgpu')).toBe('low');
+  });
+
+  it('lowSpecProfile: iGPU on SEDANG joins the weak budget, a dGPU desktop does not', () => {
+    expect(lowSpecProfile('auto', 'high', 'igpu')).toBe(true);    // MSAA off + crowd halved
+    expect(lowSpecProfile('medium', 'high', 'igpu')).toBe(true);
+    expect(lowSpecProfile('medium', 'high', 'dgpu')).toBe(false); // desktop can afford it
+    expect(lowSpecProfile('high', 'high', 'igpu')).toBe(false);   // user insisted TINGHI
+    expect(lowSpecProfile('auto', 'high', 'soft')).toBe(true);
+    expect(lowSpecProfile('auto', 'low', 'dgpu')).toBe(true);     // phones unchanged
   });
 });
 

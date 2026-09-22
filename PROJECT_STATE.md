@@ -1,6 +1,25 @@
 # Project State
 
-Updated: 2026-09-22 (v0.14.3 — laptop patah-patah walau RENDAH: lowSpecProfile (RENDAH = profil lemah di device mana pun), crowd halving live, MSAA off sejak boot, fog culling bundle, NPC distance visibility, adaptive dpr floor 0.55; 184 test)
+Updated: 2026-09-22 (v0.14.4 — GPU sniffing: laptop iGPU auto → SEDANG + weak profile, figur tersembunyi skip animasi, crowd trim mikro-detail; 187 test)
+
+## v0.14.4 Snapshot (2026-09-22)
+
+**Laporan audit eksternal (Playwright 60 d): 18.3 FPS di laptop iGPU — default
+auto = TINGGI (DPR 2.0) karena classifyTier tak mengenali grafis integrasi;**
+plus NPC tersembunyi masih dianimasikan & crowd ber-detail mikro.
+- mobile.ts: `classifyGpu(renderer)` murni + probe `WEBGL_debug_renderer_info`
+  sekali di boot → `mobile.gpu` ('dgpu'|'igpu'|'soft'|'unknown').
+- quality.ts: `resolveQuality(selected, tier, gpu=mobile.gpu)` — auto: soft →
+  RENDAH, igpu → SEDANG, tier low → SEDANG, dgpu/unknown → TINGGI; eksplisit
+  selalu menang. `lowSpecProfile`: iGPU di SEDANG ikut profil lemah (MSAA off
+  sejak reload, crowd 14→7 live, kain tanpa peta).
+- Character.tsx: useFrame pulang awal bila owner group invisible (distance
+  hide / first-person); prop `trim` melepas tombol + catchlight + hem band
+  untuk pelajar ambient pada boot lemah (−5 mesh/figur).
+- Test: perf.test.ts +3 → 187/187 · tsc -b ✓ · build ✓ · qa-nav headless
+  (SwiftShader → soft → RENDAH otomatis) CONSOLE_ERRORS none.
+- Follow-up tersisa: instancing penuh (InstancedMesh per bagian tubuh) —
+  refactor besar, hanya bila masih ada keluhan setelah versi ini.
 
 ## v0.14.3 Snapshot (2026-09-22)
 

@@ -7,7 +7,7 @@ import { useSettings } from '../../stores/settingsStore';
 import { playerPos, npcPositions, actorPositions } from '../runtime';
 import { mobile } from '../mobile';
 import { lowSpecProfile, qualityConfig } from '../quality';
-import { Figure, makeAnim } from './Character';
+import { Figure, makeAnim, BOOT_LOW } from './Character';
 import { NPCS, AMBIENT_STUDENTS, NPC_BY_ID } from '../../data/npcs';
 import { periodFor } from '../systems/time';
 import type { HoldKind } from '../../types';
@@ -61,7 +61,9 @@ function Student({ home, wander, color, seed }: { home: [number, number]; wander
 
   return (
     <group ref={group} position={[home[0], 0.03, home[1]]} scale={0.96}>
-      <Figure anim={anim} color={color} accent="#e5e7eb" />
+      {/* v0.14.4: trim — ambient wanderers never get a close-up; on weak boot
+          profiles drop their micro-detail meshes (buttons/catchlights/hem) */}
+      <Figure anim={anim} color={color} accent="#e5e7eb" trim={BOOT_LOW} />
     </group>
   );
 }

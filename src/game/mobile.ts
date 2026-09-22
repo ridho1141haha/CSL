@@ -18,6 +18,55 @@
 
 export type Tier = 'high' | 'low';
 
+// v0.14.4 — GPU class from the WebGL renderer string. Tier alone says nothing
+// about a laptop's graphics muscle: a Ryzen ultrabook has 8+ cores and 8GB+
+// RAM (→ tier 'high') while its only GPU is an integrated Radeon/UHD chip that
+// chokes on dpr 2.0 + MSAA + 2048 shadows (measured 18 FPS on v0.14.3).
+//   'soft'    — CPU rasterizers (SwiftShader / llvmpipe): no real GPU at all
+//   'igpu'    — integrated silicon (Intel UHD/Iris, AMD Radeon w/o RX, Arc)
+//   'dgpu'    — discrete cards (GeForce, Radeon RX/Pro, FirePro)
+//   'unknown' — no WebGL / no UNMASKED string (keep the pre-v0.14.4 behavior)
+export type GpuClass = 'dgpu' | 'igpu' | 'soft' | 'unknown';
+
+/**
+ * Pure renderer-string classification — unit-testable without a DOM.
+ * Order matters: explicit dGPU brand marks win before the generic iGPU rules.
+ */
+export function classifyGpu(renderer: string): GpuClass {
+  const r = renderer.toLowerCase();
+  if (!r) return 'unknown';
+  // CPU rasterizers — treat as the weakest possible device.
+  if (r.includes('swiftshader') || r.includes('llvmpipe') || r.includes('softpipe') || r.includes('software rasterizer')) return 'soft';
+  // Discrete cards — brand lines that only exist on real GPUs. Bare 'nvidia'
+  // is included: everything NVIDIA ships in browsers is discrete (Quadro T /
+  // RTX A laptop cards report neither 'geforce' nor 'quadro').
+  if (r.includes('nvidia') || r.includes('firepro') || r.includes('titan')) return 'dgpu';
+  if (/\brx\s?\d/.test(r) || r.includes('radeon pro')) return 'dgpu';
+  // Integrated — Intel's graphics lines, AMD Radeon WITHOUT an RX mark
+  // ("AMD Radeon(TM) Graphics" = iGPU; "Radeon 610M/780M" also land here),
+  // and Intel Arc (which covers both iGPU-branded Arc and entry laptop dGPU —
+  // medium preset is safe for either).
+  if (r.includes('intel') && (r.includes('hd graphics') || r.includes('uhd graphics') || r.includes('iris') || r.includes('arc'))) return 'igpu';
+  if (r.includes('radeon')) return 'igpu';
+  return 'unknown';
+}
+
+/** Browser probe — read the real renderer string once, cheapest context. */
+function sniffGpu(): GpuClass {
+  if (typeof document === 'undefined') return 'unknown';
+  try {
+    const c = document.createElement('canvas');
+    const gl = (c.getContext('webgl2') ?? c.getContext('webgl')) as WebGLRenderingContext | null;
+    if (!gl) return 'unknown';
+    const ext = gl.getExtension('WEBGL_debug_renderer_info');
+    const renderer = ext ? String(gl.getParameter(ext.UNMASKED_RENDERER_WEBGL)) : '';
+    // D3D/mac strings arrive like "ANGLE (AMD, AMD Radeon(TM) Graphics ...)"
+    return classifyGpu(renderer);
+  } catch {
+    return 'unknown';
+  }
+}
+
 export type DiagEntry = {
   kind: 'js' | 'promise' | 'webgl' | 'watchdog';
   message: string;
@@ -53,6 +102,8 @@ class MobileSys {
   touch = false;
   /** resolved quality tier */
   tier: Tier = 'high';
+  /** v0.14.4 — GPU muscle class from the WebGL renderer string */
+  gpu: GpuClass = 'unknown';
 
   /** diagnostics ring (latest last) — UI shows the most recent entry */
   diag: DiagEntry[] = [];
@@ -75,6 +126,9 @@ class MobileSys {
       cores: (navigator as unknown as { hardwareConcurrency?: number }).hardwareConcurrency,
       memoryGB: (navigator as unknown as { deviceMemory?: number }).deviceMemory,
     });
+    // v0.14.4 — sniff the GPU once at boot; quality resolution ('auto') reads
+    // this to keep iGPU laptops off the TINGHI preset (dpr 2 + MSAA + IBL).
+    this.gpu = sniffGpu();
 
     window.addEventListener('error', (e) => {
       this.report('js', e.message || String(e.error ?? 'unknown error'));

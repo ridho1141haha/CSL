@@ -1,5 +1,57 @@
 # Changelog
 
+## 0.14.4 — 2026-09-22 (GPU Sniffing: Laptop iGPU Tidak Lagi Dapat TINGGI)
+
+Laporan user via performance audit eksternal (Playwright 60 detik gameplay
+aktif, v0.14.3 live): rata-rata 18.3 FPS, 1% low 10 FPS, >1.100 draw call
+per frame, preset default TINGGI (DPR 2.0 + MSAA + shadow 2048 + IBL) pada
+laptop iGPU "AMD Radeon Graphics". Ini lapisan akar masalah BARU di luar
+cakupan v0.14.3 (yang memperbaiki preset RENDAH, bukan default TINGGI).
+
+### Root cause (audit)
+1. **Auto preset tidak mengenali iGPU.** classifyTier hanya melihat
+   UA/touch/core/RAM — laptop Ryzen 8 core = tier 'high' = default TINGGI.
+   Beban TINGGI (DPR 2.0 = 4× fill rate + MSAA + IBL penuh + shadow 2048)
+   memang ditujukan untuk kartu diskrit, bukan grafis terintegrasi.
+2. **NPC tersembunyi tetap dianimasikan.** `visible=false` (distance hide
+   v0.14.3) melewatkan RENDER, tapi useFrame animasi Figure tetap jalan
+   penuh (~60 baris lerp/sin) untuk figur-figur yang tertelan fog.
+3. **Detail mikro pada massa crowd.** Tombol baju (2 bola r=0.011),
+   catchlight mata (2 bola r=0.004), hem band transparan — semuanya mesh
+   terpisah per figur, padahal pelajar ambient tidak pernah tampil
+   close-up (rekomendasi #4 laporan: matikan shadow/detail mesh kecil).
+
+### Perbaikan (memetakan 4 rekomendasi laporan)
+- **GPU sniffing** (mobile.ts): `classifyGpu(renderer)` murni + probe
+  `WEBGL_debug_renderer_info` sekali di boot → `mobile.gpu`
+  ('dgpu' | 'igpu' | 'soft' | 'unknown'). (fondasi rekomendasi #3)
+- **`resolveQuality('auto')` kini GPU-aware** (quality.ts): soft → RENDAH,
+  **igpu → SEDANG** (dpr 1.5 + shadow 1024 + refleksi −50%), tier low →
+  SEDANG (HP, tidak berubah), dgpu/unknown → TINGGI. Pilihan eksplisit
+  user selalu menang — hanya 'auto' yang membaca hardware.
+- **`lowSpecProfile` diperluas**: iGPU di SEDANG ikut profil lemah —
+  MSAA off (sejak reload), crowd halving 14→7 live, kain tanpa peta
+  (rekomendasi #1 crowd + #3 preset sekaligus). Desktop dGPU di SEDANG
+  TIDAK ikut; TINGGI eksplisit tetap full-fat (adaptive dpr sebagai jaring).
+- **Skip animasi figur tersembunyi** (Character.tsx): useFrame pulang awal
+  bila grup owner `visible=false` (distance hide / first-person) — seluruh
+  matematika animasi untuk figur di dalam fog tidak dibakar lagi (rekomendasi
+  #2: kurangi kerja CPU per-NPC; throttling 10 Hz sengaja TIDAK dipakai
+  karena integrasi gerak 10 Hz = NPC patah-patah terlihat).
+- **`trim` prop Figure** (Character.tsx): pelajar ambient melepas tombol,
+  catchlight, hem band (−5 mesh × 7 figur) pada boot lemah; cast utama,
+  Player, dan aktor cerita tetap detail penuh (rekomendasi #4).
+- Catatan: instancing penuh (InstancedMesh per bagian tubuh) tetap ditunda —
+  refactor rig animasi besar dengan risiko regresi tinggi; kombinasi di atas
+  sudah memangkas draw call & CPU jauh lebih murah.
+
+### Test
+- perf.test.ts +3 (classifyGpu string nyata D3D11/Mesa, resolveQuality
+  GPU-aware, lowSpecProfile iGPU) → **187/187 hijau** (17 file).
+- tsc -b ✓ · vite build ✓ · qa-nav headless (SwiftShader → soft → RENDAH
+  otomatis — sekalian menguji jalur baru): MAP/ESC/SETTINGS/TIMEFLOW/
+  EVENING ok, CONSOLE_ERRORS none.
+
 ## 0.14.3 — 2026-09-22 (RENDAH Masih Patah-patah di Laptop: Draw Call & Adaptif)
 
 Lanjutan laporan user: "kenapa kok masih patah-patah di laptopku, padahal
