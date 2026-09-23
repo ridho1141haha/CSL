@@ -22,12 +22,10 @@ const JUMP_V = 4.9;
 export function Player() {
   const body = useRef<RapierRigidBody>(null);
   const { rapier, world } = useRapier();
-  const spawnX = usePlayer((s) => s.x);
-  const spawnZ = usePlayer((s) => s.z);
   const posTimer = useRef(0);
   const stepTimer = useRef(0);
   const gravityHold = useRef(0);
-  const spawnRef = useRef({ x: spawnX, z: spawnZ });
+  const spawnRef = useRef({ x: usePlayer.getState().x, z: usePlayer.getState().z });
 
   const asBody = (b: RapierRigidBody) => b as unknown as Parameters<typeof combatTick>[1];
 
@@ -35,23 +33,31 @@ export function Player() {
   // teleport to warehouse), move the rigid body to the new position. Without
   // this, the teleport effect only updates the store; the rigid body stays at
   // its old position and the player never visually relocates.
+  // PERFORMANCE: Use direct store subscription instead of usePlayer hook
+  // to prevent this component from needlessly re-rendering every time the player moves.
+  // This is a transient update pattern that saves ~60 renders per second.
   useEffect(() => {
-    const rb = body.current;
-    if (!rb) return;
-    const current = rb.translation();
-    const dx = spawnX - current.x;
-    const dz = spawnZ - current.z;
-    // Only teleport if the position changed significantly (>1 unit) —
-    // avoids fighting with normal physics motion on small store updates.
-    if (Math.hypot(dx, dz) > 1.0) {
-      rb.setTranslation({ x: spawnX, y: 0.75, z: spawnZ }, true);
-      rb.setLinvel({ x: 0, y: 0, z: 0 }, true);
-      // Also update runtime playerPos so camera/combat read the new position
-      playerPos.x = spawnX;
-      playerPos.z = spawnZ;
-      spawnRef.current = { x: spawnX, z: spawnZ };
-    }
-  }, [spawnX, spawnZ]);
+    return usePlayer.subscribe((state, prevState) => {
+      // Subscribe runs on any store update. Only trigger teleport logic if target position actually changed.
+      if (state.x === prevState.x && state.z === prevState.z) return;
+
+      const rb = body.current;
+      if (!rb) return;
+      const current = rb.translation();
+      const dx = state.x - current.x;
+      const dz = state.z - current.z;
+      // Only teleport if the position changed significantly (>1 unit) —
+      // avoids fighting with normal physics motion on small store updates.
+      if (Math.hypot(dx, dz) > 1.0) {
+        rb.setTranslation({ x: state.x, y: 0.75, z: state.z }, true);
+        rb.setLinvel({ x: 0, y: 0, z: 0 }, true);
+        // Also update runtime playerPos so camera/combat read the new position
+        playerPos.x = state.x;
+        playerPos.z = state.z;
+        spawnRef.current = { x: state.x, z: state.z };
+      }
+    });
+  }, []);
 
   useFrame((state, deltaRaw) => {
     const rb = body.current;

@@ -1,0 +1,3 @@
+## 2024-09-23 - Prevent R3F component re-rendering via Zustand transient updates
+**Learning:** In a React Three Fiber context, subscribing to frequently changing global states (e.g., player position stored in Zustand) via hooks like `useStore((s) => s.x)` causes the entire component to re-render constantly. This is a severe performance bottleneck.
+**Action:** Use transient updates by reading initial state directly with `useStore.getState()` and setting up imperative event listeners inside `useEffect` using `useStore.subscribe((state, prevState) => ...)`. This allows physics or imperatively-driven objects to respond to changes without ever triggering a React render cycle.
