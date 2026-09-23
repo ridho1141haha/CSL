@@ -1,5 +1,51 @@
 # Changelog
 
+## 0.15.1 — 2026-09-23 (Fix Combat System: Satu Ayunan = Satu Hit + Ekonomi Fokus)
+
+User: "fix combat system". Audit combat runtime menemukan bug yang membuat
+pertarungan secara matematis mustahil dimenangkan — terutama secret_fight
+v0.15.0 (4 lawan beruntun).
+
+### Root cause (audit)
+- **Enemy strike multi-hit**: damage `case 'strike'` tersettle SETIAP frame
+  selama jendela aktif (`st.t < 0.12` ≈ 7 frame @60fps) tanpa guard — satu
+  ayunan Anak Bimo (dmg 9) membawa ±63 damage; pemain 100 HP tumbang dalam
+  2 ayunan. Inilah penyebab pertarungan terasa "tidak adil/cepat mati".
+- **Fokus tidak pernah pulih** selama duel: heavy (−10), dodge (−6), block
+  (−12/dtk) menguras total → pemain terkunci dari semua aksi utilitas untuk
+  sisa pertarungan. Pembulatan `setFocus` per-set juga membuat regen
+  fraksional mustahig (+0.11/frame selalu terbulatkan balik).
+- **Dodge mengarah KE musuh**: `dir = normalize(musuh − pemain)` — menghempas
+  langsung ke jangkauan pukulan berikutnya begitu invuln habis.
+- **Enemy advance membatalkan combo pemain**: CombatScene memanggil
+  reset runtime penuh tiap ganti lawan (attack/dodge/invuln pemain ikut
+  terhapus di tengah pukulan).
+- **winTimer 1/60 tetap**: jeda kemenangan memanjang di perangkat low-FPS
+  (30 fps ≈ 2.8 dtk menunggu layar menang).
+
+### Fix
+1. `combat.ts`: flag `hitDone` pada EnemyState — satu ayunan hanya
+   menghubungkan SEKALI (block pun sama; swing tidak terbakar saat pemain
+   invuln/di luar jangkauan di awal window).
+2. Ekonomi Fokus: regen **+7/dtk** saat bebas gerak (tidak menangkis),
+   reward **+4** per pukulan yang menghubungkan; `setFocus` tanpa
+   pembulatan (akumulasi fraksional; HUD tetap membulatkan tampilan).
+3. Dodge: arah mengikuti input gerak yang ditahan (relatif kamera, konvensi
+   lokomosi combat); tanpa input → backstep menjauhi musuh.
+4. `CombatScene.tsx`: lawan berikutnya maju → hanya `resetEnemyRuntime()`
+   (baru) — state pemain selamat; reset penuh hanya saat encounter baru.
+5. winTimer memakai delta frame nyata.
+6. Bersih-bersih: `facingDot` (dead code) dihapus; drain block membaca state
+   fresh (bukan snapshot usang → release blokir tidak telat 1 frame).
+
+### Test
+- `src/test/combat.test.ts` BARU (18 test) — suite pertama yang menyentuh
+  combatTick: strike single-hit/block/whiff/invuln, arah & biaya dodge,
+  regen & reward fokus, pemisahan reset player vs enemy, KO, onLose
+  (secret_fight → cabang cerita, bukan GAME_OVER) vs tanpa onLose
+  (→ GAME_OVER). Total **212/212 hijau** (194 + 18).
+- tsc -b ✓ · vite build ✓ · qa-nav headless CONSOLE_ERRORS none.
+
 ## 0.15.0 — 2026-09-22 (Alur = Laporan Final Project: GARIS MERAH Selaras Penuh)
 
 User: "sesuaikan alur" + lampiran laporan final project (LAPORAN FINAL

@@ -42,6 +42,11 @@ type EnemyState = {
   t: number;
   facing: number;
   cooldown: number;
+  // v0.15.1: satu pukulan = satu hit. Tanpa flag ini, damage tersettle SETIAP
+  // frame selama jendela aktif strike (st.t < 0.12 ≈ 7 frame @60fps) — satu
+  // ayunan Anak Bimo (dmg 9) bisa membawa ±63 damage dan secret_fight 4
+  // lawan jadi mustahil. Guard ini membuat strike hanya menghubungkan sekali.
+  hitDone: boolean;
 };
 
 // BUG-8.3: idle state is now actually entered. After spawn, enemy briefly
@@ -51,8 +56,17 @@ const ENEMY_PERCEPTION = 6.0;
 const ENEMY_IDLE_TURN_RATE = 1.2; // radians/sec slow turn toward player
 
 export const enemyRuntime: { state: EnemyState } = {
-  state: { state: 'spawn', t: 0, facing: 0, cooldown: 1.2 },
+  state: { state: 'spawn', t: 0, facing: 0, cooldown: 1.2, hitDone: false },
 };
+
+// v0.15.1: reset sisi musuh SAJA — dipakai CombatScene saat lawan berikutnya
+// maju (enemy #1 KO, enemy #2 masuk). State pertarungan pemain (attack/
+// dodge/invuln/block) HARUS tetap jalan supaya pukulan pembunuh tidak
+// terbatalkan di tengah combo.
+export function resetEnemyRuntime() {
+  enemyAnim.current = makeAnim();
+  enemyRuntime.state = { state: 'spawn', t: 0, facing: 0, cooldown: 1.2, hitDone: false };
+}
 
 export function resetCombatRuntime() {
   playerCombat.attack = null;
@@ -67,8 +81,7 @@ export function resetCombatRuntime() {
   // down=true to persist across game sessions, making the character appear
   // crouched/lying down on new games after a previous KO.
   playerAnim.current = makeAnim();
-  enemyAnim.current = makeAnim();
-  enemyRuntime.state = { state: 'spawn', t: 0, facing: 0, cooldown: 1.2 };
+  resetEnemyRuntime();
 }
 
 const LIGHT = { windup: 0.1, active: 0.12, recover: 0.22, dmg: 9, range: 2.0, arc: 1.15 };
@@ -77,11 +90,13 @@ const DODGE = { dur: 0.34, speed: 7.2, invuln: 0.3, focusCost: 6 };
 // BUG-8.1: blocking drains Focus over time. Without this, players could hold
 // block infinitely with no consequence. 12/sec means 100 Focus lasts ~8s.
 const BLOCK_FOCUS_DRAIN = 12;
-
-function facingDot(dx: number, dz: number, facing: number) {
-  const len = Math.hypot(dx, dz) || 1;
-  return (dx / len) * Math.sin(facing) + (dz / len) * Math.cos(facing) * -1;
-}
+// v0.15.1: ekonomi Fokus. Sebelumnya Fokus TIDAK PERNAH pulih selama duel —
+// heavy (−10), dodge (−6) dan block (−12/dtk) menguras total, lalu pemain
+// terkunci dari semua aksi utilitas untuk sisa pertarungan. Sekarang Fokus
+// pulih pelan saat bergerak bebas (tidak menangkis), dan setiap pukulan yang
+// menghubungkan memberi bonus — bermain agresif mendanai utilitas.
+const FOCUS_REGEN = 7;       // per detik, saat bebas gerak & tidak menangkis
+const HIT_FOCUS_REWARD = 4;  // per pukulan yang menghubungkan (light/heavy)
 
 // Called per frame while mode === COMBAT. dt is unclamped frame delta.
 export function combatTick(
@@ -141,6 +156,8 @@ export function combatTick(
         requestShake(a.heavy ? 0.3 : 0.16);
         playerCombat.hitPause = a.heavy ? 0.08 : 0.05;
         enemyAnim.current.hurtT = 0;
+        // v0.15.1: pukulan yang menghubungkan mengembalikan sedikit Fokus.
+        usePlayer.getState().addFocus(HIT_FOCUS_REWARD);
         onEnemyHit(enemy.hp - dmg, a.heavy);
       } else {
         audio.attack();
@@ -156,10 +173,12 @@ export function combatTick(
     // Focus hits 0, block auto-releases.
     const wantBlock = (input.mouse.right || input.touch.block) && player.focus > 0;
     if (wantBlock && playerCombat.block) {
-      // already blocking — drain Focus
-      const cost = BLOCK_FOCUS_DRAIN * dt;
-      player.setFocus(player.focus - cost);
-      if (player.focus <= 0) {
+      // already blocking — drain Focus (v0.15.1: baca state fresh, snapshot
+      // `player` di atas usang setelah setFocus → release telat 1 frame)
+      const fresh = usePlayer.getState();
+      const nextFocus = Math.max(0, fresh.focus - BLOCK_FOCUS_DRAIN * dt);
+      fresh.setFocus(nextFocus);
+      if (nextFocus <= 0) {
         playerCombat.block = false;
         playerAnim.current.block = false;
       }
@@ -178,6 +197,10 @@ export function combatTick(
       playerAnim.current.block = false;
     }
     if (!playerCombat.block) {
+      // v0.15.1: Fokus pulih selama bebas gerak (tidak menangkis, tidak
+      // sedang attack/dodge/stagger — cabang ini hanya dijalankan saat itu).
+      const fresh = usePlayer.getState();
+      if (fresh.focus < 100) fresh.setFocus(Math.min(100, fresh.focus + FOCUS_REGEN * dt));
       // reuse locomotion: read held keys relative to camera handled by caller? No —
       // combatTick also reads input directly (camera-relative using camState.yaw)
       const speed = input.isDown('run') ? 5.0 : 3.4;
@@ -210,7 +233,28 @@ export function combatTick(
         player.setFocus(player.focus - HEAVY.focusCost);
         audio.attack();
       } else if (input.justPressed('dodge') && player.focus >= DODGE.focusCost) {
-        playerCombat.dodge = { t: 0, dirX: nx, dirZ: nz };
+        // v0.15.1: arah dodge mengikuti arah gerak yang ditahan (relatif
+        // kamera, konvensi sama dgn lokomosi combat); tanpa input → backstep
+        // MENJAUHI musuh. Sebelumnya dir = normalize(musuh − pemain) →
+        // menghempas LANGSUNG KE ARAH MUSUH dan mendarat pas di jangkauan
+        // pukulan berikutnya begitu invuln habis.
+        let ddx = -nx;
+        let ddz = -nz;
+        const dIx = (input.isDown('right') ? 1 : 0) - (input.isDown('left') ? 1 : 0);
+        const dIz = (input.isDown('forward') ? 1 : 0) - (input.isDown('back') ? 1 : 0);
+        if (dIx || dIz) {
+          const yaw = camYaw();
+          const fX = -Math.sin(yaw);
+          const fZ = -Math.cos(yaw);
+          const rX = -fZ;
+          const rZ = fX;
+          const mx = fX * dIz + rX * dIx;
+          const mz = fZ * dIz + rZ * dIx;
+          const mlen = Math.hypot(mx, mz) || 1;
+          ddx = mx / mlen;
+          ddz = mz / mlen;
+        }
+        playerCombat.dodge = { t: 0, dirX: ddx, dirZ: ddz };
         player.setFocus(player.focus - DODGE.focusCost);
         playerCombat.invuln = DODGE.invuln;
         audio.dodge();
@@ -284,8 +328,10 @@ export function combatTick(
       }
       break;
     case 'strike': {
-      if (st.t < 0.12 && dist < 2.1) {
+      // v0.15.1: hitDone guard — satu ayunan hanya menghubungkan SEKALI.
+      if (!st.hitDone && st.t < 0.12 && dist < 2.1) {
         if (playerCombat.invuln <= 0) {
+          st.hitDone = true;
           // BUG-8.2 fix: block cone angle. Player faces `player.facing` (radians
           // where atan2(vx, vz) = direction of movement/looking). Enemy is at
           // offset (dx, dz) from player. For player to block, player.facing

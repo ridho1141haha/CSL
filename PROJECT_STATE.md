@@ -1,6 +1,25 @@
 # Project State
 
-Updated: 2026-09-22 (v0.15.0 — alur diselaraskan dengan laporan final project GARIS MERAH: 5 flavor choice, bonding arc doc Ch3/Ch4, urutan netral sesuai doc, SECRET CHOICE POINT + 2 secret endings (total 6), onLose encounter; 194 test)
+Updated: 2026-09-23 (v0.15.1 — fix combat system: enemy strike multi-hit diberantas
+(satu ayunan = satu hit), Fokus kini pulih (+7/dtk & +4/hit), dodge mengikuti arah
+gerak / backstep, enemy advance tak lagi membatalkan combo pemain; 212 test)
+
+## v0.15.1 Snapshot (2026-09-23)
+
+**User: "fix combat system". Pertarungan sebelumnya mustahil dimenangkan:
+satu ayunan musuh = ±7× dmg (multi-hit per frame), Fokus tak pernah pulih,
+dodge menghempas KE arah musuh.**
+- `combat.ts`: `hitDone` pada EnemyState — strike hanya menghubungkan sekali
+  (jendela aktif 0.12 dtk ≈ 7 frame @60fps; Anak Bimo dmg 9 → ±63/ayunan).
+- Ekonomi Fokus: regen +7/dtk saat bebas gerak, +4 per hit yang connect;
+  `playerStore.setFocus` tanpa pembulatan (akumulasi fraksional per frame).
+- Dodge: arah = input gerak tertahan (relatif kamera); tanpa input backstep
+  menjauh. `CombatScene`: ganti lawan → `resetEnemyRuntime()` (baru) saja —
+  attack/dodge/invuln/block pemain selamat; winTimer pakai dt nyata.
+- Test: combat.test.ts BARU 18 test (suite pertama utk combatTick; termasuk
+  onLose secret_fight → bukan GAME_OVER) → **212/212** · tsc -b ✓ · build ✓
+  · qa-nav CONSOLE_ERRORS none.
+- Simpan lama aman; tidak ada perubahan data/story/encounter — murni runtime.
 
 ## v0.15.0 Snapshot (2026-09-22)
 
