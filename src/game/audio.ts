@@ -218,7 +218,9 @@ export type MusicContext = {
   chapter: number;
   route: string;
   periodId: string; // 'pagi' | 'istirahat' | 'makan_siang' | 'istirahat_siang' | 'pulang' | ... (systems/time)
-  endingId: 'true' | 'bitter' | 'bad' | 'neutral' | null;
+  // v0.15.0: + neutral_lost / neutral_won — dua secret bad ending rute netral
+  // memakai track ending_bad (kelasnya sama: kekalahan).
+  endingId: 'true' | 'bitter' | 'bad' | 'neutral' | 'neutral_lost' | 'neutral_won' | null;
 };
 
 /**

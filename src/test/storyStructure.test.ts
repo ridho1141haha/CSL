@@ -9,6 +9,7 @@ import {
   SPECIAL_NODES,
 } from '../data/dialogue';
 import { OPENING_NODES } from '../data/story/opening';
+import { BONDING_NODES } from '../data/story/bonding';
 import { CHAPTER2_NODES } from '../data/story/chapter2';
 import { CHAPTER3_NODES } from '../data/story/chapter3';
 import { NEUTRAL_NODES } from '../data/story/routes/neutral';
@@ -29,6 +30,7 @@ import type { DialogueNode } from '../types';
 
 const ALL_MODULES: [string, DialogueNode[]][] = [
   ['opening', OPENING_NODES],
+  ['bonding', BONDING_NODES],
   ['chapter2', CHAPTER2_NODES],
   ['chapter3', CHAPTER3_NODES],
   ['neutral', NEUTRAL_NODES],
@@ -58,6 +60,8 @@ function reach(root: string): Set<string> {
   return seen;
 }
 
+const hasEnding = (n?: DialogueNode) => !!n?.effects?.some((e) => e.k === 'ending');
+
 describe('story module separation (v0.14.0)', () => {
   it('module composition == single DIALOGUE map, no duplicate ids', () => {
     const seen = new Set<string>();
@@ -75,12 +79,15 @@ describe('story module separation (v0.14.0)', () => {
   it('each module only owns its id family', () => {
     const families: [string, (id: string) => boolean][] = [
       ['opening', (id) => /^(o[1-5]_)/.test(id)],
+      ['bonding', (id) => /^(ch1_lib_|ch1_pts_)/.test(id)],
       ['chapter2', (id) => id.startsWith('ch2_')],
       ['chapter3', (id) => id.startsWith('ch3_')],
-      ['neutral', (id) => /^(n[1-4]_)/.test(id)],
+      // v0.15.0: n5 ditambahkan (bulan-bulan sunyi) + ch4_neu_* mencakup
+      // grad/out/secret/sbw/sbl (konfrontasi kelulusan + SECRET CHOICE)
+      ['neutral', (id) => /^(n[1-5]_)/.test(id)],
       ['bad', (id) => id.startsWith('ch4_bad_')],
-      ['resistance', (id) => id.startsWith('ch4_res_')],
-      ['endingNeutral', (id) => id.startsWith('ch4_neu_grad_')],
+      ['resistance', (id) => id.startsWith('ch4_res_') || /^ch4_fc5/.test(id)],
+      ['endingNeutral', (id) => id.startsWith('ch4_neu_')],
       ['endingBad1', (id) => id.startsWith('ch4_bad_grad_')],
       ['endingGood', (id) => id.startsWith('ch4_good_')],
       ['endingBad2', (id) => id.startsWith('ch4_bad2_')],
@@ -107,28 +114,48 @@ describe('story module separation (v0.14.0)', () => {
   });
 
   it('ENDINGS ARE ISOLATED (Task 12): tidak ada ending menjalankan graph ending lain', () => {
+    // v0.15.0: rute netral punya TIGA rantai penutup (out / sbw / sbl) yang
+    // diuji terpisah — konfrontasi kelulusan (grad) hanya sampai SECRET
+    // CHOICE POINT (grad_8), bukan sampai effect ending.
     const neutral = reach('ch4_neu_grad_1');
+    const neuOut = reach('ch4_neu_out_1');
+    const neuSbw = reach('ch4_neu_sbw_1');
+    const neuSbl = reach('ch4_neu_sbl_1');
     const bad1 = reach('ch4_bad_grad_1');
     const good = reach('ch4_good_grad_1');
     const bad2 = reach('ch4_bad2_1');
-    const pairs: [string, Set<string>, string, Set<string>][] = [
-      ['neutral', neutral, 'bad1', bad1],
-      ['neutral', neutral, 'good', good],
-      ['neutral', neutral, 'bad2', bad2],
-      ['bad1', bad1, 'good', good],
-      ['bad1', bad1, 'bad2', bad2],
-      ['good', good, 'bad2', bad2],
+    const groups: [string, Set<string>][] = [
+      ['grad', neutral],
+      ['neuOut', neuOut],
+      ['neuSbw', neuSbw],
+      ['neuSbl', neuSbl],
+      ['bad1', bad1],
+      ['good', good],
+      ['bad2', bad2],
     ];
-    for (const [an, a, bn, b] of pairs) {
-      for (const id of a) {
-        expect(b.has(id), `${an} menyentuh node milik ${bn}: ${id}`).toBe(false);
+    for (let i = 0; i < groups.length; i++) {
+      for (let j = i + 1; j < groups.length; j++) {
+        const [an, a] = groups[i];
+        const [bn, b] = groups[j];
+        for (const id of a) {
+          expect(b.has(id), `${an} menyentuh node milik ${bn}: ${id}`).toBe(false);
+        }
       }
     }
-    // tiap ending berakhir dengan effect {k:'ending'}
-    expect(neutral.has('ch4_neu_grad_6')).toBe(true);
+    // tiap rantai ending berakhir dengan effect {k:'ending'} di node terakhirnya
+    expect(neutral.has('ch4_neu_grad_8')).toBe(true); // secret choice point (tanpa ending)
+    expect(neuOut.has('ch4_neu_out_2')).toBe(true);
+    expect(neuSbw.has('ch4_neu_sbw_4')).toBe(true);
+    expect(neuSbl.has('ch4_neu_sbl_3')).toBe(true);
     expect(bad1.has('ch4_bad_grad_3')).toBe(true);
     expect(good.has('ch4_good_grad_5')).toBe(true);
     expect(bad2.has('ch4_bad2_5')).toBe(true);
+    // konfrontasi kelulusan TIDAK langsung memicu ending — kembali ke gameplay
+    expect([...neutral].every((id) => !hasEnding(DIALOGUE[id]))).toBe(true);
+    // tiga rantai penutup MENERIMA effect ending
+    expect(hasEnding(DIALOGUE['ch4_neu_out_2'])).toBe(true);
+    expect(hasEnding(DIALOGUE['ch4_neu_sbw_4'])).toBe(true);
+    expect(hasEnding(DIALOGUE['ch4_neu_sbl_3'])).toBe(true);
   });
 
   it('routes are separated (Task 4): montase netral ≠ rooftop ≠ bad ≠ resistance', () => {

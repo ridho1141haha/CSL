@@ -31,17 +31,22 @@ export const CAM_BY_NODE: Record<string, string> = {
   o2_3b: 'fp_class_desk',
   o2_4: 'fp_class_board',
   o2_5: 'fp_class_desk',
-  o2_6: 'fp_class_desk',
-  o2_7: 'fp_class_desk',
+  o2_c1: 'fp_class_desk',
+  o2_6a: 'fp_class_desk',
+  o2_7a: 'fp_class_desk',
+  o2_6b: 'fp_class_desk',
+  o2_7b: 'fp_class_desk',
   o2_8: 'fp_class',
   // Scene 3 — peringatan pertama di lorong
   o3_1: 'fp_corridor',
   o3_2: 'fp_siti_hall',
   o3_3: 'fp_siti_hall',
   o3_4: 'fp_siti_hall_close',
-  o3_5: 'fp_siti_hall_close',
-  o3_6: 'fp_siti_hall',
-  o3_7: 'fp_siti_hall',
+  o3_c2: 'fp_siti_hall_close',
+  o3_6a: 'fp_siti_hall',
+  o3_7a: 'fp_siti_hall',
+  o3_6b: 'fp_siti_hall',
+  o3_7b: 'fp_siti_hall',
   // Scene 4 — bisik-bisik kantin & kemunculan Bimo
   o4_1: 'fp_canteen',
   o4_2: 'fp_canteen',
@@ -58,6 +63,18 @@ export const CAM_BY_NODE: Record<string, string> = {
   o4_13: 'fp_bimo_entry',
   o4_14: 'fp_bimo_close',
   o5_1: 'fp_bimo_close',
+  // ---- v0.15.0: bonding arc (doc Ch3 perpustakaan + Ch4 PTS) ----
+  ch1_lib_1: 'library_wide',
+  ch1_lib_2: 'library_close',
+  ch1_lib_3: 'library_close',
+  ch1_lib_4: 'library_close',
+  ch1_lib_5: 'library_close',
+  ch1_lib_6: 'library_shelf',
+  ch1_pts_1: 'classroom_view',
+  ch1_pts_2: 'classroom_budi',
+  ch1_pts_3: 'classroom_view',
+  ch1_pts_4: 'classroom_close',
+  ch1_pts_5: 'classroom_close',
   // ---- bab 2: Kesalahan Kecil Aris (third person, back stairs) ----
   ch2_intro_1: 'stairs_wide',
   ch2_intro_2: 'stairs_wide',
@@ -98,23 +115,45 @@ export const CAM_BY_NODE: Record<string, string> = {
   n2_6: 'library_close',
   n2_7: 'library_shelf',
   n2_8: 'library_pull',
-  n3_1: 'corridor_view',
-  n3_2: 'corridor_view',
-  n3_3: 'corridor_close',
-  n3_4: 'corridor_view',
-  n3_5: 'corridor_close',
-  n3_6: 'corridor_view',
-  n4_1: 'classroom_view',
-  n4_2: 'classroom_budi',
-  n4_3: 'classroom_view',
-  n4_4: 'classroom_view',
+  n2_c3: 'library_close',
+  n2_7b: 'library_close',
+  n2_8b: 'library_pull',
+  // v0.15.0: urutan doc — n3 = surat pengunduran diri (kelas/Budi), n4 =
+  // pengabaian Bimo (koridor), n5 = bulan-bulan sunyi (kelas).
+  n3_1: 'classroom_view',
+  n3_2: 'classroom_budi',
+  n3_3: 'classroom_view',
+  n3_4: 'classroom_close',
+  n4_1: 'corridor_view',
+  n4_2: 'corridor_close',
+  n4_3: 'corridor_close',
+  n4_4: 'corridor_view',
+  n4_5: 'corridor_close',
+  n4_6: 'corridor_view',
+  n5_1: 'classroom_view',
+  n5_2: 'classroom_view',
   // ---- rute netral: lulus tanpa nama (gerbang) ----
   ch4_neu_grad_1: 'grad_gate',
   ch4_neu_grad_2: 'grad_gate',
-  ch4_neu_grad_3: 'grad_gate',
   ch4_neu_grad_4: 'grad_siti',
   ch4_neu_grad_5: 'grad_gate',
-  ch4_neu_grad_6: 'grad_gate',
+  ch4_neu_grad_6: 'grad_siti',
+  ch4_neu_grad_7: 'grad_siti',
+  ch4_neu_grad_8: 'grad_gate',
+  // v0.15.0: SECRET CHOICE POINT — tiga rantai penutup rute netral
+  ch4_neu_out_1: 'grad_gate',
+  ch4_neu_out_2: 'grad_gate',
+  ch4_neu_secret_1: 'alley_wide',
+  ch4_neu_secret_2: 'alley_close',
+  ch4_neu_secret_3: 'alley_close',
+  ch4_neu_secret_4: 'alley_wide',
+  ch4_neu_sbw_1: 'alley_wide',
+  ch4_neu_sbw_2: 'alley_wide',
+  ch4_neu_sbw_3: 'alley_close',
+  ch4_neu_sbw_4: 'alley_close',
+  ch4_neu_sbl_1: 'alley_close',
+  ch4_neu_sbl_2: 'alley_wide',
+  ch4_neu_sbl_3: 'alley_close',
   // rooftop & late-story cinematics (GARIS MERAH)
   // ---- bab 3 rute aksi: pendekatan OSIS + sergapan parkiran ----
   // v0.14.1: pose lama corridor_* mewarisi framing montase n3 (koridor z≈17)
@@ -138,6 +177,11 @@ export const CAM_BY_NODE: Record<string, string> = {
   ch3_intro_3: 'rooftop_close',
   ch3_intro_4: 'rooftop',
   ch3_intro_5: 'rooftop_close',
+  ch3_fc4: 'rooftop_close',
+  ch3_fc4a: 'rooftop_close',
+  ch3_fc4a2: 'rooftop_close',
+  ch3_fc4b: 'rooftop_close',
+  ch3_fc4b2: 'rooftop_close',
   ch3_choice: 'rooftop_close',
   ch3_accept_1: 'rooftop_close',
   ch3_accept_2: 'rooftop_close',
@@ -172,6 +216,11 @@ export const CAM_BY_NODE: Record<string, string> = {
   ch4_res_alley_4: 'alley_close',
   ch4_res_goons_win: 'alley_wide',
   ch4_res_goons_win_2: 'alley_close',
+  ch4_fc5: 'alley_close',
+  ch4_fc5a: 'alley_close',
+  ch4_fc5a2: 'alley_close',
+  ch4_fc5b: 'alley_close',
+  ch4_fc5b2: 'alley_close',
   ch4_res_choice: 'alley_close',
   // ---- good ending: penangkapan + kelulusan (GARIS MERAH) ----
   ch4_good_1: 'alley_close',
@@ -211,6 +260,12 @@ export const NODE_FX: Record<string, { fx: 'fp-to-tp' | 'fade-out' | 'fade-in' |
   ch4_bad_grad_1: { fx: 'fade-in' },
   ch4_good_grad_1: { fx: 'fade-in' },
   ch4_bad2_1: { fx: 'fade-in' },
+  // v0.15.0: montase bonding + rantai secret rute netral
+  ch1_lib_1: { fx: 'fade-in' },
+  ch1_pts_1: { fx: 'fade-in' },
+  n5_1: { fx: 'fade-in' },
+  ch4_neu_out_1: { fx: 'fade-in' },
+  ch4_neu_secret_1: { fx: 'fade-in' },
   // v0.14.0: scene-start yang distage (player teleport) kini selalu difade —
   // transisi sinematik out→place→in, tidak ada teleport kasat mata
   ch3_f2_1: { fx: 'fade-in' },
@@ -273,18 +328,25 @@ export const OPENING_ACTORS: Record<string, OpeningCast> = {
     aris: { pos: [-4.0, 11.3], crouch: true, face: [-4.5, 10.6] },
   },
   // v0.12.0: Aris berdiri lagi, menyodorkan penghapus (naskah scene 2)
+  // v0.15.0: FLAVOR CHOICE 1 — Aris tetap berdiri dengan penghapus sampai
+  // jawaban Ren selesai; semua cabang kembali ke meja (o2_8).
   o2_5: { aris: { pos: [-4.0, 11.3], face: [-3.9, 12.4], hold: 'eraser' } },
-  o2_6: { aris: arisDesk },
-  o2_7: { aris: arisDesk },
+  o2_c1: { aris: { pos: [-4.0, 11.3], face: [-3.9, 12.4], hold: 'eraser' } },
+  o2_6a: { aris: arisDesk },
+  o2_7a: { aris: arisDesk },
+  o2_6b: { aris: arisDesk },
+  o2_7b: { aris: arisDesk },
   o2_8: { aris: arisDesk },
   // Scene 3 — lorong: Siti dekat papan & loket
   o3_1: { siti: { pos: [-3.0, 23.5], face: [3, 26] } },
   o3_2: { siti: { pos: [-3.0, 23.5], face: [3, 26] } },
   o3_3: { siti: { pos: [-3.0, 23.5], face: [3, 26] } },
   o3_4: { siti: { pos: [-3.0, 23.5], face: [3, 26] } },
-  o3_5: { siti: { pos: [-3.0, 23.5], face: [3, 26] } },
-  o3_6: { siti: { pos: [-3.0, 23.5], face: [3, 26] } },
-  o3_7: { siti: { pos: [-3.0, 23.5], face: [3, 26] } },
+  o3_c2: { siti: { pos: [-3.0, 23.5], face: [3, 26] } },
+  o3_6a: { siti: { pos: [-3.0, 23.5], face: [3, 26] } },
+  o3_7a: { siti: { pos: [-3.0, 23.5], face: [3, 26] } },
+  o3_6b: { siti: { pos: [-3.0, 23.5], face: [3, 26] } },
+  o3_7b: { siti: { pos: [-3.0, 23.5], face: [3, 26] } },
   // Scene 4 — kantin: pembisik, lalu Bimo + tiga pengikut
   o4_2: { bullies: whisperers },
   o4_3: { bullies: whisperers },
@@ -387,6 +449,20 @@ const gradFollowers: StorySpot[] = [
   { pos: [6.2, 43.8], face: [7.0, 42.0] },
   { pos: [8.6, 43.2], face: [7.0, 42.0] },
 ];
+// v0.15.0 — bonding arc: Aris meja perpustakaan (memakai titik n2 Siti — spot
+// berdiri valid yang sudah di-frame kamera library_*) + kelas PTS (spot Budi
+// n4 lama). Budi & Aris saling menghadap; Ren distage via REN_STAGING.
+const LIB_ARIS: StorySpot = { pos: [30.0, 19.2], face: [29.0, 20.4] };
+const BUDI_CLASS: StorySpot = { pos: [-12.2, 11.6], face: [-8, 9] };
+const ARIS_CLASS: StorySpot = { pos: [-4.0, 11.3], face: [-12.2, 11.6] };
+// v0.15.0 — rombongan secret battle (doc: 6-8 anggota; stage 4 — sisanya
+// lewat narasi supaya draw call tetap dijaga)
+const secretCrowd: StorySpot[] = [
+  { pos: [4.5, -20.5], face: [6.0, -22.0] },
+  { pos: [7.5, -20.6], face: [6.0, -22.0] },
+  { pos: [3.8, -22.6], face: [6.0, -22.0] },
+  { pos: [8.7, -20.0], face: [6.0, -22.0] },
+];
 export const SCENE_ACTORS: Record<string, OpeningCast> = {
   // Bab 2 — jalur tangga belakang → kantin: Aris + dua anak geng inti
   ch2_intro_1: { bullies: gangStairs },
@@ -430,6 +506,11 @@ export const SCENE_ACTORS: Record<string, OpeningCast> = {
   ch3_intro_3: { bimo: ROOFTOP_BIMO },
   ch3_intro_4: { bimo: ROOFTOP_BIMO },
   ch3_intro_5: { bimo: ROOFTOP_BIMO },
+  ch3_fc4: { bimo: ROOFTOP_BIMO },
+  ch3_fc4a: { bimo: ROOFTOP_BIMO },
+  ch3_fc4a2: { bimo: ROOFTOP_BIMO },
+  ch3_fc4b: { bimo: ROOFTOP_BIMO },
+  ch3_fc4b2: { bimo: ROOFTOP_BIMO },
   ch3_choice: { bimo: ROOFTOP_BIMO },
   ch3_accept_1: { bimo: ROOFTOP_BIMO },
   ch3_accept_2: { bimo: ROOFTOP_BIMO },
@@ -459,6 +540,11 @@ export const SCENE_ACTORS: Record<string, OpeningCast> = {
   ch4_res_alley_4: { aris: arisHostage, bimo: bimoAlley, followers: alleyCircle },
   ch4_res_goons_win: { aris: arisHostage, bimo: bimoAlley },
   ch4_res_goons_win_2: { aris: arisHostage, bimo: bimoAlley },
+  ch4_fc5: { aris: arisHostage, bimo: bimoAlley },
+  ch4_fc5a: { aris: arisHostage, bimo: bimoAlley },
+  ch4_fc5a2: { aris: arisHostage, bimo: bimoAlley },
+  ch4_fc5b: { aris: arisHostage, bimo: bimoAlley },
+  ch4_fc5b2: { aris: arisHostage, bimo: bimoAlley },
   ch4_res_choice: { aris: arisHostage, bimo: bimoAlley },
   // GARIS MERAH — good: penangkapan + kelulusan bersama
   // v0.12.0: Siti merekam aksi geng dari sembunyi (pegang ponsel)
@@ -484,43 +570,77 @@ export const SCENE_ACTORS: Record<string, OpeningCast> = {
   n2_4: { siti: LIB_SITI },
   n2_5: { siti: LIB_SITI },
   n2_6: { siti: LIB_SITI },
+  n2_c3: { siti: LIB_SITI },
   n2_7: { siti: LIB_SITI },
   n2_8: { siti: LIB_SITI },
-  n3_1: {
+  n2_7b: { siti: LIB_SITI },
+  n2_8b: { siti: LIB_SITI },
+  // v0.15.0: n3 = surat pengunduran diri (Pak Budi, kelas); n4 = pengabaian
+  // Bimo (koridor — spot lama n3 pindah ke sini); n5 = kelas tanpa aktor.
+  n3_1: { budi: BUDI_CLASS },
+  n3_2: { budi: BUDI_CLASS },
+  n3_3: { budi: BUDI_CLASS },
+  n3_4: { budi: BUDI_CLASS },
+  n4_1: {
     bimo: { pos: [-4.0, 17.0], face: [-9, 17.4] },
     followers: [{ pos: [-5.4, 17.7], face: [-9, 17.4] }],
   },
-  n3_2: {
+  n4_2: {
     bimo: { pos: [-4.0, 17.0], face: [-9, 17.4] },
     followers: [{ pos: [-5.4, 17.7], face: [-9, 17.4] }],
   },
-  n3_3: {
+  n4_3: {
     bimo: { pos: [-4.0, 17.0], face: [-3.2, 17.6] },
     followers: [{ pos: [-5.4, 17.7], face: [-4.0, 17.1] }],
   },
-  n3_4: {
+  n4_4: {
     bimo: { pos: [-4.0, 17.0], face: [-9, 17.4] },
     followers: [{ pos: [-5.4, 17.7], face: [-4.0, 17.1] }],
   },
-  n3_5: {
+  n4_5: {
     bimo: { pos: [-4.0, 17.0], face: [-3.2, 17.6] },
     followers: [{ pos: [-5.4, 17.7], face: [-4.0, 17.1] }],
   },
-  n3_6: {
+  n4_6: {
     bimo: { pos: [-4.0, 17.0], face: [-9, 17.4] },
     followers: [{ pos: [-5.4, 17.7], face: [-9, 17.4] }],
   },
-  n4_1: { budi: { pos: [-12.2, 11.6], face: [-8, 9] } },
-  n4_2: { budi: { pos: [-12.2, 11.6], face: [-8, 9] } },
-  n4_3: { budi: { pos: [-12.2, 11.6], face: [-8, 9] } },
-  n4_4: { budi: { pos: [-12.2, 11.6], face: [-8, 9] } },
-  // Graduasi — gerbang utama
+  n5_1: {},
+  n5_2: {},
+  // Graduasi — gerbang utama (v0.15.0: konfrontasi Siti + SECRET CHOICE POINT)
   ch4_neu_grad_1: {},
   ch4_neu_grad_2: {},
-  ch4_neu_grad_3: { siti: { pos: [8.4, 44.4], face: [6.8, 43.2] } },
-  ch4_neu_grad_4: { siti: { pos: [8.4, 44.4], face: [6.8, 43.2] } },
-  ch4_neu_grad_5: {},
-  ch4_neu_grad_6: {},
+  ch4_neu_grad_4: { siti: gradSiti },
+  ch4_neu_grad_5: { siti: gradSiti },
+  ch4_neu_grad_6: { siti: gradSiti },
+  ch4_neu_grad_7: { siti: gradSiti },
+  ch4_neu_grad_8: { siti: gradSiti },
+  ch4_neu_out_1: {},
+  ch4_neu_out_2: {},
+  // secret battle: Bimo + rombongan (doc: 6-8 orang) di gang belakang
+  ch4_neu_secret_1: { bimo: bimoAlley, followers: secretCrowd },
+  ch4_neu_secret_2: { bimo: bimoAlley, followers: secretCrowd },
+  ch4_neu_secret_3: { bimo: bimoAlley, followers: secretCrowd },
+  ch4_neu_secret_4: { bimo: bimoAlley, followers: secretCrowd },
+  ch4_neu_sbw_1: { bimo: bimoAlley, followers: secretCrowd },
+  ch4_neu_sbw_2: { bimo: bimoAlley, followers: secretCrowd },
+  ch4_neu_sbw_3: { bimo: bimoAlley, followers: secretCrowd, siti: sitiHidden },
+  ch4_neu_sbw_4: { bimo: bimoAlley, followers: secretCrowd },
+  ch4_neu_sbl_1: { bimo: bimoAlley, followers: secretCrowd },
+  ch4_neu_sbl_2: { bimo: bimoAlley, followers: secretCrowd },
+  ch4_neu_sbl_3: { bimo: bimoAlley, followers: secretCrowd },
+  // v0.15.0 — bonding arc (doc Ch3 perpustakaan + Ch4 PTS)
+  ch1_lib_1: { aris: LIB_ARIS },
+  ch1_lib_2: { aris: LIB_ARIS },
+  ch1_lib_3: { aris: LIB_ARIS },
+  ch1_lib_4: { aris: LIB_ARIS },
+  ch1_lib_5: { aris: LIB_ARIS },
+  ch1_lib_6: { aris: LIB_ARIS },
+  ch1_pts_1: { budi: BUDI_CLASS, aris: ARIS_CLASS },
+  ch1_pts_2: { budi: BUDI_CLASS, aris: ARIS_CLASS },
+  ch1_pts_3: { budi: BUDI_CLASS, aris: ARIS_CLASS },
+  ch1_pts_4: { budi: BUDI_CLASS, aris: ARIS_CLASS },
+  ch1_pts_5: { budi: BUDI_CLASS, aris: ARIS_CLASS },
 };
 
 // ---------------------------------------------------------------------------
@@ -551,8 +671,11 @@ export const STORY_PROPS: Record<string, StoryPropDef> = {
   o2_3b: { pencase: 'floor' },
   o2_4: { pencase: 'floor' },
   o2_5: { pencase: 'floor' },
-  o2_6: { pencase: 'none' },
-  o2_7: { pencase: 'none' },
+  // v0.15.0: FLAVOR CHOICE 1 — cabang 6a/7a & 6b/7b sama-sama tanpa pensil
+  o2_6a: { pencase: 'none' },
+  o2_7a: { pencase: 'none' },
+  o2_6b: { pencase: 'none' },
+  o2_7b: { pencase: 'none' },
   o2_8: { pencase: 'none' },
   // Bab 2: Aris bawa buku+botol (intro_2), tersandung & tumpah (intro_3),
   // buku berserakan sampai duel usai; ch2_win_3 buku sudah terkumpul lagi
@@ -665,6 +788,12 @@ export const REN_STAGING: Record<string, PlayerStaging> = {
   ch3_accept_2: ROOFTOP_REN,
   ch3_reject_1: ROOFTOP_REN,
   ch3_reject_2: ROOFTOP_REN,
+  // v0.15.0: FLAVOR CHOICE 4 (masih di rooftop, sebelum CHOICE 2)
+  ch3_fc4: ROOFTOP_REN,
+  ch3_fc4a: ROOFTOP_REN,
+  ch3_fc4a2: ROOFTOP_REN,
+  ch3_fc4b: ROOFTOP_REN,
+  ch3_fc4b2: ROOFTOP_REN,
   // ---- RUTE BAD: montase eksekutor + gudang ----
   ch4_bad_1: { pos: [-4.0, 17.0], face: [-1.5, 16.8] },
   ch4_bad_2: { pos: CLASS_REN, face: [-4.0, 11.3] },
@@ -683,6 +812,12 @@ export const REN_STAGING: Record<string, PlayerStaging> = {
   ch4_res_alley_4: { pos: HOSTAGE_REN, face: HOSTAGE_FACE },
   ch4_res_goons_win: { pos: [5.4, -19.0], face: [6.0, -22.0] },
   ch4_res_goons_win_2: { pos: [5.4, -19.0], face: [6.0, -22.0] },
+  // v0.15.0: FLAVOR CHOICE 5 (gertakan sebelum duel final)
+  ch4_fc5: { pos: HOSTAGE_REN, face: HOSTAGE_FACE },
+  ch4_fc5a: { pos: HOSTAGE_REN, face: HOSTAGE_FACE },
+  ch4_fc5a2: { pos: HOSTAGE_REN, face: HOSTAGE_FACE },
+  ch4_fc5b: { pos: HOSTAGE_REN, face: HOSTAGE_FACE },
+  ch4_fc5b2: { pos: HOSTAGE_REN, face: HOSTAGE_FACE },
   ch4_res_choice: { pos: [5.4, -19.0], face: [6.0, -22.0] },
   // ---- GOOD: penyanderaan + rekaman Siti + penangkapan ----
   ch4_good_1: { pos: HOSTAGE_REN, face: HOSTAGE_FACE },
@@ -692,10 +827,25 @@ export const REN_STAGING: Record<string, PlayerStaging> = {
   // ---- KELULUSAN (gerbang utama) ----
   ch4_neu_grad_1: { pos: GATE_SOLO, face: GATE_SOLO_FACE },
   ch4_neu_grad_2: { pos: GATE_SOLO, face: GATE_SOLO_FACE },
-  ch4_neu_grad_3: { pos: GATE_SOLO, face: [8.4, 44.4] },
   ch4_neu_grad_4: { pos: GATE_SOLO, face: [8.4, 44.4] },
-  ch4_neu_grad_5: { pos: GATE_SOLO, face: GATE_SOLO_FACE },
-  ch4_neu_grad_6: { pos: GATE_SOLO, face: GATE_SOLO_FACE },
+  ch4_neu_grad_5: { pos: GATE_SOLO, face: [8.4, 44.4] },
+  ch4_neu_grad_6: { pos: GATE_SOLO, face: [8.4, 44.4] },
+  ch4_neu_grad_7: { pos: GATE_SOLO, face: [8.4, 44.4] },
+  ch4_neu_grad_8: { pos: GATE_SOLO, face: GATE_SOLO_FACE },
+  // v0.15.0: SECRET CHOICE POINT — keluar gerbang / secret battle / hasilnya
+  ch4_neu_out_1: { pos: [7.0, 46.5], face: [7.0, 50] },
+  ch4_neu_out_2: { pos: [7.0, 46.5], face: [7.0, 50] },
+  ch4_neu_secret_1: { pos: HOSTAGE_REN, face: [8.4, -22.8] },
+  ch4_neu_secret_2: { pos: HOSTAGE_REN, face: [8.4, -22.8] },
+  ch4_neu_secret_3: { pos: HOSTAGE_REN, face: [8.4, -22.8] },
+  ch4_neu_secret_4: { pos: HOSTAGE_REN, face: [8.4, -22.8] },
+  ch4_neu_sbw_1: { pos: [5.4, -19.0], face: [8.4, -22.8] },
+  ch4_neu_sbw_2: { pos: [5.4, -19.0], face: [8.4, -22.8] },
+  ch4_neu_sbw_3: { pos: [5.4, -19.0], face: [12.5, -22.0] },
+  ch4_neu_sbw_4: { pos: [5.4, -19.0], face: [8.4, -22.8] },
+  ch4_neu_sbl_1: { pos: [6.4, -20.4], face: [8.4, -22.8] },
+  ch4_neu_sbl_2: { pos: [6.4, -20.4], face: [8.4, -22.8] },
+  ch4_neu_sbl_3: { pos: [6.4, -20.4], face: [8.4, -22.8] },
   ch4_bad_grad_1: { pos: [7.0, 42.2], face: [7.4, 43.5] },
   ch4_bad_grad_2: { pos: [7.0, 42.2], face: [7.4, 43.5] },
   ch4_bad_grad_3: { pos: [7.0, 42.2], face: [7.4, 43.5] },
@@ -713,6 +863,18 @@ export const REN_STAGING: Record<string, PlayerStaging> = {
   // v0.14.1: penutup bab 2 (setelah Bimo "...Tidak buruk.") — deterministik,
   // kamera stairs_wide memframing titik ini
   ch2_close: { pos: [4.8, 1.6], face: [6.6, 2.0] },
+  // ---- v0.15.0: bonding arc (doc Ch3 perpustakaan + Ch4 PTS) ----
+  ch1_lib_1: { pos: [29.0, 20.4], face: [30.0, 19.2] },
+  ch1_lib_2: { pos: [29.0, 20.4], face: [30.0, 19.2] },
+  ch1_lib_3: { pos: [29.0, 20.4], face: [30.0, 19.2] },
+  ch1_lib_4: { pos: [29.0, 20.4], face: [30.0, 19.2] },
+  ch1_lib_5: { pos: [29.0, 20.4], face: [30.0, 19.2] },
+  ch1_lib_6: { pos: [29.0, 20.4], face: [30.0, 19.2] },
+  ch1_pts_1: { pos: CLASS_REN, face: [-12.2, 11.6] },
+  ch1_pts_2: { pos: CLASS_REN, face: [-12.2, 11.6] },
+  ch1_pts_3: { pos: CLASS_REN, face: [-12.2, 11.6] },
+  ch1_pts_4: { pos: CLASS_REN, face: [-12.2, 11.6] },
+  ch1_pts_5: { pos: CLASS_REN, face: [-12.2, 11.6] },
   // ---- RUTE NETRAL: montase "Dinding Dingin" ----
   n1_1: { pos: CLASS_REN, face: [-4.0, 11.3] },
   n1_2: { pos: CLASS_REN, face: [-4.0, 11.3] },
@@ -730,16 +892,22 @@ export const REN_STAGING: Record<string, PlayerStaging> = {
   n2_4: { pos: [29.0, 20.4], face: [30.0, 19.2] },
   n2_5: { pos: [29.0, 20.4], face: [30.0, 19.2] },
   n2_6: { pos: [29.0, 20.4], face: [30.0, 19.2] },
+  n2_c3: { pos: [29.0, 20.4], face: [30.0, 19.2] },
   n2_7: { pos: [29.0, 20.4], face: [30.0, 19.2] },
   n2_8: { pos: [29.0, 20.4], face: [30.0, 19.2] },
-  n3_1: { pos: [-2.9, 16.6], face: [-4.0, 17.0] },
-  n3_2: { pos: [-2.9, 16.6], face: [-4.0, 17.0] },
-  n3_3: { pos: [-2.9, 16.6], face: [-4.0, 17.0] },
-  n3_4: { pos: [-2.9, 16.6], face: [-4.0, 17.0] },
-  n3_5: { pos: [-2.9, 16.6], face: [-4.0, 17.0] },
-  n3_6: { pos: [-2.9, 16.6], face: [-4.0, 17.0] },
-  n4_1: { pos: CLASS_REN, face: [-12.2, 11.6] },
-  n4_2: { pos: CLASS_REN, face: [-12.2, 11.6] },
-  n4_3: { pos: CLASS_REN, face: [-12.2, 11.6] },
-  n4_4: { pos: CLASS_REN, face: [-12.2, 11.6] },
+  n2_7b: { pos: [29.0, 20.4], face: [30.0, 19.2] },
+  n2_8b: { pos: [29.0, 20.4], face: [30.0, 19.2] },
+  // v0.15.0: n3 = surat (kelas/Budi), n4 = Bimo (koridor), n5 = kelas
+  n3_1: { pos: CLASS_REN, face: [-12.2, 11.6] },
+  n3_2: { pos: CLASS_REN, face: [-12.2, 11.6] },
+  n3_3: { pos: CLASS_REN, face: [-12.2, 11.6] },
+  n3_4: { pos: CLASS_REN, face: [-12.2, 11.6] },
+  n4_1: { pos: [-2.9, 16.6], face: [-4.0, 17.0] },
+  n4_2: { pos: [-2.9, 16.6], face: [-4.0, 17.0] },
+  n4_3: { pos: [-2.9, 16.6], face: [-4.0, 17.0] },
+  n4_4: { pos: [-2.9, 16.6], face: [-4.0, 17.0] },
+  n4_5: { pos: [-2.9, 16.6], face: [-4.0, 17.0] },
+  n4_6: { pos: [-2.9, 16.6], face: [-4.0, 17.0] },
+  n5_1: { pos: CLASS_REN, face: [-4.0, 11.3] },
+  n5_2: { pos: CLASS_REN, face: [-4.0, 11.3] },
 };

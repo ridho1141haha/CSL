@@ -87,6 +87,20 @@ export function StoryDirector() {
       (game.mode === 'GAMEPLAY' || game.mode === 'CINEMATIC') &&
       !dialogue.nodeId;
 
+    // ---------- v0.15.0 bonding arc (doc Ch3/Ch4) — otomatis setelah eksplorasi ----------
+    // explore_school selesai → beat ch1_friendship → montase perpustakaan →
+    // beat ch1_pts → montase PTS → beat ch1_break (insiden tangga, doc Ch5).
+    if (montageReady && story.beat === 'ch1_friendship' && !story.flags.includes('bond_lib_done')) {
+      story.setFlag('bond_lib_done');
+      dialogue.open('ch1_lib_1', true);
+      return;
+    }
+    if (montageReady && story.beat === 'ch1_pts' && !story.flags.includes('bond_pts_done')) {
+      story.setFlag('bond_pts_done');
+      dialogue.open('ch1_pts_1', true);
+      return;
+    }
+
     // ---------- neutral route: montage "Dinding Dingin" after ignoring Aris ----------
     if (montageReady && story.beat === 'ch3_neutral' && story.route === 'neutral' && !story.flags.includes('neu_montage_done')) {
       story.setFlag('neu_montage_done');
@@ -144,6 +158,31 @@ export function StoryDirector() {
       story.setFlag('grad_scene_done');
       dialogue.open('ch4_neu_grad_1', true);
       return;
+    }
+
+    // ---------- v0.15.0: SECRET CHOICE POINT (doc SUB-CABANG 1B) ----------
+    // Setelah konfrontasi Siti (beat ch4_neu_secret) TIDAK ada popup: pemain
+    // mengontrol Ren. Keluar lewat gerbang (zona street) → standard neutral;
+    // balik ke gang belakang kantin → secret battle → dua secret endings.
+    if (
+      game.scene === 'campus' &&
+      game.mode === 'GAMEPLAY' &&
+      !dialogue.nodeId &&
+      story.chapter === 4 &&
+      story.route === 'neutral' &&
+      story.beat === 'ch4_neu_secret' &&
+      !story.flags.includes('neu_secret_done')
+    ) {
+      if (game.currentZone === 'street') {
+        story.setFlag('neu_secret_done');
+        dialogue.open('ch4_neu_out_1', true);
+        return;
+      }
+      if (game.currentZone === 'back_alley') {
+        story.setFlag('neu_secret_done');
+        dialogue.open('ch4_neu_secret_1', true);
+        return;
+      }
     }
 
     // ---------- GARIS MERAH: bad ending 1 — kelulusan sebagai pemimpin geng ----------
@@ -270,11 +309,12 @@ export function StoryDirector() {
         // advance clock to break time (10:05)
         const delta = (10 * 60 + 5 - game.clock.minutes + 1440) % 1440;
         game.advanceTime(delta || 1440);
-        // v0.7.0: bab 2 kini "Kesalahan Kecil Aris" — aktif lewat tangga belakang
-        quests.setState('aris_incident', 'active');
-        story.setBeat('ch1_break');
+        // v0.15.0: doc Ch3/Ch4 disisipkan sebelum insiden tangga — rantai
+        // beat ch1_friendship (perpustakaan) → ch1_pts (hasil PTS) →
+        // ch1_break; aris_incident kini diaktifkan oleh ch1_pts_5.
+        story.setBeat('ch1_friendship');
         game.notify('Quest selesai: Jelajahi SMA Yuson', 'quest');
-        game.notify('Bel istirahat. Ren mencari tempat makan...', 'info');
+        game.notify('Sore itu, Ren menemui Aris di perpustakaan...', 'info');
         saveGame('auto');
         return;
       }

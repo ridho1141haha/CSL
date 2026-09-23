@@ -18,6 +18,10 @@ export const BEAT_ENCOUNTER: Record<string, string> = {
   ch4_bad_warehouse: 'warehouse_fight',
   ch4_res_alley: 'alley_fight',
   ch4_res_bimo: 'bimo_fight',
+  // v0.15.0: secret battle rute netral (doc SUB-CABANG 1B) — kalah/menang
+  // dua-duanya hasil cerita (onLose → "Bonyok Tanpa Nama", onWin →
+  // "Kemenangan Terlambat").
+  ch4_neu_secret: 'secret_fight',
 };
 
 type Store = {

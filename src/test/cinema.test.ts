@@ -130,10 +130,11 @@ describe('resolveCinematicCamera — kamera mengikuti scene aktif', () => {
     expect(cam).toEqual({ kind: 'pose', key: 'stairs_close' });
   });
 
-  it('REGRESI: hantu gang ch2 tidak menyeret kamera montase koridor (n3)', () => {
+  it('REGRESI: hantu gang ch2 tidak menyeret kamera montase koridor (n4)', () => {
+    // v0.15.0: montase koridor kini n4 (doc CH7 pengabaian Bimo); n3 = kelas
     actorPositions['gang'] = { x: 6.3, z: 1.6 }; // ghost jalur tangga/kantin belakang
-    expect(resolveCinematicCamera('n3_2')).toEqual({ kind: 'pose', key: 'corridor_view' });
-    expect(resolveCinematicCamera('n3_4')).toEqual({ kind: 'pose', key: 'corridor_view' });
+    expect(resolveCinematicCamera('n4_2')).toEqual({ kind: 'pose', key: 'corridor_close' });
+    expect(resolveCinematicCamera('n4_4')).toEqual({ kind: 'pose', key: 'corridor_view' });
   });
 
   it('REGRESI: hantu bimo rooftop tidak menyeret kamera konteks kelas (ch4_bad_4)', () => {

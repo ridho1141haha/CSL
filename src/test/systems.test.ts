@@ -97,6 +97,21 @@ describe('ending resolver (canon GARIS MERAH)', () => {
     expect(e.id).toBe('neutral');
     expect(e.title).toBe('Lulus Tanpa Nama');
   });
+  // v0.15.0 — doc SUB-CABANG 1B: dua SECRET BAD ENDING rute netral
+  it('v0.15.0: neutral + secret battle kalah → Bonyok Tanpa Nama', () => {
+    const e = resolveEnding({ ...base, route: 'neutral', flags: ['secret_fought_lost'] });
+    expect(e.id).toBe('neutral_lost');
+    expect(e.title).toBe('Bonyok Tanpa Nama');
+  });
+  it('v0.15.0: neutral + secret battle menang → Kemenangan Terlambat', () => {
+    const e = resolveEnding({ ...base, route: 'neutral', flags: ['secret_fought_won'] });
+    expect(e.id).toBe('neutral_won');
+    expect(e.title).toBe('Kemenangan Terlambat');
+  });
+  it('v0.15.0: secret flag menang atas route neutral biasa (urutan resolusi)', () => {
+    const e = resolveEnding({ ...base, route: 'neutral', flags: ['secret_fought_won', 'secret_fought_lost'] });
+    expect(['neutral_lost', 'neutral_won']).toContain(e.id);
+  });
 });
 
 describe('conditions', () => {

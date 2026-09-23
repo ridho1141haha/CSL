@@ -6,6 +6,7 @@
 // ============================================================================
 import type { DialogueNode } from '../../types';
 import { OPENING_NODES } from './opening';
+import { BONDING_NODES } from './bonding';
 import { CHAPTER2_NODES } from './chapter2';
 import { CHAPTER3_NODES } from './chapter3';
 import { NEUTRAL_NODES } from './routes/neutral';
@@ -22,6 +23,7 @@ import { AMBIENT_NODES } from './ambient';
 export const DIALOGUE: Record<string, DialogueNode> = Object.fromEntries(
   [
     ...OPENING_NODES,
+    ...BONDING_NODES,
     ...CHAPTER2_NODES,
     ...CHAPTER3_NODES,
     ...NPC_NODES,
@@ -44,7 +46,9 @@ export const SPECIAL_NODES = { combat: '__combat__', study: '__study__' };
 // entered from the world. StoryDirector consumes ZONE_FLAVOR; the montage
 // roots + trigger nodes + checkpoints are asserted by test/storyFlow.test.ts
 // so a broken link fails CI instead of dead-ending a playthrough.
-export const MONTAGE_ROOTS = ['ch4_bad_1', 'ch4_res_1', 'n1_1'] as const;
+// v0.15.0: + ch1_lib_1 / ch1_pts_1 (montase bonding doc Ch3/Ch4) dan
+// ch4_neu_out_1 / ch4_neu_secret_1 (SECRET CHOICE POINT rute netral).
+export const MONTAGE_ROOTS = ['ch1_lib_1', 'ch1_pts_1', 'ch4_bad_1', 'ch4_res_1', 'n1_1'] as const;
 export const STORY_TRIGGER_NODES = [
   'ch2_intro_1',
   'ch3_osis_1', // GARIS MERAH: pendekatan OSIS (montase)
@@ -54,6 +58,8 @@ export const STORY_TRIGGER_NODES = [
   'ch4_bad_grad_1', // bad ending 1 (kelulusan)
   'ch4_good_grad_1', // good ending (kelulusan)
   'ch4_neu_grad_1', // neutral ending (kelulusan)
+  'ch4_neu_out_1', // v0.15.0: standard neutral (keluar gerbang)
+  'ch4_neu_secret_1', // v0.15.0: secret battle (gang belakang)
 ] as const;
 export const ZONE_FLAVOR: Record<string, string> = {
   field: 'zone_field',
@@ -68,6 +74,8 @@ export const ZONE_FLAVOR: Record<string, string> = {
   gedung_b: 'zone_gedung_b',
 };
 export const CHECKPOINT_NODES = [
+  'ch1_lib_6', // v0.15.0: sebelum montase PTS
+  'ch1_pts_5', // v0.15.0: sebelum insiden tangga
   'ch2_close',
   'ch2_away_2',
   'ch3_osis_6', // GARIS MERAH: sebelum sergapan parkiran
@@ -77,7 +85,8 @@ export const CHECKPOINT_NODES = [
   'ch4_res_3',
   'ch4_good_4', // GARIS MERAH: sebelum kelulusan (good)
   'ch4_bad_after_2', // GARIS MERAH: sebelum kelulusan (bad)
-  'n4_4',
+  'ch4_neu_grad_8', // v0.15.0: sebelum SECRET CHOICE POINT (netral)
+  'n5_2',
 ] as const;
 
 export const getDialogue = (id: string): DialogueNode | undefined => DIALOGUE[id];

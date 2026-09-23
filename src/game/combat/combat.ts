@@ -305,10 +305,23 @@ export function combatTick(
           }
           const hp = usePlayer.getState().hp;
           if (hp <= 0) {
+            // v0.15.0: beberapa pertarungan adalah KEPUTUSAN CERITA — kalah
+            // bukan game over generik, tapi cabang ending (secret battle rute
+            // netral → "Bonyok Tanpa Nama"). Encounter dengan onLose
+            // menyerahkan kendali ke graph cerita, bukan layar game over.
+            const encId = useCombat.getState().encounterId;
+            const onLose = encId ? ENCOUNTERS[encId]?.onLose : undefined;
             useCombat.getState().finish('lost');
+            audio.defeat();
+            if (onLose) {
+              useCombat.getState().reset();
+              resetCombatRuntime();
+              enemyPos.active = false;
+              useDialogue.getState().open(onLose, true);
+              return;
+            }
             playerAnim.current.down = true;
             useGame.getState().setMode('GAME_OVER');
-            audio.defeat();
             return;
           }
         }

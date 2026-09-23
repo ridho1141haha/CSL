@@ -1,6 +1,25 @@
 # Project State
 
-Updated: 2026-09-22 (v0.14.4 — GPU sniffing: laptop iGPU auto → SEDANG + weak profile, figur tersembunyi skip animasi, crowd trim mikro-detail; 187 test)
+Updated: 2026-09-22 (v0.15.0 — alur diselaraskan dengan laporan final project GARIS MERAH: 5 flavor choice, bonding arc doc Ch3/Ch4, urutan netral sesuai doc, SECRET CHOICE POINT + 2 secret endings (total 6), onLose encounter; 194 test)
+
+## v0.15.0 Snapshot (2026-09-22)
+
+**User: "sesuaikan alur" + laporan final project (naskah GARIS MERAH). Celah
+game vs naskah ditutup penuh; dialog baru = teks dokumen.**
+- FLAVOR CHOICE 1–5 (o2_c1, o3_c2, n2_c3, ch3_fc4, ch4_fc5) — dua opsi,
+  selalu menyatu kembali, efek rel/stat kecil.
+- Bonding arc (doc Ch3 perpustakaan + Ch4 PTS): beat ch1_friendship →
+  ch1_pts → ch1_break; montase otomatis ch1_lib_* / ch1_pts_* (tidak bisa
+  terlewat sebelum insiden tangga).
+- Montase netral diurut ulang per doc: n3 surat Aris (Budi) → n4 pengabaian
+  Bimo → n5 bulan-bulan sunyi + tryout (doc CH8/CH9).
+- SECRET CHOICE POINT (doc CH10): beat ch4_neu_secret — keluar gerbang (zona
+  street) → "LULUS TANPA NAMA"; balik ke gang → secret_fight (3 goon + Bimo,
+  onLose baru) → kalah "BONYOK TANPA NAMA" / menang "KEMENANGAN TERLAMBAT".
+  resolveEnding kini 6 ending; combat loss bisa jadi cabang cerita.
+- Test: 194/194 · tsc -b ✓ · build ✓ · qa-nav CONSOLE_ERRORS none.
+- Simpan lama aman (ch1_break melompati bonding; simpanan gerbang netral
+  tetap mendarat di secret choice).
 
 ## v0.14.4 Snapshot (2026-09-22)
 

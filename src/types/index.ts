@@ -37,6 +37,11 @@ export type ChapterId = 1 | 2 | 3 | 4;
 
 export type StoryBeat =
   | 'ch1_explore'
+  // v0.15.0 — dokumen laporan: Ch3 "Persahabatan Aris" (perpustakaan) +
+  // Ch4 "Ujian Pertama" (PTS) disisipkan SEBELUM insiden tangga (doc Ch5).
+  // Beat-chain: ch1_explore → ch1_friendship → ch1_pts → ch1_break.
+  | 'ch1_friendship'     // montase perpustakaan (Ren ↔ Aris tukar catatan)
+  | 'ch1_pts'            // montase pembagian hasil PTS (Pak Budi, nilai 98)
   | 'ch1_break'
   // v0.7.0: Bab 2 reworked — "Kesalahan Kecil Aris" replaces the gate fight
   | 'ch2_key_error'
@@ -50,6 +55,10 @@ export type StoryBeat =
   // v0.7.0: neutral route beats
   | 'ch3_neutral'        // montage "Dinding Dingin" pending
   | 'ch4_neutral_grad'   // graduation-day trigger pending (gate)
+  // v0.15.0 — SECRET CHOICE POINT (doc CH10 & epilog): setelah dialog Siti di
+  // gerbang, pemain mengontrol Ren — keluar lewat gerbang (standard neutral)
+  // atau balik ke gang belakang (secret battle → 2 secret bad endings).
+  | 'ch4_neu_secret'
   | 'ch4_bad_warehouse'
   | 'ch4_bad_aftermath'
   | 'ch4_bad_grad'       // GARIS MERAH: bad ending 1 di gerbang

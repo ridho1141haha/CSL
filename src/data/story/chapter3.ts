@@ -65,7 +65,33 @@ export const CHAPTER3_NODES: DialogueNode[] = [
     N({ id: 'ch3_intro_2', speaker: 'NARATOR', portrait: 'narrator', text: 'Rooftop. Angin menggantung antara dua gedung. Bimo berdiri menghadap kota, tidak menoleh.', next: 'ch3_intro_3' }),
     N({ id: 'ch3_intro_3', speaker: 'BIMO', portrait: 'bimo', emotion: 'dark', text: 'Dua kali anak buah gue lo tumbangin. Lo bertarung tanpa panik, dan itu langka di Yuson. Jadi gue kasih dua penawaran.', cam: 'medium_speaker', next: 'ch3_intro_4' }),
     N({ id: 'ch3_intro_4', speaker: 'BIMO', portrait: 'bimo', emotion: 'dark', text: 'Pertama, masuk ke kelompok gue. Jadi tangan kanan gue, bantu gue pegang sekolah ini, dan nilai lo gue jamin aman seratus persen.', cam: 'close_speaker', next: 'ch3_intro_5' }),
-    N({ id: 'ch3_intro_5', speaker: 'BIMO', portrait: 'bimo', emotion: 'dark', text: 'Kedua... lo terus sok pahlawan, dan hidup lo di sini bakal gue bikin kayak neraka.', cam: 'close_speaker', next: 'ch3_choice' }),
+    N({ id: 'ch3_intro_5', speaker: 'BIMO', portrait: 'bimo', emotion: 'dark', text: 'Kedua... lo terus sok pahlawan, dan hidup lo di sini bakal gue bikin kayak neraka.', cam: 'close_speaker', next: 'ch3_fc4' }),
+    // v0.15.0 — FLAVOR CHOICE 4 (doc: "Respons Atas Ultimatum Bimo", rute aksi)
+    N({
+      id: 'ch3_fc4',
+      speaker: 'REN',
+      portrait: 'ren',
+      emotion: 'tense',
+      text: '(Dua penawaran. Nol pilihan yang enak.)',
+      cam: 'ren_ots',
+      choices: [
+        {
+          id: 'ultimatum_sinis',
+          text: '[A] Sikap sinis.',
+          next: 'ch3_fc4a',
+        },
+        {
+          id: 'ultimatum_tenang',
+          text: '[B] Tetap tenang & lugas.',
+          next: 'ch3_fc4b',
+          effects: [{ k: 'stat', stat: 'diplomacy', delta: 1 }],
+        },
+      ],
+    }),
+    N({ id: 'ch3_fc4a', speaker: 'REN', portrait: 'ren', emotion: 'tense', text: 'Ternyata penguasa Yuson cuma bisa ngancam anak baru.', cam: 'ren_ots', next: 'ch3_fc4a2' }),
+    N({ id: 'ch3_fc4a2', speaker: 'BIMO', portrait: 'bimo', emotion: 'dark', text: '(Tertawa sinis) Bukan ngancam, Ren. Gue cuma ngasih tahu realita sekolah ini. Dan pilihan lo bakal nentuin nasib lo di sini.', cam: 'close_speaker', next: 'ch3_choice' }),
+    N({ id: 'ch3_fc4b', speaker: 'REN', portrait: 'ren', emotion: 'calm', text: 'Gue ke sini cuma butuh ijazah, bukan tahta sekolah.', cam: 'ren_ots', next: 'ch3_fc4b2' }),
+    N({ id: 'ch3_fc4b2', speaker: 'BIMO', portrait: 'bimo', emotion: 'dark', text: '(Mata menyempit, tersenyum dingin) Niat yang bagus. Tapi di Yuson, lo enggak bisa dapat ijazah tanpa izin dari gue. Makanya dengerin baik-baik pilihan lo.', cam: 'close_speaker', next: 'ch3_choice' }),
     N({
       id: 'ch3_choice',
       speaker: 'REN',

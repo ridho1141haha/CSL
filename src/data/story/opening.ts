@@ -29,18 +29,65 @@ export const OPENING_NODES: DialogueNode[] = [
     N({ id: 'o2_3', speaker: 'NARATOR', portrait: 'narrator', text: 'Dua murid berbadan besar lewat di samping meja mereka — dan sengaja menyenggol kursi Aris sampai kotak pensilnya jatuh. Aris buru-buru memungutnya tanpa bersuara.', next: 'o2_3b' }),
     N({ id: 'o2_3b', speaker: 'MURID BESAR', portrait: 'gang', emotion: 'tense', text: 'Ups, sengaja. Bergerak aja lelet lo, Aris! Belajar terus buat apa sih?', next: 'o2_4' }),
     N({ id: 'o2_4', speaker: 'REN', portrait: 'ren', emotion: 'neutral', text: 'Ren melihat kejadian itu — lalu memilih terus mencatat materi guru di papan tulis.', next: 'o2_5' }),
-    N({ id: 'o2_5', speaker: 'ARIS', portrait: 'aris', emotion: 'worried', text: '(Berbisik ragu sambil menyodorkan penghapus) N-nih... kalau butuh. Kamu murid baru yang dari kota itu, kan?', next: 'o2_6' }),
-    N({ id: 'o2_6', speaker: 'REN', portrait: 'ren', emotion: 'calm', text: '(Menerima tanpa menoleh dari catatannya) Makasih. Gue Ren.', next: 'o2_7' }),
-    N({ id: 'o2_7', speaker: 'ARIS', portrait: 'aris', emotion: 'neutral', text: 'Aku Aris. Kalau ada materi Pak Budi yang kelewat, kamu bisa lihat catatanku kok.', next: 'o2_8' }),
+    // v0.15.0 — FLAVOR CHOICE 1 (doc: "Perkenalan dengan Aris"): dua opsi
+    // perkenalan; tidak mengubah rute, hanya rasa relasi (+rel aris).
+    N({ id: 'o2_5', speaker: 'ARIS', portrait: 'aris', emotion: 'worried', text: '(Berbisik ragu sambil menyodorkan penghapus) N-nih... barangkali lu butuh. Eh... kamu murid baru yang dari kota itu, kan?', next: 'o2_c1' }),
+    N({
+      id: 'o2_c1',
+      speaker: 'REN',
+      portrait: 'ren',
+      emotion: 'neutral',
+      text: '(Menerima penghapus itu)',
+      choices: [
+        {
+          id: 'intro_brief',
+          text: '[A] Singkat & praktis.',
+          next: 'o2_6a',
+          effects: [{ k: 'rel', target: 'aris', delta: 1 }],
+        },
+        {
+          id: 'intro_friendly',
+          text: '[B] Agak ramah.',
+          next: 'o2_6b',
+          effects: [{ k: 'rel', target: 'aris', delta: 2 }],
+        },
+      ],
+    }),
+    N({ id: 'o2_6a', speaker: 'REN', portrait: 'ren', emotion: 'calm', text: 'Sip, makasih ya. Panggil aja Ren.', next: 'o2_7a' }),
+    N({ id: 'o2_7a', speaker: 'ARIS', portrait: 'aris', emotion: 'neutral', text: 'Gue Aris. Santai aja, Bro. Kalau nanti catatan Pak Budi ada yang kelewat, contek gue aja, masih lengkap kok.', next: 'o2_8' }),
+    N({ id: 'o2_6b', speaker: 'REN', portrait: 'ren', emotion: 'calm', text: 'Makasih, Ris. Pas banget, pensil gue gampang salah nulis dari tadi. Gue Ren.', next: 'o2_7b' }),
+    N({ id: 'o2_7b', speaker: 'ARIS', portrait: 'aris', emotion: 'warm', text: '(Tersenyum tipis, agak lega) Sama-sama, Ren. Santai aja, kalau catatan Pak Budi ada yang kelewat, contek gue aja, masih lengkap kok.', next: 'o2_8' }),
     N({ id: 'o2_8', speaker: 'REN', portrait: 'ren', emotion: 'calm', text: 'Satu bangku di sudut, satu teman sebangku yang takut sama sekolahnya sendiri. Tahun ini gue cuma butuh dua hal itu.', next: 'o3_1' }),
     // ---- Scene 3: Peringatan Pertama di Lorong ----
     N({ id: 'o3_1', speaker: 'NARATOR', portrait: 'narrator', text: 'Waktu istirahat. Ren menuju kantin. Di lorong, Siti — Ketua OSIS — sedang mencatat nama-nama murid yang membolos. Saat Ren melintas, Siti memperhatikannya.', next: 'o3_2' }),
     N({ id: 'o3_2', speaker: 'SITI', portrait: 'siti', emotion: 'firm', text: 'Lu murid baru yang nilai transfernya tinggi itu, kan? Ren?', next: 'o3_3' }),
     N({ id: 'o3_3', speaker: 'REN', portrait: 'ren', emotion: 'neutral', text: 'Iya.', next: 'o3_4' }),
-    N({ id: 'o3_4', speaker: 'SITI', portrait: 'siti', emotion: 'firm', text: 'Saran aja nih. Kalau habis jam sekolah, mending langsung pulang. Jangan lewat gang belakang kantin, terus kalau lihat keributan di halaman... balik badan.', next: 'o3_5' }),
-    N({ id: 'o3_5', speaker: 'SITI', portrait: 'siti', emotion: 'firm', text: 'Sekolah ini enggak punya hukum buat melindungi anak pintar.', next: 'o3_6' }),
-    N({ id: 'o3_6', speaker: 'REN', portrait: 'ren', emotion: 'calm', text: 'Emang dari awal gue enggak berniat cari masalah kok.', next: 'o3_7' }),
-    N({ id: 'o3_7', speaker: 'SITI', portrait: 'siti', emotion: 'neutral', text: 'Bagus kalau paham. Tapi di Yuson, kadang bukan lu yang cari masalah... masalah yang datang nyari lu.', next: 'o4_1' }),
+    N({ id: 'o3_4', speaker: 'SITI', portrait: 'siti', emotion: 'firm', text: 'Saran aja nih. Kalau habis jam sekolah, mending langsung pulang. Jangan pernah nongkrong di gang belakang kantin, terus kalau pas liat ada yang rusuh di halaman... langsung aja buruan balik kanan. Sekolah kita ini modelannya nggak bakal repot-repot belain anak baru kayak lu.', next: 'o3_c2' }),
+    // v0.15.0 — FLAVOR CHOICE 2 (doc: "Respons Atas Peringatan Siti")
+    N({
+      id: 'o3_c2',
+      speaker: 'REN',
+      portrait: 'ren',
+      emotion: 'neutral',
+      text: '(Siti menatap Ren menunggu jawaban)',
+      choices: [
+        {
+          id: 'warn_indifferent',
+          text: '[A] Acuh tak acuh.',
+          next: 'o3_6a',
+        },
+        {
+          id: 'warn_curious',
+          text: '[B] Penasaran dengan kondisi sekolah.',
+          next: 'o3_6b',
+          effects: [{ k: 'rel', target: 'siti', delta: 1 }],
+        },
+      ],
+    }),
+    N({ id: 'o3_6a', speaker: 'REN', portrait: 'ren', emotion: 'calm', text: 'Santai, dari awal juga gue males banget cari masalah.', next: 'o3_7a' }),
+    N({ id: 'o3_7a', speaker: 'SITI', portrait: 'siti', emotion: 'neutral', text: 'Bagus kalau lu paham. Tapi masalahnya di Yuson, kadang bukan lu yang sengaja nyari gara-gara... tapi gara-gara-nya sendiri yang demen nempel ke lu.', next: 'o4_1' }),
+    N({ id: 'o3_6b', speaker: 'REN', portrait: 'ren', emotion: 'neutral', text: 'Emang se-parah itu ya aturan main di sini?', next: 'o3_7b' }),
+    N({ id: 'o3_7b', speaker: 'SITI', portrait: 'siti', emotion: 'firm', text: '(Mengembuskan napas pelan) Parah banget. Makanya gue ingatin, jangan sok pahlawan. Di sini, gara-gara itu yang suka nempel sendiri ke anak-anak polos kayak lu.', next: 'o4_1' }),
     // ---- Scene 4: Bisik-Bisik & Pengenalan Bimo ----
     N({ id: 'o4_1', speaker: 'NARATOR', portrait: 'narrator', text: 'Kantin sekolah, sore menjelang jam pulang. Ren duduk sendirian di meja sudut, membaca ulang catatannya.', next: 'o4_2' }),
     N({ id: 'o4_2', speaker: 'NARATOR', portrait: 'narrator', text: 'Di meja sebelah, dua murid kelas 10 berbisik-bisik cemas.', next: 'o4_3' }),

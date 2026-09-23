@@ -1,5 +1,67 @@
 # Changelog
 
+## 0.15.0 — 2026-09-22 (Alur = Laporan Final Project: GARIS MERAH Selaras Penuh)
+
+User: "sesuaikan alur" + lampiran laporan final project (LAPORAN FINAL
+PROJECT: SCHOOL LIFE — desain naratif Naufal, "DRAF CERITA UTAMA: GARIS
+MERAH"). Audit membandingkan naskah dokumen dengan graph cerita di game;
+semua celah struktural ditutup. Dialog konten baru diambil persis dari
+dokumen.
+
+### Celah yang ditemukan (audit) & ditutup
+1. **5 FLAVOR CHOICE (🔹 dokumen) tidak ada** — semua sekarang pilihan
+   dua-opsi, penuh teks dokumen, selalu menyatu kembali (tidak mengubah
+   rute; efek kecil rel/stat):
+   - CHOICE 1 perkenalan Aris (o2_c1: singkat & praktis / agak ramah)
+   - CHOICE 2 respons peringatan Siti (o3_c2: acuh tak acuh / penasaran)
+   - CHOICE 3 pembelaan diri Ren rute netral (n2_c3: prinsip / realistis)
+   - CHOICE 4 respons ultimatum Bimo (ch3_fc4: sinis / tenang & lugas)
+   - CHOICE 5 gertakan sebelum duel final (ch4_fc5: langsung / utamakan Aris)
+2. **Doc CH3 "Persahabatan Aris" (perpustakaan) hilang** — ditambah sebagai
+   montase otomatis `ch1_lib_1..6` (beat ch1_friendship), kamera library_*,
+   Aris distage di meja (spot n2 yang sudah teruji).
+3. **Doc CH4 "Ujian Pertama" (PTS, nilai 98) hilang** — montase `ch1_pts_1..5`
+   (beat ch1_pts), Pak Budi + Aris distage di kelas. Rantai beat baru:
+   `ch1_explore → ch1_friendship → ch1_pts → ch1_break` — bonding arc kini
+   SELALU tampil sebelum insiden tangga (doc Ch5 = BAB II), tidak bisa
+   terlewat.
+4. **Urutan montase netral tidak sesuai dokumen** — diurutkan ulang:
+   n3 = surat pengunduran diri Aris (doc CH6 s3), n4 = pengabaian Bimo
+   (doc CH7), n5 = bulan-bulan sunyi + tryout lancar (doc CH8+CH9, baru).
+5. **SECRET CHOICE POINT + 2 secret endings hilang (doc CH10 & EPILOG)** —
+   setelah konfrontasi Siti (dialog penuh dari dokumen), pemain mengontrol
+   Ren TANPA popup (beat ch4_neu_secret): keluar lewat gerbang (zona street)
+   → standard neutral "LULUS TANPA NAMA"; balik ke gang belakang kantin →
+   intro Bimo (teks dokumen) → SECRET BATTLE (encounter `secret_fight`:
+   3 anak buah + Bimo, musuh berurutan) — KALAH → Secret Bad Ending A
+   "BONYOK TANPA NAMA" (ch4_neu_sbl), MENANG → Secret Bad Ending B
+   "KEMENANGAN TERLAMBAT" (ch4_neu_sbw). Total kini 6 ending, resolveEnding
+   diperluas (id neutral_lost / neutral_won; flag dicek sebelum route).
+6. **onLose encounter** — kalah dalam pertarungan kini bisa menjadi cabang
+   cerita yang sah (bukan hanya game over generik): EncounterDef.onLose +
+   penanganan kekalahan di combat.ts (khusus secret_fight; semua pertarungan
+   lain tetap game over seperti semula — perilaku tabel testing laporan).
+
+### Teknis
+- Node baru: bonding 11, netral +5, netral-ending +16, flavor +16 → graph
+  DIALOGUE 194 node teruji integritasnya. Semua node baru diberi
+  CAM_BY_NODE + SCENE_ACTORS + REN_STAGING (spot teruji dipakai ulang;
+  rombongan secret = Bimo + 4 pengikut, sisanya narasi).
+- StoryDirector: 2 montase bonding otomatis + 2 zona pemicu secret
+  (street/back_alley) dengan flag guard neu_secret_done.
+- audio.ts MusicContext.endingId diperluas; secret endings memakai track
+  ending_bad.
+- Simpan lama aman: beat ch1_break (simpanan lama) melompati bonding dan
+  langsung ke tangga; simpanan di gerbang netral tetap mendarat di SECRET
+  CHOICE POINT.
+
+### Test
+- perf/unit: **194/194 hijau** (17 file) — +13 kasus baru: rantai bonding,
+  urutan montase netral (surat → Bimo → bulan sunyi), kelima flavor choice,
+  wiring secret battle (onWin/onLose → dua chain ending terisolasi),
+  resolveEnding 6 ending + prioritas flag, STORY_PROPS o2_6a/6b.
+- tsc -b ✓ · vite build ✓ · qa-nav headless CONSOLE_ERRORS none.
+
 ## 0.14.4 — 2026-09-22 (GPU Sniffing: Laptop iGPU Tidak Lagi Dapat TINGGI)
 
 Laporan user via performance audit eksternal (Playwright 60 detik gameplay

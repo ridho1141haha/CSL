@@ -39,12 +39,13 @@ describe('REN_STAGING (player story staging)', () => {
     for (const [nodeId, st] of Object.entries(REN_STAGING)) {
       if (st.scene) {
         expect(['rooftop', 'warehouse']).toContain(st.scene);
-        expect(nodeId.startsWith('ch3_intro') || nodeId.startsWith('ch3_accept') || nodeId.startsWith('ch3_reject') || nodeId.startsWith('ch4_bad_warehouse') || nodeId.startsWith('ch4_bad_after')).toBe(true);
+        // v0.15.0: + ch3_fc4 (FLAVOR CHOICE 4 masih di rooftop)
+        expect(nodeId.startsWith('ch3_intro') || nodeId.startsWith('ch3_fc4') || nodeId.startsWith('ch3_accept') || nodeId.startsWith('ch3_reject') || nodeId.startsWith('ch4_bad_warehouse') || nodeId.startsWith('ch4_bad_after')).toBe(true);
       }
     }
     // rooftop nodes wajib scene rooftop, warehouse nodes wajib scene warehouse
     for (const [nodeId, st] of Object.entries(REN_STAGING)) {
-      if (nodeId.startsWith('ch3_intro') || nodeId.startsWith('ch3_accept') || nodeId.startsWith('ch3_reject')) {
+      if (nodeId.startsWith('ch3_intro') || nodeId.startsWith('ch3_fc4') || nodeId.startsWith('ch3_accept') || nodeId.startsWith('ch3_reject')) {
         expect(st.scene, nodeId).toBe('rooftop');
       }
       if (nodeId.startsWith('ch4_bad_warehouse') || nodeId.startsWith('ch4_bad_after')) {

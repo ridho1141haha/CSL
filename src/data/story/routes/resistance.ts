@@ -22,7 +22,31 @@ export const RESISTANCE_NODES: DialogueNode[] = [
     N({ id: 'ch4_res_alley_4', speaker: 'REN', portrait: 'ren', emotion: 'tense', text: 'Dari semua alasan untuk tidak ikut campur — tidak ada satu pun yang berdiri di sini.', next: '__combat__' }),
     // ---- anak buah tumbang → FINAL BOSS: Ren vs Bimo ----
     N({ id: 'ch4_res_goons_win', speaker: 'NARATOR', portrait: 'narrator', text: 'Kedua anak buah itu bergelimbang di tanah. Bimo melepas jaketnya, melangkah maju — pelan, seperti orang yang belum pernah kalah di sekolahnya sendiri.', effects: [{ k: 'beat', id: 'ch4_res_bimo' }], next: 'ch4_res_goons_win_2' }),
-    N({ id: 'ch4_res_goons_win_2', speaker: 'BIMO', portrait: 'bimo', emotion: 'dark', text: 'Dua kali anak buah gue lo tumbangin. Gue pikir lo cuma beruntung. Sekarang giliran gue mastiin.', next: '__combat__' }),
+    N({ id: 'ch4_res_goons_win_2', speaker: 'BIMO', portrait: 'bimo', emotion: 'dark', text: 'Dua kali anak buah gue lo tumbangin. Gue pikir lo cuma beruntung. Sekarang giliran gue mastiin.', next: 'ch4_fc5' }),
+    // v0.15.0 — FLAVOR CHOICE 5 (doc: "Gertakan Sebelum Duel Final")
+    N({
+      id: 'ch4_fc5',
+      speaker: 'REN',
+      portrait: 'ren',
+      emotion: 'tense',
+      text: '(Aris masih dibelakang mereka. Bimo berdiri di antara Ren dan sandera.)',
+      choices: [
+        {
+          id: 'duel_langsung',
+          text: '[A] Langsung menantang.',
+          next: 'ch4_fc5a',
+        },
+        {
+          id: 'duel_aris_dulu',
+          text: '[B] Utamakan keselamatan Aris.',
+          next: 'ch4_fc5b',
+        },
+      ],
+    }),
+    N({ id: 'ch4_fc5a', speaker: 'REN', portrait: 'ren', emotion: 'tense', text: 'Nggak usah banyak bacot lagi, Bimo. Selesaikan sekarang.', next: 'ch4_fc5a2' }),
+    N({ id: 'ch4_fc5a2', speaker: 'BIMO', portrait: 'bimo', emotion: 'dark', text: '(Meringis, mengepalkan tangan) Sombong lu! Sini maju kalau mau mati!', next: '__combat__' }),
+    N({ id: 'ch4_fc5b', speaker: 'REN', portrait: 'ren', emotion: 'tense', text: 'Lepasin Aris dulu, baru kita selesaikan ini.', next: 'ch4_fc5b2' }),
+    N({ id: 'ch4_fc5b2', speaker: 'BIMO', portrait: 'bimo', emotion: 'dark', text: '(Tertawa mengejek) Lepasin? Enak aja! Habis lu tumbang, baru temen penakut lu ini gue beresin sekalian!', next: '__combat__' }),
     // ---- CHOICE 3 (GARIS MERAH) ----
     N({
       id: 'ch4_res_choice',

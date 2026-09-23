@@ -168,4 +168,23 @@ export const ENCOUNTERS: Record<string, EncounterDef> = {
     onWin: 'ch4_res_choice',
     music: 'dark',
   },
+  // v0.15.0 GARIS MERAH — doc SUB-CABANG 1B: SECRET BATTLE rute netral.
+  // "Ren datang sendirian tanpa bantuan OSIS/guru/polisi. Bimo berdiri
+  // bersama 6-8 anggota gengnya." Musuh berurutan (sistem duel 1v1):
+  // tiga anak buah dulu, Bimo terakhir — kalah jumlah terasa akumulatif.
+  // KALAH adalah hasil cerita yang sah (onLose → Secret Bad Ending A
+  // "Bonyok Tanpa Nama"); MENANG → Secret Bad Ending B "Kemenangan Terlambat".
+  secret_fight: {
+    id: 'secret_fight',
+    arena: 'back_alley',
+    enemies: [
+      { id: 'secret_goon_1', name: 'Anak Bimo', hp: 70, dmg: 9, speed: 2.3, color: '#b91c1c' },
+      { id: 'secret_goon_2', name: 'Anak Bimo', hp: 70, dmg: 9, speed: 2.3, color: '#991b1b' },
+      { id: 'secret_goon_3', name: 'Anak Bimo', hp: 75, dmg: 10, speed: 2.4, color: '#7f1d1d' },
+      { id: 'secret_bimo', name: 'Bimo', hp: 150, dmg: 11, speed: 2.7, color: '#450a0a', scale: 1.12 },
+    ],
+    onWin: 'ch4_neu_sbw_1',
+    onLose: 'ch4_neu_sbl_1',
+    music: 'dark',
+  },
 };
