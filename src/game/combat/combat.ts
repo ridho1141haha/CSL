@@ -101,7 +101,12 @@ const HIT_FOCUS_REWARD = 4;  // per pukulan yang menghubungkan (light/heavy)
 // Called per frame while mode === COMBAT. dt is unclamped frame delta.
 export function combatTick(
   dt: number,
-  body: { setLinvel: (v: { x: number; y: number; z: number }, wake?: boolean) => void; linvel: () => { x: number; y: number; z: number } } | null,
+  body: {
+    setLinvel: (v: { x: number; y: number; z: number }, wake?: boolean) => void;
+    linvel: () => { x: number; y: number; z: number };
+    setTranslation: (t: { x: number; y: number; z: number }, wake?: boolean) => void;
+    translation: () => { x: number; y: number; z: number };
+  } | null,
 ) {
   const combat = useCombat.getState();
   const enemy = combat.enemy();
@@ -271,9 +276,35 @@ export function combatTick(
   }
 
   // movement application (simple, kinematic; y handled by gravity tick)
+  // v0.16.0: player↔enemy personal space — figures are visual bodies without
+  // physics colliders, so the player could walk (or dodge) straight through
+  // the enemy. Inside the 0.95 m ring the into-enemy velocity component is
+  // stripped (slide around), and any existing overlap is pushed out hard.
+  if (dist < 0.95 && dist > 1e-4) {
+    const into = moveX * nx + moveZ * nz;
+    if (into > 0) {
+      moveX -= nx * into;
+      moveZ -= nz * into;
+    }
+    if (dist < 0.8) {
+      const push = 0.8 - dist;
+      playerPos.x -= nx * push;
+      playerPos.z -= nz * push;
+      if (body) {
+        const tr = body.translation();
+        body.setTranslation({ x: playerPos.x, y: tr.y, z: playerPos.z }, true);
+      }
+    }
+  }
   if (body) {
     const lv = body.linvel();
-    body.setLinvel({ x: moveX, y: lv.y, z: moveZ });
+    // v0.16.0: wake=true WAJIB — tanpa ini badan rapier yang tertidur saat
+    // pemain diam di COMBAT mengabaikan SEMUA setLinvel (walau FSM musuh
+    // tetap jalan, karena enemyPos digerakkan langsung). Inilah akar "pemain
+    // belum bisa bergerak (wasd, spasi)" selama pertarungan: jalan di
+    // GAMEPLAY normal (branch sana selalu wake), begitu masuk duel dan badan
+    // sempat sleep → kontrol mati total sampai keluar duel.
+    body.setLinvel({ x: moveX, y: lv.y, z: moveZ }, true);
   }
 
   // ---------------- enemy FSM ----------------
@@ -406,10 +437,20 @@ export function combatTick(
   if (st.cooldown > 0) st.cooldown -= dt;
   enemyAnim.current.attackT = st.state === 'windup' ? st.t / 0.42 * 0.4 : st.state === 'strike' ? 0.4 + st.t / 0.16 * 0.6 : -1;
 
-  // keep enemy at a fair distance (never inside the player)
-  if (dist < 0.9) {
-    enemyPos.x -= nx * dt * 2;
-    enemyPos.z -= nz * dt * 2;
+  // v0.16.0: keep the enemy out of the player's personal space. Dulu blok ini
+  // SAMA ARAHNYA TERBALIK (`-= n`) — malah menyeret musuh LEBIH DEKAT saat
+  // dist < 0.9 (bug "menumpuk"). Kini koreksi posisi keras ke ring 0.8 m,
+  // dihitung dari posisi TERKINI (dist/n di atas usang setelah approach
+  // menggerakkan musuh di tick ini).
+  {
+    const rdx = enemyPos.x - playerPos.x;
+    const rdz = enemyPos.z - playerPos.z;
+    const rdist = Math.hypot(rdx, rdz);
+    if (rdist < 0.8 && rdist > 1e-4) {
+      const push = 0.8 - rdist;
+      enemyPos.x += (rdx / rdist) * push;
+      enemyPos.z += (rdz / rdist) * push;
+    }
   }
 }
 

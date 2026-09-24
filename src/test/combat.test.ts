@@ -294,3 +294,96 @@ describe('BEAT_ENCOUNTER — guard regression (v0.15.2: fallback gate_fight suda
     }
   });
 });
+
+// ---------------------------------------------------------------------------
+// v0.16.0 — player↔enemy personal space. Figur musuh adalah body visual
+// tanpa collider fisik; tanpa guard ini pemain bisa jalan/dodge MENEMBUS
+// musuh dan figur jadi menumpuk.
+// ---------------------------------------------------------------------------
+describe('player↔enemy collision (v0.16.0 anti-menumpuk)', () => {
+  beforeEach(resetWorld);
+
+  function makeBody() {
+    const rec = {
+      linvel: { x: 0, y: 0, z: 0 },
+      translations: [] as { x: number; y: number; z: number }[],
+    };
+    const body = {
+      setLinvel: (v: { x: number; y: number; z: number }) => { rec.linvel = v; },
+      linvel: () => ({ x: 0, y: 0, z: 0 }),
+      setTranslation: (t: { x: number; y: number; z: number }) => { rec.translations.push(t); },
+      translation: () => ({ x: playerPos.x, y: 0.75, z: playerPos.z }),
+    };
+    return { body, rec };
+  }
+
+  function tickBody(n: number, b: Parameters<typeof combatTick>[1]) {
+    for (let i = 0; i < n; i++) combatTick(DT, b);
+  }
+
+  it('kecepatan MENUJU musuh di-strip di ring 0.95 m (slide, bukan menembus)', () => {
+    useCombat.getState().start('stair_fight');
+    enemyPos.x = 0;
+    enemyPos.z = 0.9; // di dalam ring
+    enemyRuntime.state = { state: 'windup', t: 0, facing: 0, cooldown: 1, hitDone: false };
+    camState.yaw = Math.PI; // forward = +z (ke arah musuh)
+    input.held.add('forward');
+    const { body, rec } = makeBody();
+    tickBody(1, body);
+    expect(rec.linvel.z).toBeLessThanOrEqual(0.001); // komponen into (+z) hilang
+  });
+
+  it('overlap diposor keluar — dist dipulihkan ke 0.8 m + body ikut', () => {
+    useCombat.getState().start('stair_fight');
+    enemyPos.x = 0;
+    enemyPos.z = 0.5; // overlap!
+    enemyRuntime.state = { state: 'windup', t: 0, facing: 0, cooldown: 1, hitDone: false };
+    camState.yaw = Math.PI;
+    input.held.add('forward');
+    const { body, rec } = makeBody();
+    tickBody(1, body);
+    const dist = Math.hypot(enemyPos.x - playerPos.x, enemyPos.z - playerPos.z);
+    expect(dist).toBeGreaterThanOrEqual(0.799);
+    expect(rec.translations.length).toBeGreaterThan(0);
+    expect(rec.translations[0].z).toBeCloseTo(playerPos.z, 5);
+  });
+
+  it('bergerak MENJAUH dari musuh tidak terganggu', () => {
+    useCombat.getState().start('stair_fight');
+    enemyPos.x = 0;
+    enemyPos.z = 0.9;
+    enemyRuntime.state = { state: 'windup', t: 0, facing: 0, cooldown: 1, hitDone: false };
+    camState.yaw = 0; // forward = -z (menjauh dari musuh di +z)
+    input.held.add('forward');
+    const { body, rec } = makeBody();
+    tickBody(1, body);
+    expect(rec.linvel.z).toBeCloseTo(-3.4, 1); // jalan penuh, tanpa strip
+  });
+
+  it('dodge ke arah musuh tidak bisa menembus (tetap di ring luar)', () => {
+    useCombat.getState().start('stair_fight');
+    enemyPos.x = 0;
+    enemyPos.z = 0.5;
+    enemyRuntime.state = { state: 'windup', t: 0, facing: 0, cooldown: 1, hitDone: false };
+    camState.yaw = Math.PI;
+    input.held.add('forward');
+    input.pressed.add('dodge'); // focus 100 ≥ 6 → dodge start, arah +z (ke musuh)
+    const { body } = makeBody();
+    tickBody(1, body);
+    const dist = Math.hypot(enemyPos.x - playerPos.x, enemyPos.z - playerPos.z);
+    expect(dist).toBeGreaterThanOrEqual(0.799);
+  });
+
+  it('FSM musuh tidak pernah menumpuk dengan pemain (approach→strike→recover)', () => {
+    useCombat.getState().start('stair_fight');
+    enemyPos.x = 0;
+    enemyPos.z = 1.6;
+    enemyRuntime.state = { state: 'approach', t: 0, facing: 0, cooldown: 0, hitDone: false };
+    let minDist = Infinity;
+    for (let i = 0; i < 600; i++) {
+      combatTick(DT, null);
+      minDist = Math.min(minDist, Math.hypot(enemyPos.x - playerPos.x, enemyPos.z - playerPos.z));
+    }
+    expect(minDist).toBeGreaterThanOrEqual(0.79);
+  });
+});

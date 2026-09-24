@@ -4,7 +4,7 @@ import * as THREE from 'three';
 import { useGame } from '../../stores/gameStore';
 import { useStory } from '../../stores/storyStore';
 import { useSettings } from '../../stores/settingsStore';
-import { playerPos, npcPositions, actorPositions } from '../runtime';
+import { playerPos, npcPositions, crowdPositions, actorPositions } from '../runtime';
 import { mobile } from '../mobile';
 import { lowSpecProfile, qualityConfig } from '../quality';
 import { Figure, makeAnim, BOOT_LOW } from './Character';
@@ -21,12 +21,19 @@ function figureHideR(): number {
   return Math.max(45, qualityConfig(useSettings.getState().quality, mobile.tier).fogFar - 25);
 }
 
-// Ambient students: light, non-collidable wanderers for crowd life.
+// Ambient students: light wanderers for crowd life.
+// v0.16.0: no longer "non-collidable" — each student registers its live
+// position into crowdPositions (consumed by the player collision system)
+// and steps AROUND the player instead of walking through them.
 function Student({ home, wander, color, seed }: { home: [number, number]; wander: number; color: string; seed: number }) {
   const group = useRef<THREE.Group>(null);
   const anim = useRef(makeAnim());
   const t = useRef(seed * 7.3);
   const target = useRef({ x: home[0], z: home[1] });
+  const key = `s${seed}`;
+
+  // stale-position guard (same contract as ScheduledNpc/StoryActor)
+  useEffect(() => () => { delete crowdPositions[key]; }, [key]);
 
   useFrame((state, dtRaw) => {
     const dt = Math.min(dtRaw, 0.05);
@@ -45,11 +52,18 @@ function Student({ home, wander, color, seed }: { home: [number, number]; wander
     const dx = target.current.x - g.position.x;
     const dz = target.current.z - g.position.z;
     const d = Math.hypot(dx, dz);
+    // v0.16.0 anti-overlap: never step closer than CHAR_RADIUS+margin to the
+    // player — wait instead of walking through them.
+    const pdx = g.position.x - playerPos.x;
+    const pdz = g.position.z - playerPos.z;
+    const pd = Math.hypot(pdx, pdz);
     if (d < 0.2) {
       // pick a new wander target
       target.current.x = home[0] + Math.sin(t.current * 0.13 + seed) * wander;
       target.current.z = home[1] + Math.cos(t.current * 0.11 + seed * 1.7) * wander * 0.6;
       anim.current.speed = 0;
+    } else if (pd < 0.7) {
+      anim.current.speed = 0; // too close to the player — hold position
     } else {
       const sp = 0.9;
       g.position.x += (dx / d) * sp * dt;
@@ -57,6 +71,7 @@ function Student({ home, wander, color, seed }: { home: [number, number]; wander
       g.rotation.y = THREE.MathUtils.lerp(g.rotation.y, Math.atan2(dx, dz), 0.08);
       anim.current.speed = sp;
     }
+    crowdPositions[key] = { x: g.position.x, z: g.position.z };
   });
 
   return (
@@ -137,7 +152,12 @@ function ScheduledNpc({ id }: { id: string }) {
       const dx = dest.current[0] - g.position.x;
       const dz = dest.current[1] - g.position.z;
       const d = Math.hypot(dx, dz);
-      if (d > 0.15) {
+      // v0.16.0 anti-overlap: hold position instead of gliding through the
+      // player when they stand on the waypoint path.
+      const pdx = g.position.x - playerPos.x;
+      const pdz = g.position.z - playerPos.z;
+      const playerTooClose = Math.hypot(pdx, pdz) < 0.7;
+      if (d > 0.15 && !playerTooClose) {
         const sp = 1.4;
         g.position.x += (dx / d) * sp * dt;
         g.position.z += (dz / d) * sp * dt;

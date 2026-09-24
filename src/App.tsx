@@ -18,7 +18,7 @@ import { audio, bgm } from './game/audio';
 import { periodFor } from './game/systems/time';
 import { saveGame } from './game/save';
 import { mobile } from './game/mobile';
-import { perfState, PREWARM } from './game/runtime';
+import { perfState, PREWARM, enemyPos } from './game/runtime';
 import { GraphicsManager, CullingManager, WorldReadyProbe } from './game/perf';
 import { OPENING_ROOT, OPENING_ACTORS, SCENE_ACTORS, type StorySpot } from './data/chapters';
 import { PLAYER_SPAWN } from './data/world';
@@ -32,7 +32,7 @@ import { CameraRig } from './game/camera/CameraRig';
 import { Npcs, StoryActors } from './game/npc/Npc';
 import { CombatScene } from './game/combat/CombatScene';
 import { StoryDirector } from './game/StoryDirector';
-import { resetCombatRuntime } from './game/combat/combat';
+import { resetCombatRuntime, finishCombatWin } from './game/combat/combat';
 import { nextMode } from './game/camera/mode';
 import { useSettings } from './stores/settingsStore';
 import { lowSpecProfile } from './game/quality';
@@ -129,6 +129,55 @@ export default function App() {
     };
     document.addEventListener('pointerlockchange', onLockChange);
     return () => document.removeEventListener('pointerlockchange', onLockChange);
+  }, []);
+
+  // v0.16.0 anti-softlock watchdog — every control-stealing mode has an owner
+  // that must restore control (close() for DIALOGUE, CameraRig for CINEMATIC,
+  // CombatScene/onLose for COMBAT). If an owner ever dies (edge case, bug,
+  // stale store), the watchdog snaps control back instead of freezing the
+  // player forever — "karakter stuck ga bisa jalan" must stay impossible.
+  // Deliberately conservative: each condition must hold 3–4s before acting.
+  useEffect(() => {
+    let combatStuck = 0;
+    const t = setInterval(() => {
+      const g = useGame.getState();
+      if (g.phase !== 'play') return;
+      const node = useDialogue.getState().nodeId;
+      if (g.mode === 'DIALOGUE' && !node) {
+        g.setMode('GAMEPLAY');
+        return;
+      }
+      if (
+        g.mode === 'CINEMATIC' &&
+        !node &&
+        g.pendingChapter == null &&
+        useStory.getState().flags.includes('opening_complete')
+      ) {
+        g.setMode('GAMEPLAY');
+        return;
+      }
+      if (g.mode === 'COMBAT') {
+        const c = useCombat.getState();
+        // 'won' resolves via CombatScene winTimer (1.4 s), 'lost' via onLose/
+        // GAME_OVER instantly — both normally gone in <2 s. Anything longer
+        // means the owner is dead; resolve the way the owner would have.
+        const dead = !c.encounterId || c.phase === null || (c.phase === 'fighting' && !c.enemy());
+        const stalled = (c.phase === 'won' || c.phase === 'lost') && ++combatStuck > 8;
+        if (dead || stalled) {
+          combatStuck = 0;
+          if (c.phase === 'won') finishCombatWin();
+          else {
+            c.reset();
+            resetCombatRuntime();
+            enemyPos.active = false;
+            g.setMode('GAMEPLAY');
+          }
+          return;
+        }
+      }
+      combatStuck = 0;
+    }, 500);
+    return () => clearInterval(t);
   }, []);
 
   // UI keyboard shortcuts (mode-aware)

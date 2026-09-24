@@ -107,7 +107,12 @@ export const QUALITY_PRESETS: Record<Resolved, QualityConfig> = {
  * Explicit user selections always win — only 'auto' consults the hardware.
  */
 export function resolveQuality(selected: Quality, tier: Tier, gpu: GpuClass = mobile.gpu): Resolved {
-  if (selected !== 'auto') return selected;
+  // v0.16.0: known explicit values win. A stale/corrupt persisted string
+  // (e.g. a UI label instead of the enum) must NEVER reach QUALITY_PRESETS
+  // as an unknown key — the lookup would return undefined and crash module
+  // init (white screen). Unknown non-'auto' values fall back to SEDANG.
+  if (selected === 'high' || selected === 'medium' || selected === 'low') return selected;
+  if (selected !== 'auto') return 'medium';
   if (gpu === 'soft') return 'low';
   if (tier === 'low' || gpu === 'igpu') return 'medium';
   return 'high';

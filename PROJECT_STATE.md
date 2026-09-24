@@ -1,8 +1,33 @@
 # Project State
 
-Updated: 2026-09-24 (v0.15.2 — AI musuh kini MENDEKAT & menyerang (arah approach
-dibalik, anti-kite), pemain tak lagi stuck di COMBAT tanpa encounter (guard
-BEAT_ENCOUNTER + anti-stuck Player), UI anti-bertumpuk; 216 test)
+Updated: 2026-09-24 (v0.16.0 — collision karakter (pemain/NPC/crowd/musuh tak
+bisa saling menembus), akar "stuck ga bisa jalan" dibedah: body sleep di combat
++ penembusan lantai spawn + white-screen settings korup, anti-softlock watchdog,
+QA input nyata 15/15, story-graph closure test; 237 test)
+
+## v0.16.0 Snapshot (2026-09-24)
+
+**User: "kasih batas/collision setiap karakter" + "karakter kita belum bisa
+jalan2" + "test semua rute/alur/ending/scene/combat". Tiga lapisan dikerjakan.**
+- COLLISION: `systems/collision.ts` baru (resolveOverlaps/stripIntoVelocity/
+  nearbyBodies; CHAR_RADIUS 0.42). Pemain kini slide & terdorong keluar dari
+  NPC/crowd/musuh; crowd meregistrasi posisi (runtime.crowdPositions) dan NPC/
+  crowd menahan langkah dekat pemain; combat ring 0.95/0.8 m. Bug lama blok
+  "keep enemy at fair distance" ternyata arahnya terbalik (menyeret musuh ke
+  pemain) — diganti koreksi posisi keras dari posisi terkini.
+- STUCK: (1) combatTick setLinvel tanpa wake=true → rapier body tidur di
+  combat dan mengabaikan semua input gerak — FIX wake; (2) body menembus
+  lantai saat collider belum solid → yo-yo respawn (headless: 4x/15dtk) —
+  FIX pin spawn-settle real-time 2.5 dtk + re-arm di respawn/teleport;
+  (3) settings korup (quality:"RENDAH") → white-screen permanen — FIX
+  validasi nilai per kunci + resolveQuality fallback.
+- WATCHDOG: interval 500 ms memulihkan DIALOGUE/CINEMATIC/COMBAT yatim ke
+  GAMEPLAY (won/lost >4 dtk di-resolve sesuai ownernya) — softlock mustahil.
+- QA BARU: qa-walk.mjs (input nyata headless via window.__csl) 15/15 PASS;
+  storyGraph.test.ts (closure graf dialog + konektivitas 5 chain ending +
+  wiring ENCOUNTERS dua arah). Test 232 → 237/237 · tsc -b ✓ · build ✓ ·
+  qa-nav ✓ CONSOLE_ERRORS none.
+- Simpan lama aman; tidak ada perubahan data/story/encounter.
 
 ## v0.15.2 Snapshot (2026-09-24)
 

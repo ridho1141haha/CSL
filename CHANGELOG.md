@@ -1,5 +1,58 @@
 # Changelog
 
+## 0.16.0 — 2026-09-24 (Collision Karakter + Anti-Softlock Watchdog + Audit Game Penuh)
+
+User: "kasih batas/collision setiap karakter supaya tidak bisa gabung/menumpuk,
+dan juga karakter kita belum bisa jalan2" + "test semua rute/alur/ending/scene/
+combat, pastikan semuanya aman".
+
+### Fitur baru: collision karakter (v0.16.0)
+- `systems/collision.ts` BARU — personal space 0.84 m (2× CHAR_RADIUS 0.42):
+  `resolveOverlaps` (dorong keluar dari tumpukan, 2 pass relaksasi),
+  `stripIntoVelocity` (slide mengelilingi badan, bukan menembus),
+  `nearbyBodies` (shortlist tetangga ≤ 1.4 m; biaya per frame datar).
+- Pemain vs NPC jadwal + ambient crowd + musuh: `runtime.crowdPositions` BARU
+  (Student kini meregistrasi posisi live + stale-guard unmount); Player.tsx
+  GAMEPLAY men-strip komponen kecepatan yang menuju badan lalu dorong keluar.
+- COMBAT: ring 0.95 m memotong kecepatan menuju musuh (dodge pun tidak bisa
+  menembus) + dorong keras ke ring 0.8 m bila sudah tumpang tindih. BLOK LAMA
+  "keep enemy at fair distance" TERNYATA SAMA ARAHNYA TERBALIK — malah
+  menyeret musuh LEBIH DEKAT; kini koreksi posisi keras dari posisi terkini.
+- NPC & crowd menahan langkah saat terlalu dekat ke pemain (tidak ada lagi
+  figur yang menembus Ren saat berjalan).
+
+### Akar "karakter stuck ga bisa jalan" — dua bug fisika + satu crash
+1. **Rapier body SLEEP di COMBAT**: `combatTick` memanggil `setLinvel` TANPA
+   `wake=true` — badan yang tertidur mengabaikan SEMUA perintah gerak selama
+   duel (jalan di GAMEPLAY normal karena branch sana selalu wake). Inilah
+   "pemain belum bisa bergerak (wasd, spasi)" yang berulang.
+2. **Penembusan lantai saat spawn/teleport**: collider dunia belum solid saat
+   body sudah dijatuhkan → tenggelam → respawn y<-2 → tenggelam lagi
+   (headless: 4 respawn/15 dtk; di HP lemah terbaca "stuck"). Kini pin
+   spawn-settle 2.5 dtk REAL-TIME (lepas cepat saat ground-ray mengenai),
+   respawn & teleport memasang ulang pin.
+3. **LAYAR PUTIH dari settings korup**: `loadPersisted` hanya cek typeof —
+   `quality: "RENDAH"` (label, bukan enum) lolos → `qualityConfig()` undefined
+   → crash saat modul dimuat, permanen lintas reload. Kini validasi nilai per
+   kunci (enum/range) + `resolveQuality` fallback SEDANG untuk nilai asing.
+
+### Anti-softlock watchdog (App.tsx)
+Interval 500 ms: DIALOGUE tanpa node → GAMEPLAY; CINEMATIC tanpa node &
+opening_complete → GAMEPLAY; COMBAT dead (`!encounterId`/phase null/fighting
+tanpa musuh) → reset + GAMEPLAY; 'won'/'lost' > 4 dtk → resolve seperti owner-
+nya (finishCombatWin/reset). Setiap mode perampas kontrol kini punya
+pengaman, apa pun bug yang mematikan ownernya.
+
+### Audit game penuh (user: "test semua rute/alur/ending/scene/combat")
+- `qa-walk.mjs` BARU — QA INPUT NYATA headless: WASD/strafe/jump/gerak
+  combat/musuh mendekat/attack connect/joyistik via `window.__csl` (QA handle
+  baru di main.tsx: mode/pos/enemy/combat/teleport/axes). **15/15 PASS**.
+- `storyGraph.test.ts` BARU — closure seluruh graf dialog: semua next/choices
+  menunjuk node nyata, 5 chain ending terhubung (termasuk lewat __combat__ →
+  onWin/onLose), semua ENCOUNTERS punya musuh valid & onWin/onLose ada.
+- Test +25: 232 → **237/237** · tsc -b ✓ · build ✓ · qa-nav ✓ (CONSOLE_ERRORS
+  none). Simpan lama aman; tidak ada perubahan data cerita.
+
 ## 0.15.2 — 2026-09-24 (AI Musuh Mendekat & Menyerang, Pemain Tak Lagi Stuck, UI Anti-Bertumpuk)
 
 User: "bot/ai musuh nya belum bener (malah jalan lurus menjauh dari kita, dan
