@@ -8,6 +8,7 @@ import { useDialogue } from '../../stores/dialogueStore';
 import { useStats } from '../../stores/statsStore';
 import { audio } from '../audio';
 import { playerPos, enemyPos, requestShake, camState } from '../runtime';
+import { approachFacing, COMBAT_TURN_RATE } from '../systems/facing';
 import { makeAnim, type FigureAnim } from '../npc/Character';
 import { ENCOUNTERS } from '../../data/quests';
 
@@ -229,6 +230,15 @@ export function combatTick(
         playerPos.facing = Math.atan2(moveX, moveZ);
       } else {
         playerAnim.current.speed = 0;
+        // v0.16.1: combat IDLE squares up to the ENEMY, not the camera. First
+        // attempt made idle follow the camera and qa-walk's standing light
+        // attack started whiffing: the hit cone below reads playerPos.facing,
+        // so a body turned toward the camera-forward while the enemy stood
+        // elsewhere = swing through air. Brawler rule instead: stand still →
+        // face the threat (the orbit rig keeps the enemy on screen anyway, so
+        // this matches the camera ~always in practice). Safe branch — no
+        // active attack/dodge/stagger here.
+        playerPos.facing = approachFacing(playerPos.facing, Math.atan2(dx, dz), dt, COMBAT_TURN_RATE);
       }
       if (input.leftPressed && player.focus >= 0) {
         playerCombat.attack = { t: 0, dur: 0, heavy: false, hitDone: false };
@@ -266,6 +276,10 @@ export function combatTick(
       }
     } else {
       playerAnim.current.speed = 0;
+      // v0.16.1: while blocking, square up to the enemy too — the block cone
+      // needs playerPos.facing toward the threat; camera-follow here would
+      // drop the guard the moment the player looks away.
+      playerPos.facing = approachFacing(playerPos.facing, Math.atan2(dx, dz), dt, COMBAT_TURN_RATE);
     }
   }
 

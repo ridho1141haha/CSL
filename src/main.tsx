@@ -11,12 +11,17 @@ import { useDialogue } from './stores/dialogueStore';
 import { useStory } from './stores/storyStore';
 import { usePlayer } from './stores/playerStore';
 import { input } from './game/input';
-import { playerPos, enemyPos } from './game/runtime';
+import { playerPos, enemyPos, camState } from './game/runtime';
+import { camForwardAngle } from './game/systems/facing';
 
 (window as unknown as Record<string, unknown>).__csl = {
   mode: () => useGame.getState().mode,
   phase: () => useGame.getState().phase,
   pos: () => ({ x: playerPos.x, y: playerPos.y, z: playerPos.z, facing: playerPos.facing }),
+  // v0.16.1: camera yaw + the facing target it implies — qa-face.mjs asserts
+  // the body actually converges to this angle after a real camera drag.
+  camYaw: () => camState.yaw,
+  camFacingTarget: () => camForwardAngle(camState.yaw),
   enemy: () => ({ x: enemyPos.x, z: enemyPos.z, active: enemyPos.active }),
   combat: () => {
     const c = useCombat.getState();

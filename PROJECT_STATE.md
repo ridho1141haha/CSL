@@ -1,9 +1,27 @@
 # Project State
 
-Updated: 2026-09-24 (v0.16.0 — collision karakter (pemain/NPC/crowd/musuh tak
-bisa saling menembus), akar "stuck ga bisa jalan" dibedah: body sleep di combat
-+ penembusan lantai spawn + white-screen settings korup, anti-softlock watchdog,
-QA input nyata 15/15, story-graph closure test; 237 test)
+Updated: 2026-09-24 (v0.16.1 — arah hadap karakter: GAMEPLAY diam mengikuti
+kamera (systems/facing.ts, 9 rad/s), COMBAT diam/blok menghadap musuh (12
+rad/s, cone hit/block tak pernah gagal arah), qa-face.mjs drag-kamera-nyata
+5/5; 249 test)
+
+## v0.16.1 Snapshot (2026-09-24)
+
+**User: "arah hadap karakter tidak mengikuti kamera, buat mengikuti kamera".**
+- GAMEPLAY idle kini mengikuti kamera: `systems/facing.ts` baru —
+  `camForwardAngle(yaw)` (konvensi PERSIS lokomosi: facing = atan2(dirX,dirZ),
+  forward = (−sin yaw, −cos yaw) → melepas W tak menyentakkan figur) +
+  `approachFacing` (busur terpendek, wrap ±π, snap tanpa overshoot, 9 rad/s).
+  Sambil berjalan tetap menghadap arah gerak (sudah relatif-kamera).
+- COMBAT idle/blok menghadap MUSUH, bukan kamera: percobaan pertama (semua
+  idle ikut kamera) membuat pukulan berdiri melesat di qa-walk 14/15 — cone
+  hit membaca playerPos.facing yang tertarik ke arah kamera. Final: idle +
+  blok squares-up ke musuh 12 rad/s; attack/block cone selalu valid.
+- QA BARU `qa-face.mjs`: drag kamera nyata (LMB+geser) → poll konvergensi
+  badan via `__csl.camYaw()/camFacingTarget()`; GAMEPLAY 2 arah + COMBAT
+  musuh-vs-kamera — 5/5 PASS. `combat.test.ts` +2, `facing.test.ts` +10 →
+  **249/249** · tsc ✓ · build ✓ · qa-nav ✓ · qa-walk 15/15 ✓.
+- Simpan lama aman; tidak ada perubahan data/story/encounter.
 
 ## v0.16.0 Snapshot (2026-09-24)
 

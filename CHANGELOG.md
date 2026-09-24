@@ -1,5 +1,41 @@
 # Changelog
 
+## 0.16.1 — 2026-09-24 (Arah Hadap Karakter Mengikuti Kamera)
+
+User: "arah hadap karakter tidak mengikuti kamera, buat mengikuti kamera".
+
+### Perilaku baru
+- **GAMEPLAY diam** (tanpa input gerak): badan Ren berputar halus mengikuti
+  arah kamera — `systems/facing.ts` BARU (`camForwardAngle` + `approachFacing`,
+  9 rad/s, busur terpendek, snap tanpa overshoot). Konversi yaw kamera → sudut
+  badan memakai formula PERSIS sama dengan lokomosi (facing = atan2(dirX,
+  dirZ), forward = (−sin yaw, −cos yaw)) — melepas tombol W tidak pernah
+  menyentakkan figur. Sambil berjalan tetap menghadap arah gerak (memang
+  relatif-kamera sejak awal): putar kamera sambil jalan otomatis mengubah
+  arah hadap.
+- **COMBAT diam / memblock**: badan otomatis menghadap MUSUH (12 rad/s), bukan
+  ke kamera. Percobaan pertama "idle ikut kamera" membuat pukulan berdiri
+  MELESAT di qa-walk (cone hit membaca playerPos.facing; badan tertarik ke
+  arah kamera yang tidak tepat mengarah musuh — regesi nyata, 14/15). Aturan
+  brawler final: diam = menghadapi ancaman → block/pukulan selalu siap; rig
+  orbit memang menahan musuh di tengah layar, jadi di praktik arah ini ≈
+  arah kamera. Cone hit/block kini tidak pernah gagal karena arah badan.
+
+### Teknis
+- `Player.tsx`: cabang idle (hSpeed ≤ 0.4) → `approachFacing(playerPos.facing,
+  camForwardAngle(camYaw()), dt)`; cabang gerak tidak berubah.
+- `combat.ts`: cabang idle + blok → `approachFacing(facing, atan2(dx, dz),
+  dt, COMBAT_TURN_RATE)` dengan dx/dz = musuh − pemain live per tick.
+- `main.tsx`: QA handle baru `__csl.camYaw()` + `__csl.camFacingTarget()`.
+- `scripts/qa-face.mjs` BARU — drag kamera NYATA (LMB hold + geser), lalu poll
+  konvergensi badan: GAMEPLAY drag kanan 2.03 rad + drag kembali, COMBAT badan
+  ke musuh walau kamera diseret menjauh. 5/5 PASS, CONSOLE_ERRORS none.
+- TEST: `facing.test.ts` BARU (10 — konvensi sudut terkunci ke formula
+  lokomosi, jembatan ±π (atan2(−0,−1) = −π), snap tanpa overshoot, dt ≤ 0
+  no-op, konvergensi penuh 200 frame) + `combat.test.ts` +2 (diam di COMBAT
+  berputar menghadap musuh dari posisi membelakangi; memblock ikut menghadap
+  musuh) → **249 hijau** · tsc ✓ · build ✓ · qa-nav ✓ · qa-walk 15/15 ✓.
+
 ## 0.16.0 — 2026-09-24 (Collision Karakter + Anti-Softlock Watchdog + Audit Game Penuh)
 
 User: "kasih batas/collision setiap karakter supaya tidak bisa gabung/menumpuk,

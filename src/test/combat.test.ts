@@ -387,3 +387,38 @@ describe('player↔enemy collision (v0.16.0 anti-menumpuk)', () => {
     expect(minDist).toBeGreaterThanOrEqual(0.79);
   });
 });
+
+// v0.16.1 — "arah hadap mengikuti kamera": GAMEPLAY idle follows the camera,
+// but COMBAT idle/blok squares up to the ENEMY (hit/block cones read
+// playerPos.facing — a body turned elsewhere made standing swings whiff).
+describe('combat idle menghadap musuh (v0.16.1)', () => {
+  beforeEach(resetWorld);
+
+  function parkEnemy(x: number, z: number) {
+    enemyPos.x = x;
+    enemyPos.z = z;
+    // FSM di'templin' — cooldown besar supaya tidak bergerak/bermenyerang
+    // selama pengukuran, jadi arah target deterministik.
+    enemyRuntime.state = { state: 'idle', t: 0, facing: 0, cooldown: 999, hitDone: false };
+  }
+
+  it('diam di COMBAT: badan berputar menghadap musuh dari posisi membelakangi', () => {
+    useCombat.getState().start('stair_fight');
+    parkEnemy(2.2, 2.2); // arah atan2(2.2, 2.2) = π/4
+    playerPos.facing = Math.PI; // membelakangi musuh
+    tick(120); // 2 dtk @ 12 rad/s — jarak putar 3π/4 ≈ 2.36 rad
+    const want = Math.atan2(enemyPos.x - playerPos.x, enemyPos.z - playerPos.z);
+    expect(Math.abs(angleDiff(playerPos.facing, want))).toBeLessThan(0.08);
+  });
+
+  it('memblock: badan ikut menghadap musuh (block cone selalu siap)', () => {
+    useCombat.getState().start('stair_fight');
+    input.mouse.right = true;
+    parkEnemy(-1.5, 1.5); // arah 3π/4
+    playerPos.facing = -Math.PI / 2;
+    tick(60); // 1 dtk — fokus cukup (biaya awal 1 + drain 12/s)
+    expect(playerCombat.block).toBe(true);
+    const want = Math.atan2(enemyPos.x - playerPos.x, enemyPos.z - playerPos.z);
+    expect(Math.abs(angleDiff(playerPos.facing, want))).toBeLessThan(0.08);
+  });
+});

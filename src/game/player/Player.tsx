@@ -8,6 +8,7 @@ import { usePlayer } from '../../stores/playerStore';
 import { useCombat } from '../../stores/combatStore';
 import { playerPos, camState, npcPositions, crowdPositions, enemyPos } from '../runtime';
 import { resolveOverlaps, stripIntoVelocity, nearbyBodies } from '../systems/collision';
+import { approachFacing, camForwardAngle } from '../systems/facing';
 import { useSettings } from '../../stores/settingsStore';
 import { Figure } from '../npc/Character';
 import { acting } from '../systems/acting';
@@ -212,10 +213,16 @@ export function Player() {
 
     rb.setLinvel({ x: nvx, y: vy, z: nvz }, true);
 
-    // facing follows movement
+    // facing follows movement; while standing it follows the CAMERA
+    // (v0.16.1 "arah hadap mengikuti kamera"): rotating the orbit/drag camera
+    // with no keys held now turns the body with it, instead of freezing on
+    // the last walk direction. The target is the exact angle a W-press would
+    // produce, so releasing a key never snaps the figure.
     const hSpeed = Math.hypot(nvx, nvz);
     if (hSpeed > 0.4) {
       playerPos.facing = Math.atan2(nvx, nvz);
+    } else {
+      playerPos.facing = approachFacing(playerPos.facing, camForwardAngle(camYaw()), dt);
     }
 
     // footsteps
