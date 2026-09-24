@@ -309,9 +309,15 @@ export function combatTick(
       break;
     }
     case 'approach': {
-      const sp = enemy.speed;
-      enemyPos.x += nx * sp * dt;
-      enemyPos.z += nz * sp * dt;
+      // v0.15.2: regesi ARAH gerak — dulu `+= n` (vektor pemain→musuh) yang
+      // membuat musuh berjalan lurus MENJAUH dari pemain dan tidak pernah
+      // sampai menyerang. `-= n` = mendekat. Saat jauh (dist > 3.5 m) musuh
+      // mengejar sedikit di atas kecepatan jalan pemain (3.4 m/s) supaya duel
+      // tidak bisa dimanipulasi dengan jalan mundur terus; pemain yang lari
+      // (5.6 m/s) tetap bisa kabur untuk memesan jarak.
+      const sp = dist > 3.5 ? Math.max(enemy.speed, 3.6) : enemy.speed;
+      enemyPos.x -= nx * sp * dt;
+      enemyPos.z -= nz * sp * dt;
       enemyAnim.current.speed = sp;
       st.facing = Math.atan2(dx, dz);
       if (dist < 1.7 && st.cooldown <= 0) {

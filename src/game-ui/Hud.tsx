@@ -198,6 +198,13 @@ export function CombatHud() {
   const maxHp = usePlayer((s) => s.maxHp);
   const focus = usePlayer((s) => s.focus);
 
+  // v0.15.2: tandai body saat combat — notifikasi digeser turun supaya tidak
+  // menumpuk panel darah musuh (anti-bertumpuk; CSS body.in-combat).
+  useEffect(() => {
+    document.body.classList.add('in-combat');
+    return () => document.body.classList.remove('in-combat');
+  }, []);
+
   return (
     <div className="combat-ui">
       <div className="cb-top">

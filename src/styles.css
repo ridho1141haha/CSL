@@ -567,6 +567,19 @@ kbd, .key {
 .combat-ui .meter { position: absolute; }
 .combat-ui > .meter { display: none; }
 
+/* v0.15.2 anti-bertumpuk:
+   - notifikasi selama combat digeser turun (di bawah panel darah musuh);
+   - layar sentuh: chip hint keyboard (LMB/Q/RMB/SHIFT) disembunyikan karena
+     tertimpa tombol ATK/HEV/BLK/DGE, panel darah turun di bawah tombol
+     pause, jam/avatar HUD bergeser kiri agar tidak tertutup pause. */
+body.in-combat .notifications { top: 112px; }
+@media (pointer: coarse) {
+  .cb-actions { display: none; }
+  .cb-top { top: 68px; }
+  body.in-combat .notifications { top: 168px; }
+  .hud-top { padding-right: 72px; }
+}
+
 /* ============ full menus (stitch 04/05/07 shell) ============ */
 .full-menu {
   position: absolute; inset: 0; z-index: 60;
@@ -950,6 +963,7 @@ kbd, .key {
   .obj-card { transform: scale(0.85); transform-origin: top left; }
   .hud-controls { display: none; }
   .cb-panel { width: 44vw; }
+  .cb-mid { display: none; } /* chip dekoratif tengah menjerap panel darah di layar sempit */
   .study-options { grid-template-columns: 1fr; }
 }
 

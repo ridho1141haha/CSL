@@ -1,5 +1,49 @@
 # Changelog
 
+## 0.15.2 — 2026-09-24 (AI Musuh Mendekat & Menyerang, Pemain Tak Lagi Stuck, UI Anti-Bertumpuk)
+
+User: "bot/ai musuh nya belum bener (malah jalan lurus menjauh dari kita, dan
+belum nyerang kita) / karakter stuck ga bisa jalan / uinya masih bertumpuk" —
+dan masih terjadi setelah v0.15.1 ("masih sama").
+
+### Root cause (audit)
+1. **Musuh menjauh & tak pernah menyerang**: `case 'approach'` menambahkan
+   vektor pemain→musuh (`enemyPos += n`) — arahnya MENJAUH dari pemain. Musuh
+   berjalan lurus keluar arena sejak spawn, tak pernah sampai radius windup
+   (1.7 m) sehingga tidak pernah menyerang. Bug lama; baru terlihat setelah
+   v0.15.1 karena sebelumnya pemain tumbang ±2 ayunan sebelum sempat
+   mengamati perilaku AI.
+2. **Pemain stuck (WASD/spasi mati)**: `dialogueStore` memakai fallback
+   `BEAT_ENCOUNTER[beat] ?? 'gate_fight'` — `gate_fight` SUDAH DIHAPUS dari
+   ENCOUNTERS sejak v0.7.0. Beat tanpa entri → `start('gate_fight')` gagal
+   diam-diam → mode COMBAT TANPA phase 'fighting' dan tanpa musuh → cabang
+   freeze di Player.tsx membekukan pemain selamanya; tidak ada UI combat,
+   tidak ada jalan keluar kecuali reload.
+3. **UI bertumpuk**: notifikasi menimpa panel darah musuh; di layar sentuh
+   chip hint keyboard (LMB/Q/RMB/SHIFT) tertimpa tombol ATK/HEV/BLK/DGE; chip
+   dekoratif tengah (cb-mid) menjerap panel darah di layar sempit.
+
+### Fix
+- `combat.ts` approach: `enemyPos -= n` (mendekat). Anti-kite: saat
+  dist > 3.5 m musuh mengejar ≥ 3.6 m/s (di atas jalan pemain 3.4, di bawah
+  lari 5.6 — lari tetap jadi opsi memesan jarak); dekat kembali ke speed data.
+- `dialogueStore`: guard encounter valid — beat tanpa encounter terdaftar
+  TIDAK memulai combat; pulih ke GAMEPLAY + `console.warn` (fail-safe).
+- `Player.tsx`: anti-stuck — mode COMBAT tanpa `encounterId` aktif pulih
+  sendiri ke GAMEPLAY. Fase transien 'won'/'lost' masih membawa encounterId
+  → tetap freeze 1 frame sampai finishCombatWin/onLose memindahkan mode.
+- `Hud.tsx` + `styles.css`: `body.in-combat` — notifikasi digeser turun ke
+  bawah panel darah musuh; pointer coarse: chip hint keyboard disembunyikan,
+  panel darah turun di bawah tombol pause, hud-top diberi padding kanan;
+  cb-mid disembunyikan di layar sempit.
+
+### Test
+- `combat.test.ts` +4: musuh MENDEKAT lalu masuk windup/strike (dulu kabur
+  terus); kejaran ≥ 3.6 m/s saat jauh (anti-kite); speed data saat dekat;
+  guard BEAT_ENCOUNTER — semua encounter masih terdaftar di ENCOUNTERS.
+  → **216/216** · tsc -b ✓ · build ✓ · qa-nav CONSOLE_ERRORS none.
+- Save lama aman; tidak ada perubahan data/story/encounter.
+
 ## 0.15.1 — 2026-09-23 (Fix Combat System: Satu Ayunan = Satu Hit + Ekonomi Fokus)
 
 User: "fix combat system". Audit combat runtime menemukan bug yang membuat

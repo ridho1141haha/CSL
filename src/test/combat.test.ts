@@ -12,6 +12,8 @@ import {
 import { useCombat } from '../stores/combatStore';
 import { usePlayer } from '../stores/playerStore';
 import { useGame } from '../stores/gameStore';
+import { BEAT_ENCOUNTER } from '../stores/dialogueStore';
+import { ENCOUNTERS } from '../data/quests';
 import { playerPos, enemyPos, camState } from '../game/runtime';
 import { input } from '../game/input';
 
@@ -244,5 +246,51 @@ describe('alur KO / kalah', () => {
     expect(usePlayer.getState().hp).toBe(0);
     expect(useGame.getState().mode).toBe('GAME_OVER');
     expect(playerAnim.current.down).toBe(true);
+  });
+});
+
+describe('enemy approach — arah & pengejaran (v0.15.2 regesi jalan menjauh)', () => {
+  beforeEach(resetWorld);
+
+  it('musuh MENDEKATI pemain lalu masuk windup (dulu: kabur terus)', () => {
+    useCombat.getState().start('stair_fight');
+    enemyPos.x = 0;
+    enemyPos.z = 5; // dalam perception 6, di luar jangkauan serang
+    enemyRuntime.state = { state: 'approach', t: 0, facing: 0, cooldown: 0, hitDone: false };
+    tick(90); // 1.5 dtk — cukup untuk menyusul dari 5 m ke < 1.7 m
+    const dist = Math.hypot(enemyPos.x - playerPos.x, enemyPos.z - playerPos.z);
+    expect(dist).toBeLessThan(2.5);
+    expect(['windup', 'strike']).toContain(enemyRuntime.state.state);
+  });
+
+  it('saat jauh (dist > 3.5) musuh mengejar ≥ 3.6 m/s (anti-kite)', () => {
+    useCombat.getState().start('stair_fight'); // speed goon 2.1 < jalan pemain 3.4
+    enemyPos.x = 0;
+    enemyPos.z = 5.5;
+    enemyRuntime.state = { state: 'approach', t: 0, facing: 0, cooldown: 0, hitDone: false };
+    const before = enemyPos.z;
+    tick(1);
+    const closed = before - enemyPos.z;
+    expect(closed).toBeCloseTo(3.6 / 60, 2);
+  });
+
+  it('dekat (dist < 3.5) musuh kembali ke speed data', () => {
+    useCombat.getState().start('stair_fight');
+    enemyPos.x = 0;
+    enemyPos.z = 3;
+    enemyRuntime.state = { state: 'approach', t: 0, facing: 0, cooldown: 0, hitDone: false };
+    const before = enemyPos.z;
+    tick(1);
+    const closed = before - enemyPos.z;
+    expect(closed).toBeCloseTo(2.1 / 60, 2);
+  });
+});
+
+describe('BEAT_ENCOUNTER — guard regression (v0.15.2: fallback gate_fight sudah dihapus)', () => {
+  it('semua encounter di BEAT_ENCOUNTER masih terdaftar di ENCOUNTERS', () => {
+    expect(Object.keys(BEAT_ENCOUNTER).length).toBeGreaterThan(0);
+    for (const [beat, id] of Object.entries(BEAT_ENCOUNTER)) {
+      expect(ENCOUNTERS[id], `beat "${beat}" → "${id}"`).toBeDefined();
+    }
   });
 });

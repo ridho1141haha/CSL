@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { getDialogue, SPECIAL_NODES } from '../data/dialogue';
+import { ENCOUNTERS } from '../data/quests';
 import { applyEffects } from '../game/systems/effects';
 import { resolveCast, applyDialogueActing, clearDialogueActing } from '../game/systems/acting';
 import { useGame } from './gameStore';
@@ -73,9 +74,19 @@ export const useDialogue = create<Store>((set, get) => ({
     if (node.end || !node.next) return void get().close();
     if (node.next === SPECIAL_NODES.combat) {
       const beat = useStory.getState().beat;
-      const encounter = BEAT_ENCOUNTER[beat] ?? 'gate_fight';
+      // v0.15.2: fail-safe — dulu fallback 'gate_fight' yang SUDAH DIHAPUS
+      // dari ENCOUNTERS sejak v0.7.0. start() gagal diam-diam → mode COMBAT
+      // tanpa phase 'fighting' → Player membekukan pemain selamanya (stuck
+      // ga bisa jalan, tanpa musuh, tanpa jalan keluar). Kini beat tanpa
+      // encounter valid TIDAK memulai combat dan pulih ke GAMEPLAY.
+      const encounter = BEAT_ENCOUNTER[beat];
       get().close();
-      applyEffects([{ k: 'combat', encounter }]);
+      if (encounter && ENCOUNTERS[encounter]) {
+        applyEffects([{ k: 'combat', encounter }]);
+      } else {
+        console.warn(`[combat] beat "${beat}" tidak punya encounter valid — combat dilewati`);
+        useGame.getState().setMode('GAMEPLAY');
+      }
       return;
     }
     if (node.next === SPECIAL_NODES.study) {

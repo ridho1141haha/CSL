@@ -88,6 +88,12 @@ export function Player() {
       } else {
         // combat resolving: freeze gently
         rb.setLinvel({ x: 0, y: lv.y, z: 0 }, true);
+        // v0.15.2: anti-stuck — mode COMBAT tanpa encounter aktif (start()
+        // gagal karena id tak dikenal, atau store tertinggal dalam keadaan
+        // reset) tidak boleh membekukan pemain selamanya; pulihkan kontrol.
+        // Fase transien 'won'/'lost' masih membawa encounterId → tetap freeze
+        // 1 frame sampai finishCombatWin/onLose memindahkan mode.
+        if (!combat.encounterId) useGame.getState().setMode('GAMEPLAY');
       }
       syncFrom(t.x, t.y, t.z, lv.x, lv.z);
       return;

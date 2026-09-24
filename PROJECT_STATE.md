@@ -1,8 +1,30 @@
 # Project State
 
-Updated: 2026-09-23 (v0.15.1 — fix combat system: enemy strike multi-hit diberantas
-(satu ayunan = satu hit), Fokus kini pulih (+7/dtk & +4/hit), dodge mengikuti arah
-gerak / backstep, enemy advance tak lagi membatalkan combo pemain; 212 test)
+Updated: 2026-09-24 (v0.15.2 — AI musuh kini MENDEKAT & menyerang (arah approach
+dibalik, anti-kite), pemain tak lagi stuck di COMBAT tanpa encounter (guard
+BEAT_ENCOUNTER + anti-stuck Player), UI anti-bertumpuk; 216 test)
+
+## v0.15.2 Snapshot (2026-09-24)
+
+**User: "musuh masih menjauhi pemain, pemain juga belum bisa bergerak (wasd,
+spasi)". Tiga bug dilaporkan; akar masalah masing-masing beda file.**
+- `combat.ts` approach: arah GERAK dibalik — dulu `enemyPos += n` (vektor
+  pemain→musuh) musuh berjalan lurus MENJAUH dan tak pernah menyerang; kini
+  `-= n`. Anti-kite: dist > 3.5 m → kejar ≥ 3.6 m/s (jalan pemain 3.4, lari
+  5.6 tetap lolos).
+- `dialogueStore.ts`: fallback `?? 'gate_fight'` (id sudah dihapus sejak
+  v0.7.0) membuat start() gagal diam-diam → mode COMBAT tanpa musuh → pemain
+  dibekukan selamanya. Kini guard: beat tanpa encounter valid tidak memulai
+  combat, pulih ke GAMEPLAY + console.warn.
+- `Player.tsx`: anti-stuck — mode COMBAT tanpa encounterId pulih sendiri ke
+  GAMEPLAY (fase 'won'/'lost' tetap freeze 1 frame sampai finish/onLose).
+- `Hud.tsx` + `styles.css`: body.in-combat — notifikasi turun di bawah panel
+  darah musuh; layar sentuh: chip hint keyboard disembunyikan (bertumpuk dgn
+  tombol ATK/HEV/BLK/DGE), panel darah turun, cb-mid hilang di layar sempit.
+- Test: combat.test.ts +4 (musuh mendekat→windup/strike, anti-kite 3.6 m/s,
+  speed data saat dekat, guard BEAT_ENCOUNTER↔ENCOUNTERS) → **216/216** ·
+  tsc -b ✓ · build ✓ · qa-nav CONSOLE_ERRORS none.
+- Simpan lama aman; tidak ada perubahan data/story.
 
 ## v0.15.1 Snapshot (2026-09-23)
 
