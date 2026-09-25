@@ -19,7 +19,8 @@ import { relLabel } from '../../game/systems/relationship';
 import { repLabel } from '../../game/systems/reputation';
 import { clockLabel, DAYS, formatHhmm } from '../../game/systems/time';
 import { pickActiveQuest, questTargetFor, distanceToTarget } from '../../game/waypoint';
-import { saveGame, loadGame, deleteSave, hasSave, slotInfo, SAVE_SLOTS, type SlotId } from '../../game/save';
+import { saveGame, deleteSave, hasSave, slotInfo, SAVE_SLOTS, type SlotId } from '../../game/save';
+import { loadGame } from '../../game/loadFlow';
 import { applyEffects } from '../../game/systems/effects';
 import { audio } from '../../game/audio';
 
@@ -74,12 +75,22 @@ export function FullMenu({ title, onClose, children, eyebrow = 'DOSSIER // YUSON
 // Status — implementasi mockup Stitch "04-status" (TACTICAL DOSSIER):
 // kartu identitas kiri, deretan vitals 3 kolom kanan, chip metrik, catatan.
 export function StatusPanel() {
-  const { hp, maxHp, focus } = usePlayer();
-  const { academic, violence, diplomacy, reputation } = useStats();
+  // v0.17.0 (audit L1): field selectors — the whole-store subscriptions here
+  // re-rendered on EVERY playerStore write (incl. throttled position updates).
+  const hp = usePlayer((s) => s.hp);
+  const maxHp = usePlayer((s) => s.maxHp);
+  const focus = usePlayer((s) => s.focus);
+  const academic = useStats((s) => s.academic);
+  const violence = useStats((s) => s.violence);
+  const diplomacy = useStats((s) => s.diplomacy);
+  const reputation = useStats((s) => s.reputation);
   const flags = useStory((s) => s.flags.length);
   const clock = useGame((s) => s.clock);
   const rel = useSocial((s) => s.relationships);
-  const relAvg = Math.round(((rel.aris ?? 0) + (rel.siti ?? 0) + (rel.bimo ?? 0)) / 3);
+  // v0.17.0: story average derives from the NPC registry (storyCast flag,
+  // Pak Budi excluded — preserved behavior). Was hardcoded aris+siti+bimo/3.
+  const cast = NPCS.filter((n) => n.storyCast);
+  const relAvg = Math.round(cast.reduce((a, n) => a + (rel[n.id] ?? 0), 0) / Math.max(1, cast.length));
   const violenceTag = violence < 30 ? 'TERKENDALI' : violence < 60 ? 'MEMPRIHATINKAN' : 'TIDAK STABIL';
   const meter = (v: number, max: number, color: string) => (
     <div className="meter">
@@ -160,18 +171,9 @@ export function StatusPanel() {
 
 // Relationships — implementasi bagian "CAMPUS SYNDICATE & RELATIONSHIP LOG"
 // dari mockup Stitch "04-status": kartu per karakter + kutipan + meter relasi.
-const REL_QUOTES: Record<string, string> = {
-  aris: '“Ren, buku catatan aku titipin ya kalau ada kuis.”',
-  siti: '“Jangan lupa formulir OSIS kalau kamu yang bawa.”',
-  bimo: '“Kami melihatmu di gerbang. Hati-hati di jalan pulang.”',
-  budi: '“Kelas X-C? Jaga perilaku, aku mengamati dari ruang guru.”',
-};
-const REL_TAGS: Record<string, { text: string; cls: string }> = {
-  aris: { text: 'SEBANGKU', cls: 'chip-cyan' },
-  siti: { text: 'OSIS', cls: 'chip-green' },
-  bimo: { text: 'ANCAMAN', cls: 'chip-red' },
-  budi: { text: 'GURU', cls: '' },
-};
+// v0.17.0: per-NPC quote/chip live on NpcDef (relQuote/relTag) — the local
+// REL_QUOTES/REL_TAGS literal tables are gone; a new cast member needs no UI
+// edit (missing relQuote falls back to '…….' exactly as before).
 
 export function RelationshipsPanel() {
   const relationships = useSocial((s) => s.relationships);
@@ -182,7 +184,7 @@ export function RelationshipsPanel() {
         const v = relationships[n.id] ?? 0;
         const pct = Math.max(0, Math.min(100, ((v + 100) / 200) * 100));
         const tone = v < -10 ? 'hostile' : v >= 40 ? 'warm' : '';
-        const tag = REL_TAGS[n.id] ?? { text: 'SISWA', cls: '' };
+        const tag = n.relTag ?? { text: 'SISWA', cls: '' };
         return (
           <div className="relationship-row" key={n.id}>
             <div className="rel-top">
@@ -192,7 +194,7 @@ export function RelationshipsPanel() {
                 <span>{n.role} // SMA YUSON</span>
               </div>
             </div>
-            <p className="rel-quote">{REL_QUOTES[n.id] ?? '“…….”'}</p>
+            <p className="rel-quote">{n.relQuote ?? '“…….”'}</p>
             <div className="rel-meter">
               <div className="track"><b className={tone} style={{ width: `${pct}%` }} /></div>
               <span className="rel-val">{v > 0 ? '+' : ''}{v}</span>

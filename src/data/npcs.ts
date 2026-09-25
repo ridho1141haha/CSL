@@ -28,6 +28,15 @@ export const NPCS: NpcDef[] = [
     sitAt: ['class', 'class2', 'class3'],
     sitFace: [-15.7, 9.5],
     dialogueRoot: 'npc_aris',
+    // v0.17.0 registry metadata — single source for stores, migration and UI (was
+    // hand-synced literals in socialStore / save.migrateV1 / menus / Screens
+    // / Npc.tsx engine branch).
+    storyCast: true,
+    relTag: { text: 'SEBANGKU', cls: 'chip-cyan' },
+    relQuote: '“Ren, buku catatan aku titipin ya kalau ada kuis.”',
+    // v0.7.0 rute netral: Aris mengundurkan diri di akhir bab 3 (montage n4)
+    // — dari bab 4 dia tidak lagi muncul di sekolah.
+    hiddenWhen: { route: 'neutral', chapterMin: 4 },
   },
   {
     id: 'siti',
@@ -53,6 +62,9 @@ export const NPCS: NpcDef[] = [
     sitAt: ['class', 'class2', 'class3'],
     sitFace: [-15.7, 9.5],
     dialogueRoot: 'npc_siti',
+    storyCast: true,
+    relTag: { text: 'OSIS', cls: 'chip-green' },
+    relQuote: '“Jangan lupa formulir OSIS kalau kamu yang bawa.”',
   },
   {
     id: 'bimo',
@@ -74,6 +86,9 @@ export const NPCS: NpcDef[] = [
       after: [6, -19],
     },
     dialogueRoot: 'npc_bimo',
+    storyCast: true,
+    relTag: { text: 'ANCAMAN', cls: 'chip-red' },
+    relQuote: '“Kami melihatmu di gerbang. Hati-hati di jalan pulang.”',
   },
   {
     id: 'budi',
@@ -95,6 +110,8 @@ export const NPCS: NpcDef[] = [
       after: [9, 8.5],
     },
     dialogueRoot: 'npc_budi',
+    relTag: { text: 'GURU', cls: '' },
+    relQuote: '“Kelas X-C? Jaga perilaku, aku mengamati dari ruang guru.”',
   },
 ];
 

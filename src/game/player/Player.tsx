@@ -40,6 +40,10 @@ export function Player() {
   const groundHoldUntil = useRef(typeof performance !== 'undefined' ? performance.now() + 2500 : 0);
 
   const asBody = (b: RapierRigidBody) => b as unknown as Parameters<typeof combatTick>[1];
+  // v0.17.0 perf: one reusable ray for the settle-pin + grounded checks —
+  // both shoot straight down; only the origin moves per frame (was 1-2
+  // `new rapier.Ray` allocations EVERY rendered frame, audit M1).
+  const downRay = useRef(new rapier.Ray({ x: 0, y: 0, z: 0 }, { x: 0, y: -1, z: 0 }));
 
   // BUG-FIX: Teleport effect. When store x/z changes (e.g. ch4_bad_warehouse
   // teleport to warehouse), move the rigid body to the new position. Without
@@ -86,7 +90,10 @@ export function Player() {
       if (performance.now() < groundHoldUntil.current) {
         rb.setTranslation({ x: t.x, y: 1.2, z: t.z }, true);
         rb.setLinvel({ x: 0, y: 0, z: 0 }, true);
-        const settleRay = new rapier.Ray({ x: t.x, y: t.y, z: t.z }, { x: 0, y: -1, z: 0 });
+        const settleRay = downRay.current;
+        settleRay.origin.x = t.x;
+        settleRay.origin.y = t.y;
+        settleRay.origin.z = t.z;
         const settleHit = world.castRay(settleRay, 2.0, true, undefined, undefined, undefined, rb);
         if (settleHit) {
           // a ray hit means the collider graph is live — drop normally right
@@ -197,7 +204,10 @@ export function Player() {
     // length from 1.05 to 1.3 so small bumps/steps don't false-airborne the
     // player. Capsule center is at y≈0.75 (resting on ground at y=0); ray
     // 1.3 reaches y=-0.55, covering any reasonable step height.
-    const ray = new rapier.Ray({ x: t.x, y: t.y, z: t.z }, { x: 0, y: -1, z: 0 });
+    const ray = downRay.current;
+    ray.origin.x = t.x;
+    ray.origin.y = t.y;
+    ray.origin.z = t.z;
     const hit = world.castRay(ray, 1.3, true, undefined, undefined, undefined, rb);
     const grounded = !!hit;
     playerPos.grounded = grounded;

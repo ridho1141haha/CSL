@@ -4,14 +4,18 @@ import { useGame } from '../stores/gameStore';
 import { useStory } from '../stores/storyStore';
 import { useQuests } from '../stores/questStore';
 import { useSocial } from '../stores/socialStore';
+import { useStats } from '../stores/statsStore';
+import { usePlayer } from '../stores/playerStore';
 import { useDialogue } from '../stores/dialogueStore';
 import { input } from './input';
 import { playerPos, npcPositions, enemyPos } from './runtime';
 import { zoneAt, SCENES } from '../data/world';
 import { NPC_BY_ID } from '../data/npcs';
+import { QUESTS } from '../data/quests';
 import { ZONE_FLAVOR } from '../data/dialogue';
 import { saveGame } from './save';
 import { applyEffects } from './systems/effects';
+import { evalCondition } from './systems/conditions';
 import { pickZoneEvent, pickNpcEvent, discoverEvent } from './systems/hiddenEvents';
 import { periodFor } from './systems/time';
 
@@ -221,16 +225,17 @@ export function StoryDirector() {
       return;
     }
 
-    // ---------- rooftop: exit back to campus ----------
-    if (game.scene === 'rooftop' && game.currentZone === 'rooftop_door' && story.chapter >= 3) {
-      game.requestScene('campus', [0, -5]);
-      return;
-    }
-
-    // ---------- warehouse: exit back to campus ----------
-    if (game.scene === 'warehouse' && game.currentZone === 'warehouse_door') {
-      game.requestScene('campus', [-23.5, -26]);
-      return;
+    // ---------- scene exits (v0.17.0: data on SceneDef.exits) ----------
+    // Was two hardcoded branches with campus spawn coordinates buried in code.
+    // Rooftop keeps its chapter-3 gate via the exit's chapterMin.
+    {
+      const cur = SCENES[game.scene];
+      for (const ex of cur.exits ?? []) {
+        if (game.currentZone !== ex.zone) continue;
+        if (ex.chapterMin !== undefined && story.chapter < ex.chapterMin) continue;
+        game.requestScene(ex.to, ex.spawn);
+        return;
+      }
     }
 
     // ---------- zone discovery + flavor (scene-aware, y-aware for Gedung B) ----------
@@ -262,43 +267,26 @@ export function StoryDirector() {
     if (game.scene !== 'campus') return;
 
     // ---------- side quest completions (mentor #6) ----------
-    // Optional quests complete through existing world state (zone, period,
-    // flags) — the same pattern as explore_school above.
-    const q = quests.quests;
-    if (q.aris_notes === 'active' && story.flags.includes('studied_once')) {
-      applyEffects([
-        { k: 'quest', id: 'aris_notes', state: 'completed' },
-        { k: 'stat', stat: 'academic', delta: 3 },
-        { k: 'rel', target: 'aris', delta: 2 },
-        { k: 'notify', text: 'Quest selesai: Pinjaman Catatan (Akademik +3)' },
-      ]);
-      return;
-    }
-    if (q.canteen_teh === 'active' && game.currentZone === 'canteen' && periodFor(game.clock.minutes).id === 'lunch') {
-      applyEffects([
-        { k: 'quest', id: 'canteen_teh', state: 'completed' },
-        { k: 'flag', id: 'canteen_teh_done' },
-        { k: 'notify', text: 'Teh dibawa. Pulangkan ke Siti.' },
-      ]);
-      return;
-    }
-    if (q.field_training === 'active' && game.currentZone === 'field' && periodFor(game.clock.minutes).id === 'after') {
-      applyEffects([
-        { k: 'quest', id: 'field_training', state: 'completed' },
-        { k: 'stat', stat: 'violence', delta: 2 },
-        { k: 'hp', delta: 10 },
-        { k: 'notify', text: 'Latihan senja selesai. (Instink +2, Tenaga +10)' },
-      ]);
-      return;
-    }
-    if (q.alley_check === 'active' && (game.currentZone === 'back_alley' || story.flags.includes('alley_mark'))) {
-      applyEffects([
-        { k: 'quest', id: 'alley_check', state: 'completed' },
-        { k: 'flag', id: 'alley_checked' },
-        { k: 'stat', stat: 'diplomacy', delta: 2 },
-        { k: 'notify', text: 'Tanda geng tercatat. Laporkan ke Siti. (Diplomasi +2)' },
-      ]);
-      return;
+    // v0.17.0: rules are DATA on QuestDef (completeWhen/onComplete) — the four
+    // per-id if-blocks that lived here (aris_notes / canteen_teh /
+    // field_training / alley_check) are gone. A new side quest with a
+    // `completeWhen` rule completes without touching this file. Quest-active
+    // is implicit; one completion per tick (return) as before.
+    for (const def of QUESTS) {
+      if (!def.completeWhen || !def.onComplete) continue;
+      if (quests.quests[def.id] !== 'active') continue;
+      if (evalCondition(def.completeWhen, {
+        flags: story.flags,
+        chapter: story.chapter,
+        route: story.route,
+        quests: quests.quests,
+        relationships: useSocial.getState().relationships,
+        stats: useStats.getState(),
+        focus: usePlayer.getState().focus,
+      })) {
+        applyEffects(def.onComplete);
+        return;
+      }
     }
 
     // ---------- chapter 1: explore objective ----------

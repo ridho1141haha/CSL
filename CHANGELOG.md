@@ -1,5 +1,56 @@
 # Changelog
 
+## 0.17.0 — 2026-09-24 (Architecture Increment — registries, cycle-free, save hardening)
+
+Fase 0-12 audit + refactor inkremental (user directive: "scalable & maintainable
+WITHOUT rewrite"). Prinsip: menambah konten = menambah DATA, bukan mengubah
+engine. Tidak ada perubahan cerita/kanon/ending; tidak ada perubahan save
+schema (v2 tetap, kompatibel penuh).
+
+### Audit → perbaikan P0
+- **CIRCULAR DEPS 2 → 0** (madge, `npm run check:cycles` baru + devDep madge):
+  (1) dialogueStore ⇄ effects — cleanup 'ending' dipindah ke ENDING-guard di
+  dialogueStore.advance/choose (store yang memiliki reset-nya sendiri);
+  (2) save → combat → dialogueStore → effects → save — `loadGame` pindah ke
+  `game/loadFlow.ts` (orchestrator baru; save.ts kini modul storage murni).
+  Hack dynamic-import lama (App.tsx continueGame, effects.ts 'save') tinggal
+  satu (effects 'save' — terdokumentasi).
+- **REGISTRI NPC SATU SUMBER** (audit N1/E1): NpcDef + field baru
+  `storyCast / relTag / relQuote / hiddenWhen`. Kini turunan otomatis dari
+  `data/npcs.ts`: socialStore init+reset (dua tabel literal dihapus),
+  save.migrateV1 (V1_CAST eksplisit utk era v1), UI relasi (REL_QUOTES/
+  REL_TAGS dihapus), layar ending (span ARIS/SITI/BIMO → registry), visibility
+  dunia (branch `def.id === 'aris'` di Npc.tsx → `hiddenWhen` data). Menambah
+  NPC: types union + npcs.ts + dialog saja — tidak ada lagi edit engine/UI.
+- **SAVE HARDENING + 15 TEST BARU** (audit J1, save.test.ts BARU): route
+  divalidasi terhadap `ROUTES` (runtime const di types), chapter terhadap
+  registri CHAPTERS, beat type-checked; migrateV1/parseSave/applySave/roundtrip
+  save→load + 'Slot kosong' vs corrupt kini terkunci test.
+
+### Audit → perbaikan P1 (data-driven)
+- **QUEST**: `QuestDef.waypoint` (12-case switch di waypoint.ts dihapus) +
+  `QuestDef.completeWhen/onComplete` — 4 blok penyelesaian side-quest
+  hardcode di StoryDirector.tsx jadi data (aturan baru: quest aktif +
+  completeWhen true → onComplete sekali per tick).
+- **CHAPTER**: `ChapterDef.defaultBeat/subtitleByRoute` — peta beat + 3
+  literal subtitle rute keluar dari effects.ts (bab 5 nanti = baris data).
+- **SCENE**: `SceneDef.exits` (dua branch exit + koordinat spawn kampus
+  terkubur di kode → data, gerbang chapter-3 atap dipertahankan) +
+  `SCENE_VIEWS` map deklaratif di World.tsx (pengganti if-chain).
+- **CONDITION COMBINATORS**: `any` / `not` / `item` (baru; `and` tetap) —
+  switch interpreter tetap exhaustive, jenis baru = error kompilasi.
+
+### P2 (perf & render hygiene)
+- Hot path bebas alokasi berulang: `downRay` reuse di Player (1-2
+  `new rapier.Ray` per frame dihapus), 4 Vector3 modul di CameraRig
+  (oklusi + transisi FP→TP), tulis registry posisi NPC/crowd/actor IN-PLACE
+  (bukan objek {x,z} baru per frame), StatusPanel kini field-selectors.
+
+### Verifikasi
+- **267 test** (249 → 267: +15 save, +4 kondisi, -1 digabung) · tsc -b ✓ ·
+  build ✓ · madge 0 cycles · qa-nav ✓ · qa-walk **15/15** · qa-face **5/5** ·
+  CONSOLE_ERRORS none. Simpan lama & otomatis kompatibel (schema v2 tak ubah).
+
 ## 0.16.1 — 2026-09-24 (Arah Hadap Karakter Mengikuti Kamera)
 
 User: "arah hadap karakter tidak mengikuti kamera, buat mengikuti kamera".

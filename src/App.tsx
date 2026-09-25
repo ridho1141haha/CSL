@@ -17,6 +17,7 @@ import { input } from './game/input';
 import { audio, bgm } from './game/audio';
 import { periodFor } from './game/systems/time';
 import { saveGame } from './game/save';
+import { loadGame } from './game/loadFlow';
 import { mobile } from './game/mobile';
 import { perfState, PREWARM, enemyPos } from './game/runtime';
 import { GraphicsManager, CullingManager, WorldReadyProbe } from './game/perf';
@@ -250,15 +251,15 @@ export default function App() {
 
   const continueGame = useCallback(() => {
     audio.unlock();
-    // lazy import to avoid cycle: loadGame applies + sets mode
-    import('./game/save').then(({ loadGame }) => {
-      const err = loadGame('auto');
-      if (err) useGame.getState().notify(err, 'warn');
-      else {
-        useGame.getState().setPhase('play');
-        audio.startAmbient();
-      }
-    });
+    // v0.17.0: static import again — loadGame moved to game/loadFlow.ts, whose
+    // dependency direction (UI → loadFlow → {save, combat}) no longer closes
+    // the save → combat → dialogueStore → effects → save module cycle.
+    const err = loadGame('auto');
+    if (err) useGame.getState().notify(err, 'warn');
+    else {
+      useGame.getState().setPhase('play');
+      audio.startAmbient();
+    }
   }, []);
 
   const restart = useCallback(() => {

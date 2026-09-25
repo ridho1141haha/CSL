@@ -31,7 +31,10 @@ export type NpcId = 'aris' | 'siti' | 'bimo' | 'budi';
 
 // Route 'neutral' (v0.7.0): Ren mengabaikan Aris saat insiden tangga belakang —
 // memasuki alur "Dinding Dingin" menuju Netral Ending "Lulus Tanpa Nama".
-export type Route = 'none' | 'bad' | 'resistance' | 'neutral';
+// v0.17.0: runtime list (save validation reads it — route drives ending
+// resolution, so a corrupted save must not write an unknown route).
+export const ROUTES = ['none', 'bad', 'resistance', 'neutral'] as const;
+export type Route = (typeof ROUTES)[number];
 
 export type ChapterId = 1 | 2 | 3 | 4;
 
@@ -163,7 +166,14 @@ export type Condition =
   | { k: 'period'; id: string }        // time-of-day window (systems/time PeriodId)
   | { k: 'zone'; id: ZoneId }          // player currently inside zone
   | { k: 'talks'; target: NpcId; v: number } // has talked to NPC >= v times
-  | { k: 'and'; all: Condition[] };
+  | { k: 'and'; all: Condition[] }
+  // v0.17.0 combinators (audit H1): content can express OR / negation and
+  // inventory checks without engine special-cases. `and` keeps its
+  // historical shape (`all`); the switch in systems/conditions.ts is
+  // exhaustive — adding a kind here FORCES the interpreter update.
+  | { k: 'any'; of: Condition[] }
+  | { k: 'not'; not: Condition }
+  | { k: 'item'; id: string; not?: boolean }; // inventory has (not) item
 
 export type Choice = {
   id: string;
@@ -209,6 +219,11 @@ export type ChapterDef = {
   subtitle: string;
   onStart?: Effect[];
   onComplete?: Effect[];
+  // v0.17.0 (audit C1): story data moved out of engine code (effects.ts) —
+  // the beat a { k:'chapter' } effect lands on, and route-specific chapter
+  // card subtitles. Adding chapter 5 = adding a CHAPTERS row + content.
+  defaultBeat?: StoryBeat;
+  subtitleByRoute?: Partial<Record<Route, string>>;
 };
 
 export type EncounterEnemy = {
@@ -245,6 +260,16 @@ export type QuestDef = {
   desc: string;
   objective: string;
   chapter: ChapterId;
+  // v0.17.0 (audit N2): waypoint target zone — was a 12-case `switch
+  // (quest.id)` in game/waypoint.ts ("data lives here instead of on
+  // QuestDef"). A new quest with a `waypoint` gets its marker for free.
+  waypoint?: ZoneId;
+  // v0.17.0 (audit N2): data-driven completion rule. While the quest is
+  // 'active', when `completeWhen` evaluates true the story director runs
+  // `onComplete` once (the effects themselves flip the quest to 'completed').
+  // Was: four hardcoded per-id if-blocks in StoryDirector.tsx.
+  completeWhen?: Condition;
+  onComplete?: Effect[];
 };
 
 // Hidden/optional interaction (mentor feedback #5). Data-driven; runner lives
@@ -288,6 +313,19 @@ export type NpcDef = {
   pants?: string;
   skirt?: string; // color — presence enables skirt mesh
   hair?: { color: string; style: 'short' | 'wave' | 'ponytail' | 'buzz' };
+  // ── v0.17.0 registry metadata (single source: stores/migration/UI derive
+  // from here instead of hand-synced literal tables per file) ──
+  // Counted in the Status "story average" and on the Ending screen. Pak Budi
+  // (teacher, side content) is excluded — preserved behavior.
+  storyCast?: boolean;
+  // Relationship log chip (tag + css class) — was menus/index REL_TAGS.
+  relTag?: { text: string; cls: string };
+  // Relationship log quote — was menus/index REL_QUOTES.
+  relQuote?: string;
+  // Story visibility rule for the world renderer — was engine code
+  // `def.id === 'aris' && route === 'neutral' && chapter >= 4` in Npc.tsx.
+  // The NPC is not mounted when ALL provided fields match.
+  hiddenWhen?: { route?: Route; chapterMin?: number };
 };
 
 export type ZoneDef = {

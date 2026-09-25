@@ -7,8 +7,10 @@ import { useStats } from '../stores/statsStore';
 import { useSocial } from '../stores/socialStore';
 import { chapterCardText } from '../game/systems/effects';
 import { CHAPTERS } from '../data/chapters';
+import { NPCS } from '../data/npcs';
 import { audio } from '../game/audio';
-import { loadGame, hasSave } from '../game/save';
+import { hasSave } from '../game/save';
+import { loadGame } from '../game/loadFlow';
 import { perfState, PREWARM } from '../game/runtime';
 import { mobile } from '../game/mobile';
 
@@ -43,7 +45,7 @@ export function LoadingScreen() {
         <div className="boot-bar boot-bar-real"><i style={{ width: `${pct}%` }} /></div>
         <div className="boot-meta">
           <span className="chip">{pct}%</span>
-          <span className="chip">BUILD 0.16.1</span>
+          <span className="chip">BUILD 0.17.0</span>
           <span className="chip">TEAM CHAOS</span>
           <span className="chip chip-amber">SMA YUSON</span>
         </div>
@@ -126,9 +128,11 @@ export function EndingScreen({ onRestart, onMenu }: { onRestart: () => void; onM
         <span>FOKUS<b>{Math.round(focus)}</b></span>
         <span>KEKERASAN<b>{stats.violence}</b></span>
         <span>DIPLOMASI<b>{stats.diplomacy}</b></span>
-        <span>ARIS<b>{rel.aris}</b></span>
-        <span>SITI<b>{rel.siti}</b></span>
-        <span>BIMO<b>{rel.bimo}</b></span>
+        {/* v0.17.0: story cast from the NPC registry (Pak Budi excluded —
+            preserved behavior). Was hardcoded ARIS/SITI/BIMO spans. */}
+        {NPCS.filter((n) => n.storyCast).map((n) => (
+          <span key={n.id}>{n.name.toUpperCase()}<b>{rel[n.id] ?? 0}</b></span>
+        ))}
       </div>
       <div className="ending-actions">
         <button onClick={onRestart}>MULAI ULANG</button>

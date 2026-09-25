@@ -19,6 +19,12 @@ import { clampPitch, fpLookDir, reclampOnSwitch, FP_EYE, type CamMode } from './
 
 const lerpV = new THREE.Vector3();
 const lookV = new THREE.Vector3();
+// v0.17.0 perf: shared occlusion/transition temps — were 2-4 `new
+// THREE.Vector3` per rendered frame inside useFrame (audit M1).
+const occlDirV = new THREE.Vector3();
+const occlPosV = new THREE.Vector3();
+const transPosV = new THREE.Vector3();
+const transLookV = new THREE.Vector3();
 const rayV = new THREE.Raycaster();
 const shotLookV = new THREE.Vector3();
 const shotDirV = new THREE.Vector3();
@@ -263,12 +269,12 @@ export function CameraRig() {
         const startDist = 3.2;
         const tx = playerPos.x;
         const tz = playerPos.z;
-        const orbitPos = new THREE.Vector3(
+        const orbitPos = transPosV.set(
           tx + Math.sin(yaw.current) * startDist,
           1.1 + startDist * pitch.current,
           tz + Math.cos(yaw.current) * startDist,
         );
-        const orbitLook = new THREE.Vector3(tx, 1.35, tz);
+        const orbitLook = transLookV.set(tx, 1.35, tz);
         camera.position.lerpVectors(transitionFrom.current.pos, orbitPos, e);
         lookAt.current.lerpVectors(transitionFrom.current.look, orbitLook, e);
         camera.lookAt(lookAt.current);
@@ -406,9 +412,9 @@ export function CameraRig() {
     // occlusion: pull in when blocked
     const look = lookV.set(tx + shoulder * 0.4, smoothY.current + 1.35, tz + shoulderZ * 0.4);
     if (occluders.objects.length) {
-      rayV.set(camera.position.lengthSq() > 0 ? camera.position : new THREE.Vector3(camX, camY, camZ), look);
+      rayV.set(camera.position.lengthSq() > 0 ? camera.position : occlPosV.set(camX, camY, camZ), look);
       // ray from look toward camera
-      const dir = new THREE.Vector3(camX, camY, camZ).sub(look);
+      const dir = occlDirV.set(camX, camY, camZ).sub(look);
       const len = dir.length();
       rayV.set(look, dir.normalize());
       rayV.far = len;

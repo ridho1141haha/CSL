@@ -1,6 +1,15 @@
 import { create } from 'zustand';
 import type { NpcId } from '../types';
+import { NPCS } from '../data/npcs';
 import { clampRel } from '../game/systems/relationship';
+
+// v0.17.0: every per-NPC map is DERIVED from the NPC registry — adding a cast
+// member (types NpcId + data/npcs.ts entry) no longer requires touching this
+// store. Before, init and resetAll each carried hand-synced literal maps and
+// a missed key silently fell back to `?? 0` at every read site.
+
+const zeroRel = () => Object.fromEntries(NPCS.map((n) => [n.id, 0])) as Record<NpcId, number>;
+const unvisited = () => Object.fromEntries(NPCS.map((n) => [n.id, false])) as Record<NpcId, boolean>;
 
 type Store = {
   relationships: Record<NpcId, number>;
@@ -12,9 +21,9 @@ type Store = {
 };
 
 export const useSocial = create<Store>((set) => ({
-  relationships: { aris: 0, siti: 0, bimo: 0, budi: 0 },
-  visitedNpc: { aris: false, siti: false, bimo: false, budi: false },
-  talkCounts: { aris: 0, siti: 0, bimo: 0, budi: 0 },
+  relationships: zeroRel(),
+  visitedNpc: unvisited(),
+  talkCounts: zeroRel(),
   addRel: (target, delta) =>
     set((s) => ({ relationships: { ...s.relationships, [target]: clampRel((s.relationships[target] ?? 0) + delta) } })),
   visit: (npc) =>
@@ -24,8 +33,8 @@ export const useSocial = create<Store>((set) => ({
     })),
   resetAll: () =>
     set({
-      relationships: { aris: 0, siti: 0, bimo: 0, budi: 0 },
-      visitedNpc: { aris: false, siti: false, bimo: false, budi: false },
-      talkCounts: { aris: 0, siti: 0, bimo: 0, budi: 0 },
+      relationships: zeroRel(),
+      visitedNpc: unvisited(),
+      talkCounts: zeroRel(),
     }),
 }));

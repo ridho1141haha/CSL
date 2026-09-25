@@ -4,6 +4,7 @@ import { zoneAt } from '../../data/world';
 import { playerPos } from '../runtime';
 import { useGame } from '../../stores/gameStore';
 import { useSocial } from '../../stores/socialStore';
+import { useInventory } from '../../stores/inventoryStore';
 
 export type ConditionContext = {
   flags: string[];
@@ -42,6 +43,15 @@ export function evalCondition(c: Condition | undefined, ctx: ConditionContext): 
       return (useSocial.getState().talkCounts[c.target] ?? 0) >= c.v;
     case 'and':
       return c.all.every((sub) => evalCondition(sub, ctx));
+    // v0.17.0 combinators (audit H1) — nested arbitrarily; the switch stays
+    // exhaustive over the Condition union so a new kind breaks the build here
+    // instead of silently evaluating falsy.
+    case 'any':
+      return c.of.some((sub) => evalCondition(sub, ctx));
+    case 'not':
+      return !evalCondition(c.not, ctx);
+    case 'item':
+      return useInventory.getState().items.includes(c.id) !== !!c.not;
   }
 }
 

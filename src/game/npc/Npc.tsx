@@ -71,7 +71,13 @@ function Student({ home, wander, color, seed }: { home: [number, number]; wander
       g.rotation.y = THREE.MathUtils.lerp(g.rotation.y, Math.atan2(dx, dz), 0.08);
       anim.current.speed = sp;
     }
-    crowdPositions[key] = { x: g.position.x, z: g.position.z };
+    // v0.17.0 perf: mutate the registry entry in place — a fresh {x,z} per
+    // student per frame was constant GC churn (audit M1). The unmount cleanup
+    // (delete crowdPositions[key]) still works: identity is stable now.
+    let reg = crowdPositions[key];
+    if (!reg) reg = crowdPositions[key] = { x: 0, z: 0 };
+    reg.x = g.position.x;
+    reg.z = g.position.z;
   });
 
   return (
@@ -85,13 +91,20 @@ function Student({ home, wander, color, seed }: { home: [number, number]; wander
 
 // Scheduled main NPCs. Stand at their period waypoint; glide there on change.
 export function Npcs({ hideMain = false }: { hideMain?: boolean }) {
-  // v0.7.0 rute netral: Aris mengundurkan diri di akhir bab 3 (montage n4) —
-  // dari bab 4 dia tidak lagi muncul di sekolah.
+  // v0.17.0: story visibility is DATA (NpcDef.hiddenWhen) — the engine filter
+  // is generic. Was: hardcoded `def.id === 'aris' && route === 'neutral' &&
+  // chapter >= 4` (Aris mengundurkan diri di akhir bab 3 rute netral).
   const route = useStory((s) => s.route);
   const chapter = useStory((s) => s.chapter);
   const nodes = useMemo(
     () =>
-      NPCS.filter((def) => !(def.id === 'aris' && route === 'neutral' && chapter >= 4)).map((def) => ({ def })),
+      NPCS.filter((def) => {
+        const hw = def.hiddenWhen;
+        if (!hw) return true;
+        if (hw.route !== undefined && hw.route !== route) return true;
+        if (hw.chapterMin !== undefined && chapter < hw.chapterMin) return true;
+        return false;
+      }).map((def) => ({ def })),
     [route, chapter],
   );
   // v0.5.0 mobile tier: halve the ambient crowd on phones (draw-call budget —
@@ -185,7 +198,11 @@ function ScheduledNpc({ id }: { id: string }) {
         }
         anim.current.speed = 0;
       }
-      npcPositions[id] = { x: g.position.x, z: g.position.z };
+      // v0.17.0 perf: in-place registry write (identity stable, no GC churn)
+      let reg = npcPositions[id];
+      if (!reg) reg = npcPositions[id] = { x: 0, z: 0 };
+      reg.x = g.position.x;
+      reg.z = g.position.z;
     }
   });
 
@@ -241,7 +258,11 @@ function StoryActor({ id, x, z, color, faceTo, sit, crouch, hold }: StoryPlaceme
     anim.current.sit = !!sit;
     anim.current.crouch = !!crouch;
     // expose the placement to the dialogue camera + acting system
-    actorPositions[id] = { x: g.position.x, z: g.position.z };
+    // (v0.17.0 perf: in-place write — see the Student note above)
+    let areg = actorPositions[id];
+    if (!areg) areg = actorPositions[id] = { x: 0, z: 0 };
+    areg.x = g.position.x;
+    areg.z = g.position.z;
   });
   return (
     <group ref={group} position={[x, 0.03, z]} scale={0.98}>

@@ -5,6 +5,7 @@ import { advance, formatHhmm, periodFor, clockLabel } from '../game/systems/time
 import { scoreStudy } from '../game/systems/study';
 import { resolveEnding } from '../game/systems/endingResolver';
 import { evalCondition } from '../game/systems/conditions';
+import type { Condition } from '../types';
 import { parseSave, migrateV1 } from '../game/save';
 
 describe('relationship', () => {
@@ -131,6 +132,21 @@ describe('conditions', () => {
   it('and-composition', () => {
     expect(evalCondition({ k: 'and', all: [{ k: 'flag', id: 'helped_aris' }, { k: 'chapter', id: 2 }] }, ctx)).toBe(true);
     expect(evalCondition({ k: 'and', all: [{ k: 'flag', id: 'helped_aris' }, { k: 'chapter', id: 3 }] }, ctx)).toBe(false);
+  });
+  // v0.17.0 combinators (audit H1)
+  it('any-composition is an inclusive OR over nested conditions', () => {
+    expect(evalCondition({ k: 'any', of: [{ k: 'flag', id: 'nope' }, { k: 'flag', id: 'helped_aris' }] }, ctx)).toBe(true);
+    expect(evalCondition({ k: 'any', of: [{ k: 'flag', id: 'nope' }, { k: 'chapter', id: 3 }] }, ctx)).toBe(false);
+    expect(evalCondition({ k: 'any', of: [] }, ctx)).toBe(false); // empty OR = false
+  });
+  it('not negates any nested condition (including combinators)', () => {
+    expect(evalCondition({ k: 'not', not: { k: 'flag', id: 'helped_aris' } }, ctx)).toBe(false);
+    expect(evalCondition({ k: 'not', not: { k: 'flag', id: 'nope' } }, ctx)).toBe(true);
+    expect(evalCondition({ k: 'not', not: { k: 'any', of: [{ k: 'flag', id: 'nope' }] } }, ctx)).toBe(true);
+  });
+  it('combinators nest arbitrarily (the alley_check quest rule shape)', () => {
+    const rule: Condition = { k: 'any', of: [{ k: 'zone', id: 'back_alley' }, { k: 'and', all: [{ k: 'flag', id: 'helped_aris' }, { k: 'not', not: { k: 'chapterMin', id: 3 } }] }] };
+    expect(evalCondition(rule, ctx)).toBe(true);
   });
   it('quest + rel checks', () => {
     expect(evalCondition({ k: 'quest', id: 'explore_school', state: 'completed' }, ctx)).toBe(true);

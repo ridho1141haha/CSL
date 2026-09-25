@@ -7,10 +7,12 @@ import { useSocial } from '../../stores/socialStore';
 import { useQuests } from '../../stores/questStore';
 import { useInventory } from '../../stores/inventoryStore';
 import { useCombat } from '../../stores/combatStore';
-import { useDialogue } from '../../stores/dialogueStore';
+// v0.17.0: useDialogue import REMOVED — it closed a real module cycle
+// (dialogueStore ⇄ effects). The 'ending' cleanup now lives in the dialogue
+// store itself (see dialogueStore.advance/choose ENDING guard).
 import { CHAPTERS } from '../../data/chapters';
 import { resolveEnding } from './endingResolver';
-import type { StoryBeat } from '../../types';
+import type { Route } from '../../types';
 
 // Central effect pipeline: dialogue nodes/choices and quest rewards mutate
 // game state only through here, so notifications and side-effects stay coherent.
@@ -55,10 +57,9 @@ export function applyEffect(e: Effect) {
     case 'chapter':
       if (useStory.getState().chapter !== e.id) {
         useStory.getState().setChapter(e.id);
-        // default beat per chapter (can be overridden by an explicit beat effect)
-        // v0.7.0: chapter 2 → ch2_key_error ("Kesalahan Kecil Aris")
-        const beat: Record<number, StoryBeat> = { 1: 'ch1_explore', 2: 'ch2_key_error', 3: 'ch3_rooftop', 4: 'ch4_res_search' };
-        useStory.getState().setBeat(beat[e.id] ?? 'ch1_explore');
+        // v0.17.0: default beat lives on ChapterDef (data) — was a hardcoded
+        // Record<number, StoryBeat> here that silently capped at chapter 4.
+        useStory.getState().setBeat(CHAPTERS[e.id]?.defaultBeat ?? 'ch1_explore');
         game.requestChapterCard(e.id);
       }
       break;
@@ -79,7 +80,8 @@ export function applyEffect(e: Effect) {
       });
       game.setEnding(ending);
       useCombat.getState().reset();
-      useDialogue.getState().reset();
+      // dialogue cleanup: owned by dialogueStore (ENDING guard after
+      // applyEffects) — importing useDialogue here closed a module cycle.
       game.setMode('ENDING');
       break;
     }
@@ -114,13 +116,13 @@ export function applyEffect(e: Effect) {
 
 // v0.7.0: kartu bab kini route-aware — rute netral punya judul bab sendiri
 // (GDD §Bab 3/4 Rute Netral). v0.11.0 GARIS MERAH: rute bad juga.
+// v0.17.0: route subtitles are DATA (ChapterDef.subtitleByRoute) — was three
+// hardcoded Indonesian literals in this engine file (audit P1).
 export function chapterCardText(id: number, route?: string) {
   const c = CHAPTERS[id as 1 | 2 | 3 | 4];
   if (!c) return { title: `BAB ${id}`, subtitle: '' };
-  if (route === 'neutral' && id === 3) return { title: c.title, subtitle: 'Dinding Dingin & Keheningan Kelas' };
-  if (route === 'neutral' && id === 4) return { title: c.title, subtitle: 'Netral Ending — Lulus Tanpa Nama' };
-  if (route === 'bad' && id === 4) return { title: c.title, subtitle: 'Tunduk Pada Kekuasaan' };
-  return { title: c.title, subtitle: c.subtitle };
+  const byRoute = route ? c.subtitleByRoute?.[route as Route] : undefined;
+  return { title: c.title, subtitle: byRoute ?? c.subtitle };
 }
 
 const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);

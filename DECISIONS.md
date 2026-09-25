@@ -43,3 +43,12 @@ Inspection: `skins: 0`, `animations: []` — a 58 MB model that cannot be animat
 
 ## #14 Cinematic camera via node→pose map — IMPLEMENTED
 Cutscenes map each dialogue node id to a camera pose (CAM_BY_NODE) + actor placements (OPENING_ACTORS). Runner is data-driven; new scenes need no code changes.
+
+## #13 Cycle-free module graph — IMPLEMENTED (v0.17.0)
+madge audit found 2 cycles rooted at dialogueStore ⇄ effects and save → combat. Policy: stores may import systems/data; systems may import stores; but the graph must be acyclic — enforced by `npm run check:cycles` (madge devDep). `loadGame` orchestration lives in `game/loadFlow.ts`; save.ts is pure storage. One dynamic-import edge remains (effects 'save' checkpoint) — documented, tolerated.
+
+## #14 Registry completeness over registry count — IMPLEMENTED (v0.17.0)
+No new "manager" layers. Instead the EXISTING registries became single-source: NpcDef carries storyCast/relTag/relQuote/hiddenWhen (stores/migration/UI/visibility derive); QuestDef carries waypoint/completeWhen/onComplete; ChapterDef carries defaultBeat/subtitleByRoute; SceneDef carries exits. Deliberately NOT done: a runtime StoryBeat enum-validation list (a hand-maintained beat set would drift — same disease we removed); type-level check only until a beat registry exists.
+
+## #15 Character/actor asset seam — DEFERRED until first GLB (v0.17.0)
+Repo has zero GLBs (audit). Character.tsx `Figure` + `actId` is THE choke point where a renderer switch (procedural vs GLB with fallback) will go; NpcDef visual fields (color/skin/hair/…) already form the procedural asset definition. No speculative loader code until a real asset exists (rule: no abstraction without a consumer).

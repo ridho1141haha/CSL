@@ -3,9 +3,9 @@
 // waypoint). Pure module: maps the active quest to a world position the
 // ObjectiveWaypoint (campus scene) and the HUD tracker can both point at.
 //
-// Data lives here instead of on QuestDef so the quest list stays narrative —
-// targets may also be computed (explore_school points at the nearest
-// unvisited landmark instead of one fixed spot).
+// v0.17.0: the per-quest target zone lives ON QuestDef (`waypoint`) — this
+// module now only carries the one COMPUTED target (explore_school points at
+// the nearest unvisited landmark instead of one fixed spot).
 // ============================================================================
 
 import type { QuestDef, QuestState, ZoneDef } from '../types';
@@ -58,21 +58,11 @@ export function questTargetFor(
     }
     return best;
   }
-  switch (quest.id) {
-    case 'aris_incident': return zoneTarget(quest, 'back_stairs');
-    case 'gang_ambush': return zoneTarget(quest, 'parking'); // GARIS MERAH: FIGHT 2
-    case 'rooftop_meeting': return zoneTarget(quest, 'back_stairs');
-    case 'warehouse_call': return zoneTarget(quest, 'warehouse');
-    case 'find_aris': return zoneTarget(quest, 'back_alley');
-    case 'graduation_day': return zoneTarget(quest, 'gate');
-    case 'osis_form': return zoneTarget(quest, 'teacher_room');
-    case 'study_habit': return zoneTarget(quest, 'classroom');
-    case 'aris_notes': return zoneTarget(quest, 'classroom');
-    case 'canteen_teh': return zoneTarget(quest, 'canteen');
-    case 'field_training': return zoneTarget(quest, 'field');
-    case 'alley_check': return zoneTarget(quest, 'back_alley');
-    default: return null;
-  }
+  // v0.17.0: data-driven target (QuestDef.waypoint) — a new quest with a
+  // `waypoint` zone gets its marker without touching this file. Quests with
+  // no waypoint and no computed rule resolve to null (no marker).
+  if (quest.waypoint) return zoneTarget(quest, quest.waypoint);
+  return null;
 }
 
 /**

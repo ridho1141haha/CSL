@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, type ComponentType } from 'react';
 import { useFrame, useThree } from '@react-three/fiber';
 import { Sky, Environment, Lightformer } from '@react-three/drei';
 import * as THREE from 'three';
@@ -6,6 +6,7 @@ import { mobile } from '../mobile';
 import { useSettings } from '../../stores/settingsStore';
 import { qualityConfig } from '../quality';
 import { useGame } from '../../stores/gameStore';
+import type { SceneId } from '../../types';
 import { skyStateFor, freeRoamStep, FREE_ROAM_STEP_SEC } from '../daynight';
 import { CampusWorld } from './CampusWorld';
 import { RooftopWorld } from './RooftopWorld';
@@ -145,11 +146,18 @@ function TimeFlow() {
   return null;
 }
 
+// v0.17.0: declarative scene→view registry (was an if-chain). Adding a scene
+// = a SCENES data row + one entry here + its world component — no logic edits.
+const SCENE_VIEWS: Record<SceneId, ComponentType> = {
+  campus: CampusScene,
+  rooftop: RooftopScene,
+  warehouse: WarehouseScene,
+};
+
 export function World() {
   const scene = useGame((s) => s.scene);
-  if (scene === 'rooftop') return <RooftopScene />;
-  if (scene === 'warehouse') return <WarehouseScene />;
-  return <CampusScene />;
+  const View = SCENE_VIEWS[scene] ?? CampusScene;
+  return <View />;
 }
 
 function CampusScene() {

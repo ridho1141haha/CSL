@@ -1,9 +1,34 @@
 # Project State
 
-Updated: 2026-09-24 (v0.16.1 — arah hadap karakter: GAMEPLAY diam mengikuti
-kamera (systems/facing.ts, 9 rad/s), COMBAT diam/blok menghadap musuh (12
-rad/s, cone hit/block tak pernah gagal arah), qa-face.mjs drag-kamera-nyata
-5/5; 249 test)
+Updated: 2026-09-24 (v0.17.0 — inkrement arsitektur: siklus modul 2→0 (madge +
+check:cycles), registri NPC/quest/chapter/scene jadi satu sumber (NpcDef
+storyCast/relTag/relQuote/hiddenWhen, QuestDef waypoint/completeWhen/onComplete,
+ChapterDef defaultBeat/subtitleByRoute, SceneDef exits), save hardening +
+15 test; loadGame → loadFlow.ts; 267 test)
+
+## v0.17.0 Snapshot (2026-09-24)
+
+**Directive: scalable & maintainable TANPA rewrite, tanpa ubah kanon, tanpa
+rusak save. Fase 0 audit dulu (tanpa kode), lalu refactor bertahap.**
+- CYCLES 2 → 0 (madge; `npm run check:cycles` = gate baru): dialogueStore ⇄
+  effects dipecah (ENDING-guard di store); `loadGame` pindah ke
+  `game/loadFlow.ts` — save.ts kini storage murni; hack dynamic-import lama
+  tinggal satu (effects 'save', terdokumentasi).
+- SATU SUMBER: menambah NPC kini = types union + `data/npcs.ts` + dialog —
+  socialStore, migrateV1, UI relasi/ending, visibility dunia semua DERIVASI
+  (`storyCast/relTag/relQuote/hiddenWhen`). Quest baru = baris data
+  (`waypoint`, `completeWhen/onComplete` — 4 blok hardcode StoryDirector
+  dihapus). Bab/scene = baris data (`defaultBeat/subtitleByRoute/exits`,
+  `SCENE_VIEWS` map).
+- SAVE: route enum-checked (ROUTES), chapter vs CHAPTERS, beat type-checked;
+  save.test.ts BARU 15 test (migrasi v1, defaults, roundtrip, korupsi).
+  Schema v2 TIDAK berubah — save lama aman.
+- PERF: ray/Vector3 reuse di hot path, registry posisi NPC in-place,
+  StatusPanel field-selectors.
+- VERIFIKASI: 267/267 · tsc ✓ · build ✓ · cycles 0 · qa-nav ✓ · qa-walk 15/15
+  · qa-face 5/5. Kanon & data cerita tidak berubah.
+- TERTUNDA (debt tercatat): App.tsx decomposition, trigger-table
+  StoryDirector, eksternalisasi koordinat StoryProps, i18n penuh.
 
 ## v0.16.1 Snapshot (2026-09-24)
 

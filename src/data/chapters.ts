@@ -5,10 +5,24 @@ export const CHAPTERS: Record<ChapterId, ChapterDef> = {
   // v0.11.0 GARIS MERAH: bab 3/4 default = rute aksi; variasi per rute
   // dilihat di chapterCardText (effects.ts): netral → "Dinding Dingin" /
   // "Lulus Tanpa Nama", bad → "Tunduk Pada Kekuasaan".
-  1: { id: 1, title: 'BAB I', subtitle: 'Minggu Pertama — Pria Tanpa Wajah' },
-  2: { id: 2, title: 'BAB II', subtitle: 'Kesalahan Kecil Aris' },
-  3: { id: 3, title: 'BAB III', subtitle: 'Penawaran di Rooftop' },
-  4: { id: 4, title: 'BAB IV', subtitle: 'Klimaks Gang Belakang' },
+  // v0.17.0: defaultBeat + subtitleByRoute moved here from effects.ts engine
+  // code — chapter content is now entirely data (audit C1).
+  1: { id: 1, title: 'BAB I', subtitle: 'Minggu Pertama — Pria Tanpa Wajah', defaultBeat: 'ch1_explore' },
+  2: { id: 2, title: 'BAB II', subtitle: 'Kesalahan Kecil Aris', defaultBeat: 'ch2_key_error' },
+  3: {
+    id: 3,
+    title: 'BAB III',
+    subtitle: 'Penawaran di Rooftop',
+    defaultBeat: 'ch3_rooftop',
+    subtitleByRoute: { neutral: 'Dinding Dingin & Keheningan Kelas' },
+  },
+  4: {
+    id: 4,
+    title: 'BAB IV',
+    subtitle: 'Klimaks Gang Belakang',
+    defaultBeat: 'ch4_res_search',
+    subtitleByRoute: { neutral: 'Netral Ending — Lulus Tanpa Nama', bad: 'Tunduk Pada Kekuasaan' },
+  },
 };
 
 // Camera pose (see data/world.ts) shown while each opening node displays.

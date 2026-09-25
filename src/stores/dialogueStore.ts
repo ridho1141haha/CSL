@@ -67,6 +67,16 @@ export const useDialogue = create<Store>((set, get) => ({
 
     if (node.effects) applyEffects(node.effects);
 
+    // v0.17.0 cycle break: an { k: 'ending' } effect flips mode to ENDING
+    // inside applyEffects. The dialogue reset that used to live in effects.ts
+    // (importing useDialogue there closed dialogueStore ⇄ effects) now happens
+    // here — this store owns its own reset. Stop navigating: ENDING owns the
+    // screen from here on.
+    if (useGame.getState().mode === 'ENDING') {
+      get().reset();
+      return;
+    }
+
     if (node.choices && node.choices.length) {
       set({ awaitingChoice: true });
       return;
@@ -106,6 +116,12 @@ export const useDialogue = create<Store>((set, get) => ({
     if (!node || !node.choices?.some((c) => c.id === choice.id)) return;
     useStory.getState().recordChoice(nodeId, choice.id);
     if (choice.effects) applyEffects(choice.effects);
+    // v0.17.0: same ENDING guard as advance() — a choice can carry the
+    // ending effect; stop here instead of navigating a dead graph.
+    if (useGame.getState().mode === 'ENDING') {
+      get().reset();
+      return;
+    }
     set({ awaitingChoice: false });
     if (choice.next) {
       set({ nodeId: choice.next });

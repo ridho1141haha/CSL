@@ -5,10 +5,14 @@ import { useStory } from '../stores/storyStore';
 import { useSocial } from '../stores/socialStore';
 import { useQuests } from '../stores/questStore';
 import { useInventory } from '../stores/inventoryStore';
-import { useCombat } from '../stores/combatStore';
-import { resetCombatRuntime } from './combat/combat';
-import { enemyPos } from './runtime';
+// v0.17.0: useCombat / resetCombatRuntime / enemyPos imports REMOVED — they
+// were only used by loadGame, which moved to game/loadFlow.ts. save.ts is now
+// a pure (snapshot ↔ localStorage) module: importing combat.ts here closed the
+// module cycle save → combat → dialogueStore → effects → (dynamic) save.
 import { STARTING_INVENTORY } from '../data/items';
+import { NPCS } from '../data/npcs';
+import { CHAPTERS } from '../data/chapters';
+import { ROUTES } from '../types';
 import type { ChapterId, Clock, NpcId, QuestState, Route, SceneId, StoryBeat, ZoneId } from '../types';
 
 export const SAVE_VERSION = 2;
@@ -16,7 +20,7 @@ const KEY_PREFIX = 'csl-save-v2';
 export const SAVE_SLOTS = ['auto', '1', '2', '3'] as const;
 export type SlotId = (typeof SAVE_SLOTS)[number];
 
-type SaveV2 = {
+export type SaveV2 = {
   version: number;
   savedAt: number;
   clock: Clock;
@@ -59,7 +63,9 @@ function snapshot(): SaveV2 {
   };
 }
 
-function applySave(d: SaveV2) {
+// v0.17.0: exported — loadFlow.ts (the load orchestrator) applies it after
+// resetting combat runtime. Parse/apply stay split so tests can pin each half.
+export function applySave(d: SaveV2) {
   // v0.7.0 story rework: normalisasi beat/quest dari save lama.
   // 'ch2_gate' (fight gerbang) diganti 'ch2_key_error' (Kesalahan Kecil Aris)
   // — save lama yang sedang berada di tengah bab 2 dipulangkan ke beat
@@ -95,10 +101,22 @@ function applySave(d: SaveV2) {
     diplomacy: num(d.stats?.diplomacy, 8),
     reputation: num(d.stats?.reputation, 0),
   });
+  // v0.17.0 hardening (audit J1): a corrupted/foreign save used to be able to
+  // write ANY value into chapter/beat/route (cast-only). Route drives ending
+  // resolution → enum-checked against ROUTES; chapter is validated against
+  // the CHAPTERS registry; beat gets a type check (enum membership would need
+  // a hand-maintained beat list that WILL drift — deliberately not done, see
+  // DECISIONS #14). Garbage falls back to the chapter-1 defaults.
+  const rawBeat: unknown = d.story?.beat;
+  const safeBeat = (typeof rawBeat === 'string' && rawBeat.length > 0 ? rawBeat : 'ch1_explore') as StoryBeat;
+  const rawRoute: unknown = d.story?.route;
+  const safeRoute = ((ROUTES as readonly string[]).includes(rawRoute as string) ? rawRoute : 'none') as Route;
+  const rawChapter = Math.round(num(d.story?.chapter, 1));
+  const safeChapter = (CHAPTERS[rawChapter as ChapterId] ? rawChapter : 1) as ChapterId;
   useStory.setState({
-    chapter: (num(d.story?.chapter, 1) as ChapterId) || 1,
-    beat: (d.story?.beat ?? 'ch1_explore') as StoryBeat,
-    route: (d.story?.route ?? 'none') as Route,
+    chapter: safeChapter,
+    beat: safeBeat,
+    route: safeRoute,
     flags: Array.isArray(d.story?.flags) ? d.story.flags : [],
     choices: d.story?.choices && typeof d.story.choices === 'object' ? d.story.choices : {},
   });
@@ -114,6 +132,16 @@ function applySave(d: SaveV2) {
 
 const key = (slot: SlotId) => `${KEY_PREFIX}:${slot}`;
 
+// v0.17.0: raw slot read for loadFlow.ts (the orchestrator). save.ts stays
+// pure storage; slot-empty vs corrupt distinction is an orchestration concern.
+export function slotRaw(slot: SlotId): string | null {
+  try {
+    return localStorage.getItem(key(slot));
+  } catch {
+    return null;
+  }
+}
+
 export function saveGame(slot: SlotId = 'auto'): string {
   try {
     localStorage.setItem(key(slot), JSON.stringify(snapshot()));
@@ -124,26 +152,8 @@ export function saveGame(slot: SlotId = 'auto'): string {
   }
 }
 
-export function loadGame(slot: SlotId): string {
-  try {
-    const raw = localStorage.getItem(key(slot));
-    if (!raw) return 'Slot kosong.';
-    const parsed = JSON.parse(raw);
-    const data = parseSave(parsed);
-    if (!data) return 'Data save tidak valid.';
-    // Reset combat visuals/state before restoring gameplay: after a KO the
-    // player anim (down) and enemyPos.active persist in module state and would
-    // otherwise render the character lying down + suppress NPC interaction.
-    useCombat.getState().reset();
-    resetCombatRuntime();
-    enemyPos.active = false;
-    applySave(data);
-    useGame.getState().setMode('GAMEPLAY');
-    return '';
-  } catch {
-    return 'Data save tidak valid.';
-  }
-}
+// loadGame moved to game/loadFlow.ts (v0.17.0) — it resets combat runtime
+// before applying, and save.ts must not import combat/combat.ts (cycle).
 
 export function deleteSave(slot: SlotId) {
   try {
@@ -173,11 +183,17 @@ export function slotInfo(slot: SlotId): { chapter: number; savedAt: number | nul
 }
 
 // v1 schema (old csl-save-v1) migration — best effort, preserves story basics.
+// v0.17.0: relationship/visited maps are DERIVED from the NPC registry. The
+// only cast knowledge that legitimately stays here is WHICH characters
+// existed in the v1 era (Pak Budi was added later — he starts unvisited).
+const V1_CAST: readonly string[] = ['aris', 'siti', 'bimo'];
+
 export function migrateV1(old: Record<string, unknown>): SaveV2 | null {
   if (!old || typeof old !== 'object') return null;
   const flags = Array.isArray(old.flags) ? (old.flags as string[]) : [];
   const phase = old.phase;
   if (phase !== 'play') return null; // pre-opening v1 saves restart from scratch
+  const legacyRel = old.relationship as Record<string, number> | undefined;
   return {
     version: SAVE_VERSION,
     savedAt: Date.now(),
@@ -192,13 +208,8 @@ export function migrateV1(old: Record<string, unknown>): SaveV2 | null {
       flags: flags.includes('helped_aris') ? ['helped_aris', 'opening_complete'] : flags.includes('walked_past_aris') ? ['ignored_aris', 'opening_complete'] : ['opening_complete'],
       choices: old.choice ? { o3_choice: String(old.choice) } : {},
     },
-    relationships: {
-      aris: num((old.relationship as Record<string, number>)?.aris, 0),
-      siti: num((old.relationship as Record<string, number>)?.siti, 0),
-      bimo: num((old.relationship as Record<string, number>)?.bimo, 0),
-      budi: 0,
-    },
-    visitedNpc: { aris: true, siti: true, bimo: true, budi: false },
+    relationships: Object.fromEntries(NPCS.map((n) => [n.id, num(legacyRel?.[n.id], 0)])) as Record<NpcId, number>,
+    visitedNpc: Object.fromEntries(NPCS.map((n) => [n.id, V1_CAST.includes(n.id)])) as Record<NpcId, boolean>,
     quests: { explore_school: (old.quests as Record<string, string>)?.explore_school === 'complete' ? 'completed' : 'active' },
     inventory: [...STARTING_INVENTORY],
   };
