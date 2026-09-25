@@ -8,6 +8,25 @@ export const QUESTS: QuestDef[] = [
     desc: 'Hari pertama. Kenali lingkungan sekolah sebelum bel berikutnya.',
     objective: 'Kunjungi halaman, kantin, lapangan, dan gang belakang',
     chapter: 1,
+    // v0.17.1: completion choreography moved from StoryDirector.tsx (engine
+    // block) to data — same order: complete → clock jump to break (10:05) →
+    // bonding beat → toasts → auto-save. `visited` + `time-to` are the two
+    // new primitives this needed.
+    completeWhen: {
+      k: 'and',
+      all: [
+        { k: 'beat', id: 'ch1_explore' },
+        { k: 'visited', zones: ['courtyard', 'canteen', 'field', 'back_alley'] },
+      ],
+    },
+    onComplete: [
+      { k: 'quest', id: 'explore_school', state: 'completed', silent: true },
+      { k: 'time-to', minutes: 10 * 60 + 5 }, // maju ke jam istirahat
+      { k: 'beat', id: 'ch1_friendship' },
+      { k: 'notify', text: 'Quest selesai: Jelajahi SMA Yuson', kind: 'quest' },
+      { k: 'notify', text: 'Sore itu, Ren menemui Aris di perpustakaan...' },
+      { k: 'save' },
+    ],
   },
   {
     // v0.7.0: menggantikan gate_trouble — Bab 2 kini "Kesalahan Kecil Aris"
@@ -37,6 +56,16 @@ export const QUESTS: QuestDef[] = [
     objective: 'Temui Bimo di tangga belakang setelah jam pelajaran',
     chapter: 3,
     waypoint: 'back_stairs',
+    // v0.17.1: arrival rule moved from StoryDirector.tsx — same order:
+    // complete → beat → flag → objective toast → rooftop scene transfer.
+    completeWhen: { k: 'and', all: [{ k: 'zone', id: 'back_stairs' }, { k: 'chapter', id: 3 }] },
+    onComplete: [
+      { k: 'quest', id: 'rooftop_meeting', state: 'completed', silent: true },
+      { k: 'beat', id: 'ch3_rooftop' },
+      { k: 'flag', id: 'rooftop_arrived' },
+      { k: 'notify', text: 'Tujuan: Naik ke atap', kind: 'quest' },
+      { k: 'scene', id: 'rooftop' },
+    ],
   },
   {
     // v0.11.0 GARIS MERAH: teror fisik letnan geng sebelum rooftop [FIGHT 2]

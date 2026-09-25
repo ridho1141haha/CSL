@@ -44,6 +44,9 @@ export function applyEffect(e: Effect) {
       break;
     case 'quest':
       useQuests.getState().setState(e.id, e.state);
+      // v0.17.1: silent — story data that completes a quest mid-trigger keeps
+      // its original notification UX instead of the standard toast.
+      if (e.silent) break;
       if (e.state === 'active') game.notify('Quest diperbarui', 'quest');
       if (e.state === 'completed') game.notify('Quest selesai', 'quest');
       break;
@@ -54,6 +57,15 @@ export function applyEffect(e: Effect) {
     case 'time':
       game.advanceTime(e.minutes);
       break;
+    case 'time-to': {
+      // v0.17.1: advance to the next occurrence of a wall-clock time (minutes
+      // of day). Was inline math in StoryDirector's explore_school block —
+      // identical formula, including the full-day wrap when the target equals
+      // the current minute.
+      const delta = (e.minutes - game.clock.minutes + 1440) % 1440;
+      game.advanceTime(delta || 1440);
+      break;
+    }
     case 'chapter':
       if (useStory.getState().chapter !== e.id) {
         useStory.getState().setChapter(e.id);
@@ -90,7 +102,8 @@ export function applyEffect(e: Effect) {
       game.setMode('COMBAT');
       break;
     case 'notify':
-      game.notify(e.text);
+      // v0.17.1: optional color kind (data decides the chip color; default info).
+      game.notify(e.text, e.kind);
       break;
     case 'visit-zone':
       game.visitZone(e.zone);

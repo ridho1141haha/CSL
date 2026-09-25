@@ -97,6 +97,7 @@ export function DialogueUI({ cinematic }: { cinematic: boolean }) {
       flags: story.flags,
       chapter: story.chapter,
       route: story.route,
+      beat: story.beat,
       quests: useQuests.getState().quests,
       relationships: useSocial.getState().relationships,
       stats: useStats.getState(),

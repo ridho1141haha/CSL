@@ -19,6 +19,9 @@ import { BAD2_ENDING_NODES } from './endings/bad2Ending';
 import { NPC_NODES } from './npc';
 import { DISCOVERY_NODES } from './discoveries';
 import { AMBIENT_NODES } from './ambient';
+import { STORY_TRIGGERS } from './triggers';
+
+export { STORY_TRIGGERS };
 
 export const DIALOGUE: Record<string, DialogueNode> = Object.fromEntries(
   [
@@ -43,24 +46,16 @@ export const DIALOGUE: Record<string, DialogueNode> = Object.fromEntries(
 export const SPECIAL_NODES = { combat: '__combat__', study: '__study__' };
 
 // Runtime wiring tables — single source of truth for how the story graph is
-// entered from the world. StoryDirector consumes ZONE_FLAVOR; the montage
-// roots + trigger nodes + checkpoints are asserted by test/storyFlow.test.ts
-// so a broken link fails CI instead of dead-ending a playthrough.
-// v0.15.0: + ch1_lib_1 / ch1_pts_1 (montase bonding doc Ch3/Ch4) dan
-// ch4_neu_out_1 / ch4_neu_secret_1 (SECRET CHOICE POINT rute netral).
-export const MONTAGE_ROOTS = ['ch1_lib_1', 'ch1_pts_1', 'ch4_bad_1', 'ch4_res_1', 'n1_1'] as const;
-export const STORY_TRIGGER_NODES = [
-  'ch2_intro_1',
-  'ch3_osis_1', // GARIS MERAH: pendekatan OSIS (montase)
-  'ch3_f2_1', // GARIS MERAH: teror fisik parkiran [FIGHT 2]
-  'ch3_intro_1', // rooftop
-  'ch4_res_alley', // penyanderaan
-  'ch4_bad_grad_1', // bad ending 1 (kelulusan)
-  'ch4_good_grad_1', // good ending (kelulusan)
-  'ch4_neu_grad_1', // neutral ending (kelulusan)
-  'ch4_neu_out_1', // v0.15.0: standard neutral (keluar gerbang)
-  'ch4_neu_secret_1', // v0.15.0: secret battle (gang belakang)
-] as const;
+// entered from the world. v0.17.1: DERIVED from the STORY_TRIGGERS registry
+// (data/story/triggers.ts) — were two hand-maintained lists that drifted from
+// the StoryDirector branches they mirrored. storyFlow/staging/cinema tests
+// consume them so a broken link fails CI instead of dead-ending a playthrough.
+export const MONTAGE_ROOTS: string[] = STORY_TRIGGERS.filter(
+  (t) => t.duringCinematic && t.open,
+).map((t) => t.open!);
+export const STORY_TRIGGER_NODES: string[] = STORY_TRIGGERS.flatMap((t) =>
+  t.open ? [t.open] : [],
+);
 export const ZONE_FLAVOR: Record<string, string> = {
   field: 'zone_field',
   canteen: 'zone_canteen',

@@ -1,4 +1,4 @@
-import type { Condition } from '../../types';
+import type { Condition, StoryBeat } from '../../types';
 import { periodFor } from './time';
 import { zoneAt } from '../../data/world';
 import { playerPos } from '../runtime';
@@ -10,6 +10,9 @@ export type ConditionContext = {
   flags: string[];
   chapter: number;
   route: string;
+  // v0.17.1: story position — required so 'beat' conditions cannot silently
+  // evaluate falsy (the switch below is exhaustive over Condition).
+  beat: StoryBeat;
   quests: Record<string, string>;
   relationships: Record<string, number>;
   stats: { academic: number; violence: number; diplomacy: number; reputation: number };
@@ -39,6 +42,13 @@ export function evalCondition(c: Condition | undefined, ctx: ConditionContext): 
       return periodFor(useGame.getState().clock.minutes).id === c.id;
     case 'zone':
       return useGame.getState().currentZone === c.id;
+    // v0.17.1: story-position + exploration-history kinds — consumed by the
+    // StoryTriggerDef registry and QuestDef.completeWhen. `visited` reads the
+    // live game store directly, consistent with 'zone'/'period' above.
+    case 'beat':
+      return ctx.beat === c.id;
+    case 'visited':
+      return c.zones.every((z) => useGame.getState().visitedZones.includes(z));
     case 'talks':
       return (useSocial.getState().talkCounts[c.target] ?? 0) >= c.v;
     case 'and':

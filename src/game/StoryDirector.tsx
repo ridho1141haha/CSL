@@ -13,17 +13,18 @@ import { zoneAt, SCENES } from '../data/world';
 import { NPC_BY_ID } from '../data/npcs';
 import { QUESTS } from '../data/quests';
 import { ZONE_FLAVOR } from '../data/dialogue';
-import { saveGame } from './save';
+import { STORY_TRIGGERS } from '../data/story/triggers';
 import { applyEffects } from './systems/effects';
-import { evalCondition } from './systems/conditions';
+import { evalCondition, type ConditionContext } from './systems/conditions';
+import { firstTrigger } from './systems/storyTriggers';
 import { pickZoneEvent, pickNpcEvent, discoverEvent } from './systems/hiddenEvents';
-import { periodFor } from './systems/time';
 
-const EXPLORE_TARGETS = ['courtyard', 'canteen', 'field', 'back_alley'] as const;
-
-// Per-frame world↔story glue: zone discovery, quest progression triggers,
-// NPC interaction, multi-scene transitions (rooftop / warehouse). All state
-// changes go through stores/effects.
+// Per-frame world↔story glue. v0.17.1: every story-specific branch is gone —
+// beat triggers live in data/story/triggers.ts (STORY_TRIGGERS), quest
+// completion rules live on QuestDef (completeWhen/onComplete). What remains
+// here is GENERIC machinery only: registry-driven interaction, the trigger
+// loop, scene exits, zone flavor, hidden events and the quest-completion loop.
+// Adding a story beat should never require touching this file again.
 export function StoryDirector() {
   const zoneTimer = useRef(0);
 
@@ -82,151 +83,37 @@ export function StoryDirector() {
     }
     game.setInteractTarget(near);
 
-    // ---------- route montages (campus only, may start during CINEMATIC) ----------
-    // Scene guard matters right after chapter 3: the accept/reject nodes send
-    // the player back from the rooftop via requestScene (async swap) — the
-    // montage must not open while still standing on the old scene.
-    const montageReady =
-      game.scene === 'campus' &&
-      (game.mode === 'GAMEPLAY' || game.mode === 'CINEMATIC') &&
-      !dialogue.nodeId;
-
-    // ---------- v0.15.0 bonding arc (doc Ch3/Ch4) — otomatis setelah eksplorasi ----------
-    // explore_school selesai → beat ch1_friendship → montase perpustakaan →
-    // beat ch1_pts → montase PTS → beat ch1_break (insiden tangga, doc Ch5).
-    if (montageReady && story.beat === 'ch1_friendship' && !story.flags.includes('bond_lib_done')) {
-      story.setFlag('bond_lib_done');
-      dialogue.open('ch1_lib_1', true);
-      return;
-    }
-    if (montageReady && story.beat === 'ch1_pts' && !story.flags.includes('bond_pts_done')) {
-      story.setFlag('bond_pts_done');
-      dialogue.open('ch1_pts_1', true);
-      return;
-    }
-
-    // ---------- neutral route: montage "Dinding Dingin" after ignoring Aris ----------
-    if (montageReady && story.beat === 'ch3_neutral' && story.route === 'neutral' && !story.flags.includes('neu_montage_done')) {
-      story.setFlag('neu_montage_done');
-      dialogue.open('n1_1', true);
-      return;
-    }
-
-    // ---------- chapter 3 GARIS MERAH: montase pendekatan OSIS ----------
-    if (montageReady && story.beat === 'ch3_osis' && story.chapter === 3 && !story.flags.includes('osis_montage_done')) {
-      story.setFlag('osis_montage_done');
-      dialogue.open('ch3_osis_1', true);
-      return;
-    }
-
-    // ---------- bad route: montage after accepting ----------
-    if (montageReady && story.beat === 'ch4_bad_warehouse' && story.route === 'bad' && !story.flags.includes('bad_montage_done')) {
-      story.setFlag('bad_montage_done');
-      dialogue.open('ch4_bad_1', true);
-      return;
-    }
-
-    // ---------- resistance route: montage after rejecting ----------
-    if (montageReady && story.beat === 'ch4_res_search' && story.route === 'resistance' && !story.flags.includes('res_montage_done')) {
-      story.setFlag('res_montage_done');
-      dialogue.open('ch4_res_1', true);
+    // ---------- story triggers (v0.17.1: DATA, data/story/triggers.ts) ----------
+    // Was ~15 hardcoded per-beat if-blocks (montages, parking ambush,
+    // graduations, secret choice point, ch2 card/scene, find_aris). The
+    // registry is evaluated in data order; the first eligible trigger fires
+    // (set once-flag → apply fire effects → open its dialogue), one per frame,
+    // exactly like the old early-returning branches.
+    const storyCtx: ConditionContext = {
+      flags: story.flags,
+      chapter: story.chapter,
+      route: story.route,
+      beat: story.beat,
+      quests: quests.quests,
+      relationships: useSocial.getState().relationships,
+      stats: useStats.getState(),
+      focus: usePlayer.getState().focus,
+    };
+    const trigger = firstTrigger(STORY_TRIGGERS, storyCtx, {
+      mode: game.mode,
+      scene: game.scene,
+      dialogueOpen: !!dialogue.nodeId,
+    });
+    if (trigger) {
+      if (trigger.once) story.setFlag(trigger.once);
+      if (trigger.fire) applyEffects(trigger.fire);
+      if (trigger.open) dialogue.open(trigger.open, true);
       return;
     }
 
     if (game.mode !== 'GAMEPLAY') return;
 
-    // ---------- chapter 3 GARIS MERAH: sergapan letnan di parkiran [FIGHT 2] ----------
-    if (
-      game.scene === 'campus' &&
-      game.currentZone === 'parking' &&
-      story.chapter === 3 &&
-      story.beat === 'ch3_parking' &&
-      quests.quests.gang_ambush === 'active' &&
-      !dialogue.nodeId &&
-      !story.flags.includes('ch3_parking_started')
-    ) {
-      story.setFlag('ch3_parking_started');
-      dialogue.open('ch3_f2_1', true);
-      return;
-    }
-
-    // ---------- neutral route: graduation day at the main gate ----------
-    if (
-      game.scene === 'campus' &&
-      game.currentZone === 'gate' &&
-      story.chapter === 4 &&
-      story.route === 'neutral' &&
-      story.beat === 'ch4_neutral_grad' &&
-      !story.flags.includes('grad_scene_done')
-    ) {
-      story.setFlag('grad_scene_done');
-      dialogue.open('ch4_neu_grad_1', true);
-      return;
-    }
-
-    // ---------- v0.15.0: SECRET CHOICE POINT (doc SUB-CABANG 1B) ----------
-    // Setelah konfrontasi Siti (beat ch4_neu_secret) TIDAK ada popup: pemain
-    // mengontrol Ren. Keluar lewat gerbang (zona street) → standard neutral;
-    // balik ke gang belakang kantin → secret battle → dua secret endings.
-    if (
-      game.scene === 'campus' &&
-      game.mode === 'GAMEPLAY' &&
-      !dialogue.nodeId &&
-      story.chapter === 4 &&
-      story.route === 'neutral' &&
-      story.beat === 'ch4_neu_secret' &&
-      !story.flags.includes('neu_secret_done')
-    ) {
-      if (game.currentZone === 'street') {
-        story.setFlag('neu_secret_done');
-        dialogue.open('ch4_neu_out_1', true);
-        return;
-      }
-      if (game.currentZone === 'back_alley') {
-        story.setFlag('neu_secret_done');
-        dialogue.open('ch4_neu_secret_1', true);
-        return;
-      }
-    }
-
-    // ---------- GARIS MERAH: bad ending 1 — kelulusan sebagai pemimpin geng ----------
-    if (
-      game.scene === 'campus' &&
-      game.currentZone === 'gate' &&
-      story.chapter === 4 &&
-      story.route === 'bad' &&
-      story.beat === 'ch4_bad_grad' &&
-      !story.flags.includes('bad_grad_done')
-    ) {
-      story.setFlag('bad_grad_done');
-      dialogue.open('ch4_bad_grad_1', true);
-      return;
-    }
-
-    // ---------- GARIS MERAH: good ending — kelulusan bersama Aris & Siti ----------
-    if (
-      game.scene === 'campus' &&
-      game.currentZone === 'gate' &&
-      story.chapter === 4 &&
-      story.route === 'resistance' &&
-      story.beat === 'ch4_good_grad' &&
-      story.flags.includes('restrained_bimo') &&
-      !story.flags.includes('good_grad_done')
-    ) {
-      story.setFlag('good_grad_done');
-      dialogue.open('ch4_good_grad_1', true);
-      return;
-    }
-
-    // ---------- rooftop: start the chapter 3 proposition ----------
-    if (game.scene === 'rooftop' && story.chapter === 3 && story.beat === 'ch3_rooftop' && !story.flags.includes('ch3_rooftop_started')) {
-      story.setFlag('ch3_rooftop_started');
-      dialogue.open('ch3_intro_1', true);
-      return;
-    }
-
     // ---------- scene exits (v0.17.0: data on SceneDef.exits) ----------
-    // Was two hardcoded branches with campus spawn coordinates buried in code.
     // Rooftop keeps its chapter-3 gate via the exit's chapterMin.
     {
       const cur = SCENES[game.scene];
@@ -264,96 +151,17 @@ export function StoryDirector() {
       return;
     }
 
-    if (game.scene !== 'campus') return;
-
-    // ---------- side quest completions (mentor #6) ----------
-    // v0.17.0: rules are DATA on QuestDef (completeWhen/onComplete) — the four
-    // per-id if-blocks that lived here (aris_notes / canteen_teh /
-    // field_training / alley_check) are gone. A new side quest with a
-    // `completeWhen` rule completes without touching this file. Quest-active
-    // is implicit; one completion per tick (return) as before.
+    // ---------- quest completions (v0.17.0+: rules are DATA on QuestDef) ----------
+    // When an active quest's `completeWhen` holds, its `onComplete` effects
+    // run once (the effects themselves flip the quest state). One completion
+    // per tick (return) — QUESTS array order decides ties, as before.
     for (const def of QUESTS) {
       if (!def.completeWhen || !def.onComplete) continue;
       if (quests.quests[def.id] !== 'active') continue;
-      if (evalCondition(def.completeWhen, {
-        flags: story.flags,
-        chapter: story.chapter,
-        route: story.route,
-        quests: quests.quests,
-        relationships: useSocial.getState().relationships,
-        stats: useStats.getState(),
-        focus: usePlayer.getState().focus,
-      })) {
+      if (evalCondition(def.completeWhen, storyCtx)) {
         applyEffects(def.onComplete);
         return;
       }
-    }
-
-    // ---------- chapter 1: explore objective ----------
-    if (quests.quests.explore_school === 'active' && story.beat === 'ch1_explore') {
-      const done = EXPLORE_TARGETS.every((z) => game.visitedZones.includes(z));
-      if (done) {
-        quests.setState('explore_school', 'completed');
-        // advance clock to break time (10:05)
-        const delta = (10 * 60 + 5 - game.clock.minutes + 1440) % 1440;
-        game.advanceTime(delta || 1440);
-        // v0.15.0: doc Ch3/Ch4 disisipkan sebelum insiden tangga — rantai
-        // beat ch1_friendship (perpustakaan) → ch1_pts (hasil PTS) →
-        // ch1_break; aris_incident kini diaktifkan oleh ch1_pts_5.
-        story.setBeat('ch1_friendship');
-        game.notify('Quest selesai: Jelajahi SMA Yuson', 'quest');
-        game.notify('Sore itu, Ren menemui Aris di perpustakaan...', 'info');
-        saveGame('auto');
-        return;
-      }
-    }
-
-    // ---------- chapter 2: Kesalahan Kecil Aris (tangga belakang, saat istirahat) ----------
-    // Dua fase: (1) tampilkan kartu BAB II lalu (2) setelah kartu ditutup,
-    // buka scene-nya. Kedua fase pakai flag guard agar tidak terpicu ulang.
-    if (
-      story.beat === 'ch1_break' &&
-      quests.quests.aris_incident === 'active' &&
-      game.currentZone === 'back_stairs' &&
-      !story.flags.includes('ch2_scene_started')
-    ) {
-      story.setFlag('ch2_scene_started');
-      applyEffects([{ k: 'chapter', id: 2 }]); // kartu BAB II + beat ch2_key_error
-      return;
-    }
-    if (
-      story.beat === 'ch2_key_error' &&
-      quests.quests.aris_incident === 'active' &&
-      game.currentZone === 'back_stairs' &&
-      game.mode === 'GAMEPLAY' &&
-      !dialogue.nodeId &&
-      !story.flags.includes('ch2_scene_opened')
-    ) {
-      story.setFlag('ch2_scene_opened');
-      // v0.14.1: story scene berjalan CINEMATIC — sama dengan scene cerita
-      // lain — supaya staging Ren + aktor SCENE_ACTORS terpasang dan kamera
-      // memakai cameraStage authoran (stairs_*), bukan speaker-shot dari
-      // registry live yang bisa memuat posisi hantu scene lain.
-      dialogue.open('ch2_intro_1', true);
-      return;
-    }
-
-    // ---------- chapter 3: climb the back stairs → rooftop scene ----------
-    if (quests.quests.rooftop_meeting === 'active' && game.currentZone === 'back_stairs' && story.chapter === 3) {
-      quests.setState('rooftop_meeting', 'completed');
-      story.setBeat('ch3_rooftop');
-      story.setFlag('rooftop_arrived');
-      game.notify('Tujuan: Naik ke atap', 'quest');
-      game.requestScene('rooftop');
-      return;
-    }
-
-    // ---------- chapter 4 resistance: find Aris ----------
-    if (quests.quests.find_aris === 'active' && (game.currentZone === 'back_alley' || game.currentZone === 'street') && story.chapter === 4) {
-      quests.setState('find_aris', 'completed');
-      story.setBeat('ch4_res_alley');
-      dialogue.open('ch4_res_alley', true);
-      return;
     }
   });
 

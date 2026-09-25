@@ -74,6 +74,10 @@ export type StoryBeat =
 
 export type Clock = { day: number; minutes: number };
 
+// Notification color kinds (gameStore queue + the 'notify' effect). Lives here
+// so data files (Effect) and the store share one union (v0.17.1).
+export type NotificationKind = 'info' | 'quest' | 'social' | 'warn';
+
 export type ZoneId =
   | 'gate'
   | 'courtyard'
@@ -139,20 +143,59 @@ export type Effect =
   | { k: 'rel'; target: NpcId; delta: number }
   | { k: 'stat'; stat: keyof Stats | 'focus'; delta: number }
   | { k: 'hp'; delta: number }
-  | { k: 'quest'; id: string; state: QuestState }
+  // v0.17.1: silent opts out of the standard 'Quest selesai/diperbarui' toast —
+  // story triggers that complete a quest via data keep their original UX
+  // (the engine block they replaced never toasted).
+  | { k: 'quest'; id: string; state: QuestState; silent?: boolean }
   | { k: 'item'; id: string; remove?: boolean }
   | { k: 'time'; minutes: number }
+  // v0.17.1: advance to the next occurrence of a wall-clock time (minutes of
+  // day). Was inline math in StoryDirector's explore_school block.
+  | { k: 'time-to'; minutes: number }
   | { k: 'chapter'; id: ChapterId }
   | { k: 'beat'; id: StoryBeat }
   | { k: 'route'; id: Route }
   | { k: 'ending' }
   | { k: 'combat'; encounter: string }
-  | { k: 'notify'; text: string }
+  | { k: 'notify'; text: string; kind?: NotificationKind }
   | { k: 'visit-zone'; zone: ZoneId }
   | { k: 'scene'; id: SceneId; spawn?: [number, number] }
   | { k: 'teleport'; x: number; z: number }
   | { k: 'study' }
   | { k: 'save' };
+
+// ---------------------------------------------------------------------------
+// v0.17.1 — StoryTriggerDef: dunia → cerita (STORY TRIGGER registry).
+//
+// Replaces the per-beat if-blocks that lived in StoryDirector.tsx (montages,
+// parking ambush, graduations, secret choice point, chapter-2 card/scene,
+// find_aris). Adding a story beat that "opens a dialogue when X" is now a
+// registry row, not an engine branch.
+//
+//   once    — story flag guarding re-fire. MUST reuse the historical flag
+//             names (old saves already carry them); omit for triggers that
+//             one-shot themselves via their own condition (e.g. quest state
+//             flips to 'completed' inside `fire`).
+//   when    — story-state condition, evaluated with the existing condition
+//             system (beat/route/chapter/zone/quest/flag/…). No new semantics.
+//   scene   — ENGINE context, not story state: required scene (default
+//             'campus') — protects against async requestScene swaps.
+//   duringCinematic — ENGINE context: montages may fire while the mode is
+//             still CINEMATIC (beat handoff between chained scenes). Default
+//             GAMEPLAY-only.
+//   open    — dialogue node opened cinematically on fire.
+//   fire    — effects applied before `open` (reuses the effect pipeline; do
+//             NOT duplicate game logic here).
+// ---------------------------------------------------------------------------
+export type StoryTriggerDef = {
+  id: string;
+  once?: string;
+  when: Condition;
+  scene?: SceneId;
+  duringCinematic?: boolean;
+  open?: string;
+  fire?: Effect[];
+};
 
 export type Condition =
   | { k: 'flag'; id: string; not?: boolean }
@@ -165,6 +208,10 @@ export type Condition =
   | { k: 'focusAbove'; v: number }
   | { k: 'period'; id: string }        // time-of-day window (systems/time PeriodId)
   | { k: 'zone'; id: ZoneId }          // player currently inside zone
+  // v0.17.1: story position + exploration history (StoryTriggerDef /
+  // QuestDef.completeWhen). `beat` mirrors storyStore.beat via ConditionContext.
+  | { k: 'beat'; id: StoryBeat }
+  | { k: 'visited'; zones: ZoneId[] }  // ALL listed zones already visited
   | { k: 'talks'; target: NpcId; v: number } // has talked to NPC >= v times
   | { k: 'and'; all: Condition[] }
   // v0.17.0 combinators (audit H1): content can express OR / negation and

@@ -1,11 +1,13 @@
 import { create } from 'zustand';
-import type { Clock, GameMode, Phase, SceneId, ZoneId } from '../types';
+import type { Clock, GameMode, NotificationKind, Phase, SceneId, ZoneId } from '../types';
 import { advance } from '../game/systems/time';
 import type { Ending } from '../game/systems/endingResolver';
 import { SCENES } from '../data/world';
 import { usePlayer } from './playerStore';
 
-export type NotificationKind = 'info' | 'quest' | 'social' | 'warn';
+// NotificationKind lives in types/index.ts (shared with the 'notify' Effect);
+// re-exported here so existing UI import sites keep working.
+export type { NotificationKind } from '../types';
 export type Notification = { id: number; text: string; kind: NotificationKind };
 
 let notifSeq = 1;

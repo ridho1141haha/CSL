@@ -1,10 +1,47 @@
 # Project State
 
-Updated: 2026-09-24 (v0.17.0 — inkrement arsitektur: siklus modul 2→0 (madge +
-check:cycles), registri NPC/quest/chapter/scene jadi satu sumber (NpcDef
-storyCast/relTag/relQuote/hiddenWhen, QuestDef waypoint/completeWhen/onComplete,
-ChapterDef defaultBeat/subtitleByRoute, SceneDef exits), save hardening +
-15 test; loadGame → loadFlow.ts; 267 test)
+Updated: 2026-09-25 (v0.17.1 — story architecture scalability: StoryTriggerDef
+registry (16 baris data menggantikan 15 blok if per-beat StoryDirector — 366 →
+~175 baris, nol id cerita), quest completion explore_school/rooftop_meeting
+jadi completeWhen/onComplete data, MONTAGE_ROOTS/STORY_TRIGGER_NODES derivasi,
+runner murni systems/storyTriggers.ts; save-compat once-flag dikunci test;
+290 test)
+
+## v0.17.1 Snapshot (2026-09-25)
+
+**Directive Phase 8: story progression data-driven — menambah story beat TIDAK
+lagi butuh if/switch baru di StoryDirector.tsx. Tanpa ubah arsitektur, kanon,
+ending, rute, save schema, controls.**
+- STORY TRIGGER registry (`data/story/triggers.ts` BARU): 16
+  `StoryTriggerDef { id, once?, when, scene?, duringCinematic?, open?, fire? }`
+  — 6 montase, sergapan parkiran, 3 kelulusan, SECRET CHOICE POINT 2 cabang
+  (guard `neu_secret_done` dikelola bersama — zona pertama yang kena mengunci
+  keduanya, perilaku asli), rooftop intro, kartu+scene BAB II, find_aris.
+  Kondisi = sistem Condition eksisting; efek = pipeline applyEffects
+  eksisting. Tidak ada EventBus/ECS/DI.
+- Runner generik MURNI (`systems/storyTriggers.ts`): urutan registry = urutan
+  evaluasi; guard once-flag / dialogue terbuka / mode (montase GAMEPLAY+
+  CINEMATIC = montageReady asli; lainnya GAMEPLAY) / scene default campus.
+  StoryDirector mengeksekusi hasil match via setFlag/applyEffects/dialogue.open.
+- SAVE COMPAT: nama `once` = flag historis persis (bond_lib_done,
+  ch2_scene_started, neu_secret_done, dst.) — terkunci test storyTriggers.
+  Schema v2 tidak berubah.
+- QUEST DATA: explore_school (completeWhen: beat + `visited` 4 zona;
+  onComplete: time-to 10:05 → beat ch1_friendship → 2 toast → save) dan
+  rooftop_meeting (completeWhen: back_stairs+ch3; onComplete: beat+flag+toast+
+  scene rooftop) — urutan efek persis blok engine lama. EXPLORE_TARGETS
+  dihapus dari engine.
+- Primitif baru minimal: Condition `beat` + `visited`; Effect `time-to` +
+  `notify.kind` + `quest.silent` (opt-out toast, nol delta UX).
+- MONTAGE_ROOTS/STORY_TRIGGER_NODES kini derivasi registry — staging/cinema/
+  storyFlow tests otomatis mengunci staging+camera semua pintu masuk scene.
+- VERIFIKASI: 290/290 (23 baru storyTriggers.test.ts) · tsc ✓ · build ✓ ·
+  cycles 0 · qa-walk 15/15 · qa-face 5/5 · qa-nav ✓ · qa-mentor ✓. Kanon,
+  ending, rute, teks dialog, schema save: tidak berubah.
+- Sisa debt (tercatat): App.tsx decomposition, eksternalisasi koordinat
+  StoryProps, i18n penuh; chapters.ts (927 baris data staging) masih satu file
+  — dianjurkan dipecah per-bab HANYA kalau melewati ~1200 baris atau bab 5
+  benar-benar datang.
 
 ## v0.17.0 Snapshot (2026-09-24)
 

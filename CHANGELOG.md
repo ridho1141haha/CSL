@@ -1,5 +1,67 @@
 # Changelog
 
+## 0.17.1 — 2026-09-25 (Story Architecture Scalability — StoryDirector bebas konten)
+
+Phase 8 directive: story progression jadi data-driven. Target: "menambah story
+beat TIDAK lagi menambah if/switch spesifik-cerita di StoryDirector.tsx" —
+TANPA mengubah arsitektur DATA → STORES → SYSTEMS → RUNTIME → UI, tanpa
+EventBus/ECS/DI, tanpa menyentuh kanon/ending/save schema.
+
+### STORY TRIGGER registry (data/story/triggers.ts — BARU)
+- 15 blok if per-beat di StoryDirector.tsx (366 → ~175 baris, kini NOL id
+  cerita) pindah jadi 16 baris `StoryTriggerDef` data: 6 montase
+  (bond_lib/pts, netral, osis, bad, res), sergapan parkiran, 3 kelulusan
+  (netral/bad/good), SECRET CHOICE POINT 2 cabang (guard flag `neu_secret_done`
+  DIKELOLAS BERSAMA — zona mana pun yang kena duluan mengunci keduanya,
+  perilaku asli), rooftop intro, kartu BAB II + scene BAB II (dua fase),
+  find_aris (satu-shot via `fire` yang menyelesaikan quest-nya sendiri).
+- `StoryTriggerDef { id, once?, when, scene?, duringCinematic?, open?, fire? }`:
+  kondisi memakai sistem Condition yang ada, efek memakai pipeline
+  applyEffects yang ada — tidak ada logika game baru di trigger system.
+- Runner generik `systems/storyTriggers.ts` (MURNI, teruji): urutan registry =
+  urutan evaluasi (montase dulu), guard once-flag / dialogue-terbuka / mode
+  (montase boleh GAMEPLAY+CINEMATIC — perilaku asli montageReady; lainnya
+  GAMEPLAY saja) / scene default 'campus' (rooftop_intro scene:'rooftop') —
+  semua identik dengan blok engine yang dihapus.
+- **SAVE COMPAT terkunci test**: nama `once` = flag historis persis
+  (bond_lib_done, ch2_scene_started, neu_secret_done, dst.) — save lama v2
+  yang sudah menembus montase tidak akan menyalanya ulang.
+- MONTAGE_ROOTS & STORY_TRIGGER_NODES kini DERIVASI dari registry (dua tabel
+  manual dihapus) — staging/cinema/storyFlow tests otomatis mengunci semua
+  pintu masuk scene punya staging Ren + cameraStage.
+
+### Quest completion jadi data (quest loop yang sama, v0.17.0)
+- `explore_school`: completeWhen = beat ch1_explore + `visited` 4 zona;
+  onComplete = selesai → lompat jam ke 10:05 (`time-to`) → beat ch1_friendship
+  → 2 toast (warna kind:'quest' dipertahankan) → auto-save. Urutan efek persis
+  blok engine lama. Konstanta EXPLORE_TARGETS dihapus dari engine.
+- `rooftop_meeting`: completeWhen = back_stairs + bab 3; onComplete = selesai →
+  beat ch3_rooftop → flag rooftop_arrived → toast "Tujuan: Naik ke atap" →
+  scene rooftop. Persis blok engine lama.
+- Effect baru: `time-to` (maju ke jam dinding berikutnya, formula identik
+  termasuk wrap penuh 1440), `notify.kind` opsional, `quest.silent` (opt-out
+  toast standar supaya trigger yang dulu diam tetap diam — nol delta UX).
+- Condition baru: `beat` (posisi cerita; ConditionContext.beat kini required —
+  kompiler memaksa semua builder mengisi), `visited` (semua zona terkunjungi).
+
+### Jaga-jaga arsitektur
+- StoryDirector tinggal mesin generik: interaksi E (registry NPC + hidden
+  events), loop trigger, exit scene (SceneDef.exits), zone flavor
+  (ZONE_FLAVOR), loop quest completion (QuestDef). Tidak ada EventBus/ECS/DI/
+  factory — abstraksi terkecil yang buktinya dibutuhkan (pola "beat +
+  kondisi → buka dialog" terulang 14×).
+- Kasus khusus yang sengaja tetap engine: TIDAK ADA — semua blok
+  spesifik-cerita terkonversi; interaksi E & hidden events memang generic.
+- Kanon/ending/rute/dialog teks/save schema/controls: TIDAK berubah.
+
+### Verifikasi
+- 290/290 test (267 lama + 23 baru di storyTriggers.test.ts: integritas
+  registry, kunci save-compat once-flag, 16 skenario kanon, gating engine,
+  secret-pair guard bersama, quest data, kondisi beat/visited).
+- tsc -b bersih; vite build sukses; check:cycles 0 siklus.
+- QA headless: qa-walk 15/15, qa-face 5/5, qa-nav PASS, qa-mentor PASS —
+  CONSOLE_ERRORS none di semua.
+
 ## 0.17.0 — 2026-09-24 (Architecture Increment — registries, cycle-free, save hardening)
 
 Fase 0-12 audit + refactor inkremental (user directive: "scalable & maintainable

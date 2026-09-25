@@ -120,6 +120,7 @@ describe('conditions', () => {
     flags: ['helped_aris'],
     chapter: 2,
     route: 'none',
+    beat: 'ch2_key_error' as const,
     quests: { explore_school: 'completed' },
     relationships: { aris: 10 },
     stats: { academic: 70, violence: 5, diplomacy: 8, reputation: 0 },
