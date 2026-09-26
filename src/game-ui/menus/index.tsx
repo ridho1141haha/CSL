@@ -322,12 +322,41 @@ const MAP_FOOTPRINTS: MapFootprint[] = [
   { x0: 10.75, z0: 0.75, x1: 21.25, z1: 5.35, kind: 'path' }, // lorong kantin (v0.12.0)
 ];
 
+function usePlayerPos() {
+  const [state, setState] = useState(() => {
+    const p = usePlayer.getState();
+    return { px: p.x, pz: p.z, facing: p.facing };
+  });
+  useEffect(() => {
+    let alive = true;
+    const tick = () => {
+      if (!alive) return;
+      const p = usePlayer.getState();
+      setState(prev => {
+        // Only update if changes are somewhat significant to avoid churn
+        // (Map resolution doesn't need 10 decimal precision)
+        if (
+          Math.abs(prev.px - p.x) < 0.1 &&
+          Math.abs(prev.pz - p.z) < 0.1 &&
+          Math.abs(prev.facing - p.facing) < 0.1
+        ) return prev;
+        return { px: p.x, pz: p.z, facing: p.facing };
+      });
+    };
+    tick();
+    const id = window.setInterval(tick, 200); // 200ms poll is enough for map marker
+    return () => {
+      alive = false;
+      window.clearInterval(id);
+    };
+  }, []);
+  return state;
+}
+
 export function MapPanel() {
   // zustand v5: object-literal selectors create a new snapshot every poll and
   // crash React with "Maximum update depth exceeded" — select primitives.
-  const px = usePlayer((s) => s.x);
-  const pz = usePlayer((s) => s.z);
-  const facing = usePlayer((s) => s.facing);
+  const { px, pz, facing } = usePlayerPos();
   const sceneId = useGame((s) => s.scene);
   const visited = useGame((s) => s.visitedZones);
   const currentZone = useGame((s) => s.currentZone);
