@@ -57,6 +57,7 @@ import {
   SaveLoadPanel,
   StudyPanel,
 } from './game-ui/menus';
+import { StudyQuiz } from './game-ui/StudyQuiz';
 
 // v0.9.0: desktop-class devices build the world during boot/menu (prewarm,
 // see runtime.ts) so "MULAI" lands in a ready scene and the loading bar
@@ -390,6 +391,15 @@ export default function App() {
       {phase === 'play' && mode === 'STUDY' && (
         <FullMenu title={<>BELAJAR <em>//</em> SESI</>} onClose={() => useGame.getState().setMode('GAMEPLAY')} eyebrow="SCHOOL LIFE // STUDY SESSION">
           <StudyPanel />
+        </FullMenu>
+      )}
+      {/* v0.18.0: PTS mini-game (mode EXAM). onClose SENGAJA no-op — ujian
+          adalah beat cerita wajib; keluar di tengah quiz akan menggantung beat
+          ch1_pts (trigger montase sekali-saja). ESC di sini no-op, seperti
+          COMBAT. Penyelesaian lewat systems/exam.ts completeExam(). */}
+      {phase === 'play' && mode === 'EXAM' && (
+        <FullMenu title={<>UJIAN <em>//</em> PTS</>} onClose={() => {}} eyebrow="SCHOOL LIFE // MID-SEMESTER EXAM">
+          <StudyQuiz />
         </FullMenu>
       )}
 

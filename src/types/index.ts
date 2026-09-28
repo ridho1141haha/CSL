@@ -23,6 +23,13 @@ export type GameMode =
   | 'SAVELOAD_MENU'
   | 'SETTINGS'
   | 'STUDY'
+  // v0.18.0: story-driven PTS mini-game (mandatory exam between the library
+  // bonding montage and the canon results scene). Distinct from 'STUDY' (the
+  // voluntary study session): completion resumes the STORY (systems/exam.ts
+  // opens the results dialogue) instead of returning to gameplay, and the
+  // mode is intentionally NOT ESC-closable — abandoning mid-quiz would strand
+  // beat ch1_pts (the montage trigger is once-only).
+  | 'EXAM'
   | 'GAME_OVER'
   | 'ENDING'
   | 'TRANSITION';
@@ -112,6 +119,16 @@ export type Stats = {
   violence: number;
   diplomacy: number;
   reputation: number;
+};
+
+// v0.18.0 — study/exam question (shared by the voluntary StudyPanel and the
+// PTS mini-game). Content lives in data/chapters.ts STUDY_QUESTIONS; scoring
+// lives in game/systems/study.ts scoreStudy().
+export type StudyQuestion = {
+  id: string;
+  question: string;
+  options: string[];
+  correctIndex: number;
 };
 
 export type QuestState = 'locked' | 'available' | 'active' | 'completed' | 'failed';

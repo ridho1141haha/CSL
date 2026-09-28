@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { getDialogue, SPECIAL_NODES } from '../data/dialogue';
 import { ENCOUNTERS } from '../data/quests';
+import { PTS_EXAM } from '../data/story/bonding';
 import { applyEffects } from '../game/systems/effects';
 import { resolveCast, applyDialogueActing, clearDialogueActing } from '../game/systems/acting';
 import { useGame } from './gameStore';
@@ -103,6 +104,21 @@ export const useDialogue = create<Store>((set, get) => ({
       get().close();
       clearDialogueActing();
       useGame.getState().setMode('STUDY');
+      return;
+    }
+    // v0.18.0: '__exam__' — PTS mini-game (story-driven, mandatory). Entry is
+    // already once-guarded by the montage_pts trigger (historical flag
+    // bond_pts_done); the completion flag adds a second guarantee: a scene
+    // that somehow re-enters '__exam__' after the quiz NEVER replays it — it
+    // resumes straight into the canon results dialogue (Pak Budi, Ren 98).
+    if (node.next === SPECIAL_NODES.exam) {
+      get().close();
+      clearDialogueActing();
+      if (useStory.getState().hasFlag(PTS_EXAM.doneFlag)) {
+        get().open(PTS_EXAM.resume, true);
+      } else {
+        useGame.getState().setMode('EXAM');
+      }
       return;
     }
     set({ nodeId: node.next });

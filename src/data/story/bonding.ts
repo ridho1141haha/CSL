@@ -7,9 +7,25 @@ const N = (n: DialogueNode) => n;
 // SEBELUM insiden tangga (doc Ch5 = game BAB II). Dibuka StoryDirector sebagai
 // montase otomatis (pattern montase rute: beat-driven, tidak butuh zona):
 //   beat ch1_friendship → ch1_lib_*  (doc CH3: perpustakaan, tukar catatan)
-//   beat ch1_pts        → ch1_pts_*  (doc CH4: hasil PTS, Pak Budi, nilai 98)
+//   beat ch1_pts        → ch1_pts_exam (v0.18.0: hari PTS → mini-game ujian)
+//                       → ch1_pts_*  (doc CH4: hasil PTS, Pak Budi, nilai 98)
 // Rantai beat: ch1_explore → ch1_friendship → ch1_pts → ch1_break (tangga).
 // ============================================================================
+
+// v0.18.0 — PTS mini-game wiring (DATA, bukan engine). UI quiz-nya generik
+// (game-ui/StudyQuiz.tsx); di mana cerita dilanjutkan dan flag penanda
+// selesai adalah fakta cerita — jadi hidup di sini. Flag disimpan via
+// storyStore.setFlag (tersimpan di csl-save-v2, dicek handler __exam__ di
+// dialogueStore supaya scene yang di-trigger ulang tidak pernah memutar
+// ulang quiz).
+export const PTS_EXAM = {
+  /** flag penanda PTS sudah dimainkan (storyStore.flags — save-safe) */
+  doneFlag: 'pts_quiz_done',
+  /** montase hasil kanon yang dibuka setelah quiz (Pak Budi: Ren 98, Aris 90) */
+  resume: 'ch1_pts_1',
+  /** template toast HUD setelah lembar jawaban diserahkan */
+  resultNote: 'PTS selesai — {correct}/{total} benar · Akademik +{academic} · Fokus {focus}',
+} as const;
 
 export const BONDING_NODES: DialogueNode[] = [
     // ============================================================
@@ -32,8 +48,17 @@ export const BONDING_NODES: DialogueNode[] = [
     }),
     // ============================================================
     // doc CHAPTER 4 — "UJIAN PERTAMA": Penilaian Tengah Semester (PTS)
-    // Scene 1: Pembagian Lembar Hasil Ujian (kelas 11-B, pagi)
+    // v0.18.0: hari PTS kini BENAR-BENAR dimainkan (mini-game ujian) di
+    // antara bonding perpustakaan dan pengumuman hasil. Node jembatan ini
+    // dibuka trigger montage_pts (data/story/triggers.ts); advance ke
+    // '__exam__' menutup dialog dan memasuki mode EXAM (dialogueStore).
+    // Setelah quiz selesai, systems/exam.ts membuka ch1_pts_1 (hasil kanon) —
+    // cabang cerita SETELAH PTS tidak berubah sama sekali.
     // ============================================================
+    N({ id: 'ch1_pts_exam', speaker: 'NARATOR', portrait: 'narrator', text: 'Hari penilaian tengah semester. Suara kipas angin di plafon kelas 11-B terdengar jelas di antara derit bangku. Lembar soal berpindah dari tangan ke tangan, dan Ren menarik napas pelan — punggung Aris di sebelahnya tegak, pensil sudah di tangan.', next: '__exam__' }),
+    // -----------------------------------------------------------
+    // Scene 1: Pembagian Lembar Hasil Ujian (kelas 11-B, pagi)
+    // -----------------------------------------------------------
     N({ id: 'ch1_pts_1', speaker: 'NARATOR', portrait: 'narrator', text: 'Kelas 11-B, pagi hari. Pak Budi berjalan di antara barisan meja, membagikan lembar hasil Ujian Tengah Semester dengan raut bangga.', next: 'ch1_pts_2' }),
     N({ id: 'ch1_pts_2', speaker: 'PAK BUDI', portrait: 'budi', emotion: 'neutral', text: 'Anak-anak, hasil PTS minggu lalu sudah bapak rekap. Bapak sangat mengapresiasi murid baru kita, Ren, yang meraih nilai tertinggi sembilan puluh delapan di angkatan ini. Dan Aris juga menunjukkan peningkatan luar biasa di peringkat lima besar.', next: 'ch1_pts_3' }),
     N({ id: 'ch1_pts_3', speaker: 'NARATOR', portrait: 'narrator', text: 'Murid-murid lain berbisik-bisik. Beberapa anak preman di meja depan melirik sinis ke arah meja belakang.', next: 'ch1_pts_4' }),

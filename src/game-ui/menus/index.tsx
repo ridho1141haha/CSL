@@ -22,6 +22,7 @@ import { pickActiveQuest, questTargetFor, distanceToTarget } from '../../game/wa
 import { saveGame, deleteSave, hasSave, slotInfo, SAVE_SLOTS, type SlotId } from '../../game/save';
 import { loadGame } from '../../game/loadFlow';
 import { applyEffects } from '../../game/systems/effects';
+import { scoreStudy } from '../../game/systems/study';
 import { audio } from '../../game/audio';
 
 // Shared full-screen menu shell with keyboard navigation (arrows/WASD, Esc).
@@ -601,27 +602,31 @@ export function StudyPanel() {
   return (
     <div className="study-panel panel-cut">
       <div className="eyebrow">BELAJAR // PERTANYAAN {idx + 1}/{questions.length}</div>
-      <h2>{q.q}</h2>
+      <h2>{q.question}</h2>
       <div className="study-options">
         {q.options.map((opt, i) => (
           <button
             key={i}
-            className={picked === i ? (i === q.answer ? 'good' : 'bad') : picked != null && i === q.answer ? 'good' : ''}
+            className={picked === i ? (i === q.correctIndex ? 'good' : 'bad') : picked != null && i === q.correctIndex ? 'good' : ''}
             disabled={picked != null}
             onClick={() => {
               setPicked(i);
               audio.click();
-              if (i === q.answer) setCorrect((c) => c + 1);
+              if (i === q.correctIndex) setCorrect((c) => c + 1);
               setTimeout(() => {
                 if (idx + 1 >= questions.length) {
-                  const c = correct + (i === q.answer ? 1 : 0);
+                  // v0.18.0: delta stat kini dari scoreStudy() — SATU rumus
+                  // skoring untuk sesi belajar sukarela DAN PTS mini-game
+                  // (angka identik dengan math inline yang dulu: 3/benar,
+                  // +2/benar −1/salah untuk fokus).
+                  const r = scoreStudy(correct + (i === q.correctIndex ? 1 : 0), questions.length);
                   applyEffects([
-                    { k: 'stat', stat: 'academic', delta: c * 3 },
-                    { k: 'stat', stat: 'focus', delta: c * 2 - (questions.length - c) },
+                    { k: 'stat', stat: 'academic', delta: r.academicDelta },
+                    { k: 'stat', stat: 'focus', delta: r.focusDelta },
                     { k: 'flag', id: 'studied_once' },
                     { k: 'quest', id: 'study_habit', state: 'completed' },
                     { k: 'time', minutes: 25 },
-                    { k: 'notify', text: `Sesi belajar selesai: ${c}/${questions.length} benar. (Akademik +${c * 3})` },
+                    { k: 'notify', text: `Sesi belajar selesai: ${r.correct}/${r.total} benar. (Akademik +${r.academicDelta})` },
                   ]);
                   setDone(true);
                 } else {

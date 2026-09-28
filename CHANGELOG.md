@@ -1,5 +1,67 @@
 # Changelog
 
+## 0.18.0 — 2026-09-28 (Mini-game UJIAN/PTS — PTS kini benar-benar dimainkan)
+
+Fitur: saat cerita tiba di hari PTS (antara bonding perpustakaan Ren↔Aris dan
+pengumuman hasil), player kini MENGERJAKAN ujiannya — 5 soal pilihan ganda,
+skoring stats nyata — lalu cerita lanjut PERSIS seperti sebelumnya. Kanon tidak
+disentuh: Pak Budi tetap mengumumkan Ren 98 dan Aris 90 (lima besar); skor quiz
+hanya membentuk progres Akademik/Fokus, bukan cabang cerita.
+
+### ALUR BARU
+- bonding perpustakaan (ch1_lib_6) → beat ch1_pts → montase ch1_pts_exam
+  (jembatan "hari PTS") → `__exam__` → **mode EXAM (StudyQuiz)** → 5 soal →
+  layar hasil "Jawaban benar: X/5 · Akademik +N · Fokus ±N" → LANJUTKAN →
+  montase hasil kanon (ch1_pts_1..5, beat ch1_break) → cerita normal
+  (tangga belakang → BAB II, dst).
+
+### DATA (isi cerita tetap di data, engine generik)
+- `data/chapters.ts`: `STUDY_QUESTIONS` refactor ke shape `StudyQuestion`
+  `{ id, question, options, correctIndex }` — ISI SOAL PERSIS sama (5 soal
+  existing, terkunci test); entri staging/kamera/aktor/fx untuk ch1_pts_exam.
+- `data/story/bonding.ts`: node `ch1_pts_exam` (next: `__exam__`) + `PTS_EXAM`
+  { doneFlag: 'pts_quiz_done', resume: 'ch1_pts_1', resultNote } — wiring
+  exam adalah DATA, bukan id hardcode di engine.
+- `data/story/triggers.ts`: `montage_pts.open` → ch1_pts_exam; once-flag
+  historis `bond_pts_done` TIDAK berubah (save-compat terkunci test).
+- `data/story/index.ts`: `SPECIAL_NODES.exam = '__exam__'` (pola __combat__/__study__).
+
+### SYSTEMS / STORES
+- `systems/exam.ts` BARU: `completeExam(correct, total)` — SATU pintu:
+  `scoreStudy()` yang SUDAH ADA (bukan rumus kedua) → pipeline `applyEffects`
+  standar (stat academic/focus, flag, toast) → buka montase hasil kanon.
+- `StudyPanel` (sesi belajar sukarela) refactor memakai `scoreStudy()` —
+  duplikasi formula inline dihapus (angka identik: 3/benar, fokus +2/benar −1/salah).
+- `dialogueStore`: handler `__exam__` — flag `pts_quiz_done` sudah ada →
+  LANGSUNG montase hasil (quiz TIDAK PERNAH diulang saat scene re-trigger);
+  belum ada → mode EXAM.
+- Mode `EXAM` (GameMode baru): ujian wajib — completion kembali ke CERITA
+  (bukan gameplay), ESC sengaja no-op (keluar di tengah quiz akan menggantung
+  beat ch1_pts; mirip COMBAT). Watchdog tidak menyentuh EXAM. Player/TouchControls
+  otomatis beku (gating mode existing).
+
+### GUARD & MOBILE
+- PTS sekali saja: dua lapis — trigger once-flag historis `bond_pts_done`
+  (montase) + flag penyelesaian `pts_quiz_done` (re-entry `__exam__`).
+  Flag tersimpan di csl-save-v2 (schema v2 TIDAK berubah) — setelah load,
+  PTS yang sudah selesai tidak diputar ulang.
+- Mobile: grid jawaban 1 kolom ≤700px (CSS existing), tombol ≥44px, tanpa
+  hover/keyboard — diverifikasi headless viewport 390×844.
+
+### TESTS & QA
+- `test/exam.test.ts` BARU (16 test): integritas+isi bank soal terkunci,
+  scoreStudy 5/5·4/5·0/5, wiring montase→ujian→resume, KANON UTUH (teks 98/90
+  + efek ch1_pts_5/ch1_lib_6 terkunci), completeExam integration (stats, flag,
+  dialog kanon), guard no-repeat, roundtrip save flag, ALUR UJUNG-KE-UJUNG
+  (lib → quiz → hasil → ch1_break → trigger ch2_card menyala = cerita lanjut).
+- `scripts/qa-pts.mjs` BARU (15 cek headless di build nyata): montase otomatis
+  → EXAM → ESC no-op → 5 soal dijawab (3 benar) → hasil skor → montase hasil
+  kanon → beat ch1_break → autosave (academic 60+9+3=72, focus 50+4=54,
+  flag tersimpan) → mobile 1 kolom + tap jawab. 15/15.
+- Total: 306/306 test · tsc ✓ · build ✓ · check:cycles 0 · qa-nav ✓ ·
+  qa-walk 15/15 · qa-face 5/5 · CONSOLE_ERRORS none.
+
+
 ## 0.17.1 — 2026-09-25 (Story Architecture Scalability — StoryDirector bebas konten)
 
 Phase 8 directive: story progression jadi data-driven. Target: "menambah story

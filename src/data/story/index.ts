@@ -42,8 +42,12 @@ export const DIALOGUE: Record<string, DialogueNode> = Object.fromEntries(
   ].map((n) => [n.id, n]),
 );
 
-// Special node ids consumed by the dialogue runner (not real nodes)
-export const SPECIAL_NODES = { combat: '__combat__', study: '__study__' };
+// Special node ids consumed by the dialogue runner (not real nodes).
+// v0.18.0: '__exam__' — story-driven PTS mini-game: the dialogueStore closes
+// the dialogue and enters EXAM mode (or, when the PTS completion flag is
+// already set, resumes straight into the canon results dialogue — the quiz
+// never replays).
+export const SPECIAL_NODES = { combat: '__combat__', study: '__study__', exam: '__exam__' };
 
 // Runtime wiring tables — single source of truth for how the story graph is
 // entered from the world. v0.17.1: DERIVED from the STORY_TRIGGERS registry

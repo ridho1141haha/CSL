@@ -8,6 +8,7 @@ import {
   ZONE_FLAVOR,
 } from '../data/dialogue';
 import { ENCOUNTERS } from '../data/quests';
+import { PTS_EXAM } from '../data/story/bonding';
 import { HIDDEN_EVENTS } from '../data/hiddenEvents';
 import { OPENING_ROOT } from '../data/chapters';
 import { NPCS } from '../data/npcs';
@@ -28,6 +29,10 @@ describe('story flow: node reachability', () => {
     ...STORY_TRIGGER_NODES,
     // v0.15.0: onWin DAN onLose dua-duanya pintu masuk graph cerita
     ...Object.values(ENCOUNTERS).flatMap((e) => (e.onLose ? [e.onWin, e.onLose] : [e.onWin])),
+    // v0.18.0: rantai dialog terputus di __exam__ (PTS mini-game) — node
+    // resume montase hasil kanon adalah pintu masuk tersendiri, dibuka
+    // systems/exam.ts completeExam() (pola yang sama dengan onWin __combat__)
+    PTS_EXAM.resume,
     ...NPCS.map((n) => n.dialogueRoot),
     ...Object.values(ZONE_FLAVOR),
     ...HIDDEN_EVENTS.map((e) => e.dialogue),

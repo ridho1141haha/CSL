@@ -1,5 +1,34 @@
 # Project State
 
+Updated: 2026-09-28 (v0.18.0 — mini-game UJIAN/PTS: hari PTS kini dimainkan
+(5 soal existing, scoreStudy → Akademik/Fokus) di antara bonding perpustakaan
+dan pengumuman hasil kanon; mode EXAM wajib tanpa ESC, guard dua lapis
+bond_pts_done + pts_quiz_done, save v2 utuh; kanon 98/90 & cabang cerita tak
+berubah; 306 test)
+
+## v0.18.0 Snapshot (2026-09-28)
+
+**MINI-GAME PTS — alur: ch1_lib_6 → beat ch1_pts → ch1_pts_exam (`__exam__`)
+→ mode EXAM (StudyQuiz) → 5 soal → scoreStudy() → stats → montase hasil kanon
+ch1_pts_1..5 → beat ch1_break → cerita normal.**
+- DATA: `STUDY_QUESTIONS` (chapters.ts) refactor ke `StudyQuestion {id,question,
+  options,correctIndex}` — isi soal PERSIS (terkunci test); node `ch1_pts_exam`
+  + `PTS_EXAM {doneFlag,resume,resultNote}` di bonding.ts; `montage_pts.open`
+  → ch1_pts_exam (once `bond_pts_done` UTUH — save-compat); `SPECIAL_NODES.exam`.
+- SYSTEMS: `systems/exam.ts completeExam()` — scoreStudy() existing →
+  applyEffects (academic/focus/flag/notify) → open montase hasil kanon.
+  StudyPanel refactor pakai scoreStudy (duplikasi formula dihapus).
+- STORES: dialogueStore handler `__exam__` — flag pts_quiz_done → langsung
+  hasil kanon (quiz tak pernah diulang); else mode EXAM.
+- RUNTIME: StoryDirector TIDAK disentuh; mode `EXAM` baru (wajib, ESC no-op,
+  completion → cerita; player/touch otomatis beku via gating mode existing).
+- SAVE: flag pts_quiz_done tersimpan di csl-save-v2 (schema v2 utuh) —
+  PTS yang sudah selesai tidak dimainkan ulang setelah load (terkunci test).
+- VERIFY: 306/306 test · tsc ✓ · build ✓ · cycles 0 · qa-nav ✓ · qa-walk 15/15 ·
+  qa-face 5/5 · qa-pts 15/15 (BARU) · CONSOLE_ERRORS none.
+- Kanon/ending/rute/dialog cerita TIDAK diubah; Choice 1/2/3 & 6 ending utuh.
+
+
 Updated: 2026-09-25 (v0.17.1 — story architecture scalability: StoryTriggerDef
 registry (16 baris data menggantikan 15 blok if per-beat StoryDirector — 366 →
 ~175 baris, nol id cerita), quest completion explore_school/rooftop_meeting

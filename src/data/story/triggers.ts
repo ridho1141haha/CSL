@@ -36,11 +36,15 @@ export const STORY_TRIGGERS: StoryTriggerDef[] = [
     when: { k: 'beat', id: 'ch1_friendship' },
   },
   {
-    // v0.15.0 bonding arc: hasil PTS (doc Ch4) → beat ch1_break di ch1_pts_5
+    // v0.15.0 bonding arc: hari PTS (doc Ch4). v0.18.0: montase kini berhenti
+    // di node jembatan ch1_pts_exam → '__exam__' (mini-game ujian); setelah
+    // quiz selesai systems/exam.ts membuka ch1_pts_1 (hasil kanon) — beat
+    // ch1_break tetap diletakkan ch1_pts_5, cabang cerita tak berubah.
+    // once TETAP flag historis 'bond_pts_done' (save-compat).
     id: 'montage_pts',
     once: 'bond_pts_done',
     duringCinematic: true,
-    open: 'ch1_pts_1',
+    open: 'ch1_pts_exam',
     when: { k: 'beat', id: 'ch1_pts' },
   },
   {

@@ -1,4 +1,4 @@
-import type { ChapterDef, ChapterId, HoldKind, SceneId } from '../types';
+import type { ChapterDef, ChapterId, HoldKind, SceneId, StudyQuestion } from '../types';
 
 export const CHAPTERS: Record<ChapterId, ChapterDef> = {
   // v0.7.0 — bab 1 & 2 mengikuti alur lambat baru (GDD §"Alur yang lebih lambat").
@@ -85,6 +85,9 @@ export const CAM_BY_NODE: Record<string, string> = {
   ch1_lib_5: 'library_close',
   ch1_lib_6: 'library_shelf',
   ch1_pts_1: 'classroom_view',
+  // v0.18.0: jembatan "hari PTS" sebelum mini-game ujian — framing kelas sama
+  // dengan hasil PTS (classroom_view).
+  ch1_pts_exam: 'classroom_view',
   ch1_pts_2: 'classroom_budi',
   ch1_pts_3: 'classroom_view',
   ch1_pts_4: 'classroom_close',
@@ -277,6 +280,8 @@ export const NODE_FX: Record<string, { fx: 'fp-to-tp' | 'fade-out' | 'fade-in' |
   // v0.15.0: montase bonding + rantai secret rute netral
   ch1_lib_1: { fx: 'fade-in' },
   ch1_pts_1: { fx: 'fade-in' },
+  // v0.18.0: intro hari PTS (sebelum mini-game ujian)
+  ch1_pts_exam: { fx: 'fade-in' },
   n5_1: { fx: 'fade-in' },
   ch4_neu_out_1: { fx: 'fade-in' },
   ch4_neu_secret_1: { fx: 'fade-in' },
@@ -651,6 +656,8 @@ export const SCENE_ACTORS: Record<string, OpeningCast> = {
   ch1_lib_5: { aris: LIB_ARIS },
   ch1_lib_6: { aris: LIB_ARIS },
   ch1_pts_1: { budi: BUDI_CLASS, aris: ARIS_CLASS },
+  // v0.18.0: intro hari PTS — kelas sama, Pak Budi membagikan lembar soal
+  ch1_pts_exam: { budi: BUDI_CLASS, aris: ARIS_CLASS },
   ch1_pts_2: { budi: BUDI_CLASS, aris: ARIS_CLASS },
   ch1_pts_3: { budi: BUDI_CLASS, aris: ARIS_CLASS },
   ch1_pts_4: { budi: BUDI_CLASS, aris: ARIS_CLASS },
@@ -715,12 +722,16 @@ export const STORY_PROPS: Record<string, StoryPropDef> = {
 };
 
 // Study mini-game questions [PROPOSED content]
-export const STUDY_QUESTIONS: { q: string; options: string[]; answer: number }[] = [
-  { q: 'Hasil dari 12 × 8 − 6 adalah...', options: ['84', '90', '96', '102'], answer: 1 },
-  { q: 'Kalimat "Kami pergi ke perpustakaan setelah bel." termasuk jenis kalimat...', options: ['Verbal', 'Nominal', 'Imperatif', 'Interogatif'], answer: 1 },
-  { q: 'Choose the correct sentence:', options: ['He don\'t like school.', 'He doesn\'t likes school.', 'He doesn\'t like school.', 'He not like school.'], answer: 2 },
-  { q: 'Ibu kota Provinsi Jawa Barat adalah...', options: ['Bandung', 'Semarang', 'Surabaya', 'Serang'], answer: 0 },
-  { q: 'Pada ekosistem, organisme yang menguraikan bahan organik disebut...', options: ['Produsen', 'Konsumen', 'Detritivor/Decomposer', 'Herbivora'], answer: 2 },
+// v0.18.0: refactored to the shared StudyQuestion shape ({ id, question,
+// options, correctIndex }) — isi soal PERSIS sama dengan daftar asli; kini
+// dipakai StudyPanel (sesi belajar sukarela) DAN PTS mini-game (systems/exam.ts
+// + game-ui/StudyQuiz.tsx). Skoring tetap satu rumus: scoreStudy().
+export const STUDY_QUESTIONS: StudyQuestion[] = [
+  { id: 'pts_math_1', question: 'Hasil dari 12 × 8 − 6 adalah...', options: ['84', '90', '96', '102'], correctIndex: 1 },
+  { id: 'pts_ind_1', question: 'Kalimat "Kami pergi ke perpustakaan setelah bel." termasuk jenis kalimat...', options: ['Verbal', 'Nominal', 'Imperatif', 'Interogatif'], correctIndex: 1 },
+  { id: 'pts_eng_1', question: 'Choose the correct sentence:', options: ['He don\'t like school.', 'He doesn\'t likes school.', 'He doesn\'t like school.', 'He not like school.'], correctIndex: 2 },
+  { id: 'pts_geo_1', question: 'Ibu kota Provinsi Jawa Barat adalah...', options: ['Bandung', 'Semarang', 'Surabaya', 'Serang'], correctIndex: 0 },
+  { id: 'pts_bio_1', question: 'Pada ekosistem, organisme yang menguraikan bahan organik disebut...', options: ['Produsen', 'Konsumen', 'Detritivor/Decomposer', 'Herbivora'], correctIndex: 2 },
 ];
 
 // ---------------------------------------------------------------------------
@@ -885,6 +896,7 @@ export const REN_STAGING: Record<string, PlayerStaging> = {
   ch1_lib_5: { pos: [29.0, 20.4], face: [30.0, 19.2] },
   ch1_lib_6: { pos: [29.0, 20.4], face: [30.0, 19.2] },
   ch1_pts_1: { pos: CLASS_REN, face: [-12.2, 11.6] },
+  ch1_pts_exam: { pos: CLASS_REN, face: [-12.2, 11.6] },
   ch1_pts_2: { pos: CLASS_REN, face: [-12.2, 11.6] },
   ch1_pts_3: { pos: CLASS_REN, face: [-12.2, 11.6] },
   ch1_pts_4: { pos: CLASS_REN, face: [-12.2, 11.6] },
