@@ -24,12 +24,10 @@ const JUMP_V = 4.9;
 export function Player() {
   const body = useRef<RapierRigidBody>(null);
   const { rapier, world } = useRapier();
-  const spawnX = usePlayer((s) => s.x);
-  const spawnZ = usePlayer((s) => s.z);
   const posTimer = useRef(0);
   const stepTimer = useRef(0);
   const gravityHold = useRef(0);
-  const spawnRef = useRef({ x: spawnX, z: spawnZ });
+  const spawnRef = useRef({ x: usePlayer.getState().x, z: usePlayer.getState().z });
   // v0.16.0 spawn-settle pin (real time). On every mount AND after every
   // fall-through respawn the rapier body used to sink through the not-yet-
   // stepped ground colliders, hit the y<-2 respawn, and yo-yo with the
@@ -49,27 +47,32 @@ export function Player() {
   // teleport to warehouse), move the rigid body to the new position. Without
   // this, the teleport effect only updates the store; the rigid body stays at
   // its old position and the player never visually relocates.
+  // ⚡ Bolt optimization: Use transient updates via usePlayer.subscribe instead of reactive hooks
+  // to avoid re-rendering this heavy Three.js component every frame.
   useEffect(() => {
-    const rb = body.current;
-    if (!rb) return;
-    const current = rb.translation();
-    const dx = spawnX - current.x;
-    const dz = spawnZ - current.z;
-    // Only teleport if the position changed significantly (>1 unit) —
-    // avoids fighting with normal physics motion on small store updates.
-    if (Math.hypot(dx, dz) > 1.0) {
-      rb.setTranslation({ x: spawnX, y: 0.75, z: spawnZ }, true);
-      rb.setLinvel({ x: 0, y: 0, z: 0 }, true);
-      // v0.16.0: re-arm the settle pin — story teleports and scene changes
-      // mount new world bundles; without the pin the body sinks through the
-      // floor until their colliders step for the first time.
-      groundHoldUntil.current = performance.now() + 2500;
-      // Also update runtime playerPos so camera/combat read the new position
-      playerPos.x = spawnX;
-      playerPos.z = spawnZ;
-      spawnRef.current = { x: spawnX, z: spawnZ };
-    }
-  }, [spawnX, spawnZ]);
+    const unsub = usePlayer.subscribe((state) => {
+      const rb = body.current;
+      if (!rb) return;
+      const current = rb.translation();
+      const dx = state.x - current.x;
+      const dz = state.z - current.z;
+      // Only teleport if the position changed significantly (>1 unit) —
+      // avoids fighting with normal physics motion on small store updates.
+      if (Math.hypot(dx, dz) > 1.0) {
+        rb.setTranslation({ x: state.x, y: 0.75, z: state.z }, true);
+        rb.setLinvel({ x: 0, y: 0, z: 0 }, true);
+        // v0.16.0: re-arm the settle pin — story teleports and scene changes
+        // mount new world bundles; without the pin the body sinks through the
+        // floor until their colliders step for the first time.
+        groundHoldUntil.current = performance.now() + 2500;
+        // Also update runtime playerPos so camera/combat read the new position
+        playerPos.x = state.x;
+        playerPos.z = state.z;
+        spawnRef.current = { x: state.x, z: state.z };
+      }
+    });
+    return unsub;
+  }, []);
 
   useFrame((state, deltaRaw) => {
     const rb = body.current;
