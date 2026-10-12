@@ -1,0 +1,3 @@
+## 2024-05-24 - Transient Updates in Three.js Components
+**Learning:** Using Zustand's reactive hook selectors (e.g. `useStore((s) => s.x)`) in heavy React Three Fiber components can cause frequent React re-renders, especially when the state is updated rapidly (like player movement). Even if the state is throttled (like `posTimer` triggering a state update every 12 frames), React will still re-render the component.
+**Action:** When a heavy component like `Player.tsx` only needs to react to specific state changes occasionally (like teleportation) or needs to read state without re-rendering, use `useStore.subscribe` or `useStore.getState()` instead of hook selectors. This bypasses React's render cycle for performance gains.
