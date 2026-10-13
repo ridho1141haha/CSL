@@ -1,0 +1,3 @@
+## 2024-05-15 - React Component Re-rendering caused by Zustand Selectors
+**Learning:** Object-literal selectors with Zustand v5 (e.g., returning objects from selectors) create a new snapshot every poll and crash React with "Maximum update depth exceeded". Selecting primitives or using `subscribe` is essential for heavily updated states like player position. Also, reactive hooks (e.g. `usePlayer((s) => s.x)`) connected to rapidly changing state can cause heavy components to re-render constantly, leading to performance drops.
+**Action:** Use transient updates via `useStore.subscribe` or periodic polling with `useStore.getState()` inside a `useEffect` rather than reactive hook selectors for heavy components connected to rapidly changing state.
