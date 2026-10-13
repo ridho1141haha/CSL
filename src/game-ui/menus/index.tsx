@@ -326,9 +326,21 @@ const MAP_FOOTPRINTS: MapFootprint[] = [
 export function MapPanel() {
   // zustand v5: object-literal selectors create a new snapshot every poll and
   // crash React with "Maximum update depth exceeded" — select primitives.
-  const px = usePlayer((s) => s.x);
-  const pz = usePlayer((s) => s.z);
-  const facing = usePlayer((s) => s.facing);
+  // OPTIMIZATION: Avoid reactive hooks for player position which updates frequently.
+  const [pos, setPos] = useState({ px: usePlayer.getState().x, pz: usePlayer.getState().z, facing: usePlayer.getState().facing });
+  useEffect(() => {
+    return usePlayer.subscribe((state) => {
+      setPos(prev => {
+        if (Math.abs(prev.px - state.x) > 0.5 || Math.abs(prev.pz - state.z) > 0.5 || Math.abs(prev.facing - state.facing) > 0.1) {
+          return { px: state.x, pz: state.z, facing: state.facing };
+        }
+        return prev;
+      });
+    });
+  }, []);
+  const px = pos.px;
+  const pz = pos.pz;
+  const facing = pos.facing;
   const sceneId = useGame((s) => s.scene);
   const visited = useGame((s) => s.visitedZones);
   const currentZone = useGame((s) => s.currentZone);
