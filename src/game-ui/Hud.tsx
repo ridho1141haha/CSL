@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, memo } from 'react';
 import { useGame } from '../stores/gameStore';
 import { usePlayer } from '../stores/playerStore';
 import { useCombat } from '../stores/combatStore';
@@ -50,14 +50,47 @@ function Meter({ label, value, color, width }: { label: string; value: string; c
   );
 }
 
+const PlayerVitals = memo(function PlayerVitals() {
+  const hp = usePlayer((s) => s.hp);
+  const maxHp = usePlayer((s) => s.maxHp);
+  const focus = usePlayer((s) => s.focus);
+  return (
+    <div className="vitals">
+      <div className="vitals-head">
+        <b>REN</b>
+        <span>LVL 01 // KELAS X-C</span>
+      </div>
+      <Meter label="HP" value={`${Math.round(hp)} / ${maxHp}`} color="red" width={`${(hp / maxHp) * 100}%`} />
+      <Meter label="FOKUS" value={`${Math.round(focus)} / 100`} color="amber" width={`${focus}%`} />
+    </div>
+  );
+});
+
+const PlayerCombatPanel = memo(function PlayerCombatPanel({ enemiesLength }: { enemiesLength: number }) {
+  const hp = usePlayer((s) => s.hp);
+  const maxHp = usePlayer((s) => s.maxHp);
+  const focus = usePlayer((s) => s.focus);
+  return (
+    <>
+      <div className="cb-panel player">
+        <div className="cb-head"><b>REN PRATAMA</b><span>X-C</span></div>
+        <Meter label="HP" value={`${Math.round(hp)} / ${maxHp}`} color="red" width={`${(hp / maxHp) * 100}%`} />
+        <Meter label="FOKUS" value={`${Math.round(focus)} / 100`} color="amber" width={`${focus}%`} />
+        <span className="chip chip-amber">STREET BRAWLER</span>
+      </div>
+      <div className="cb-mid">
+        <span className="cb-mode">MODE SKIRMISH <i>//</i> DUEL</span>
+        <span className="cb-round">REN {Math.round(hp)} HP <i>·</i> {enemiesLength} LAWAN</span>
+      </div>
+    </>
+  );
+});
+
 // HUD eksplorasi — implementasi mockup Stitch "03-exploration":
 // top bar (brand + jam), kartu vitals, kartu misi, tag zona,
 // prompt interaksi ber-bracket, dan chip kontrol bawah.
 // v0.14.0: kartu misi punya pilihan navigasi [TELEPORT] / [JALAN].
 export function Hud() {
-  const hp = usePlayer((s) => s.hp);
-  const maxHp = usePlayer((s) => s.maxHp);
-  const focus = usePlayer((s) => s.focus);
   const clock = useGame((s) => s.clock);
   const zone = useGame((s) => s.currentZone);
   const interactTarget = useGame((s) => s.interactTarget);
@@ -66,7 +99,14 @@ export function Hud() {
   const camMode = useSettings((s) => s.camMode);
   const gameMode = useGame((s) => s.mode);
   const lastHit = useCombat((s) => s.lastPlayerHitAt);
-  const hurtFlash = Date.now() - lastHit < 400;
+  const [hurtFlash, setHurtFlash] = useState(false);
+  useEffect(() => {
+    if (Date.now() - lastHit < 400) {
+      setHurtFlash(true);
+      const t = setTimeout(() => setHurtFlash(false), 400 - (Date.now() - lastHit));
+      return () => clearTimeout(t);
+    }
+  }, [lastHit]);
   // v0.10.0: waypoint-backed mission card — title, objective AND live distance
   const { target, dist } = useObjective();
   const activeQuest = target ? QUESTS.find((q) => q.id === target.questId) ?? null : null;
@@ -106,14 +146,7 @@ export function Hud() {
         <div className="hud-avatar">R</div>
       </header>
 
-      <div className="vitals">
-        <div className="vitals-head">
-          <b>REN</b>
-          <span>LVL 01 // KELAS X-C</span>
-        </div>
-        <Meter label="HP" value={`${Math.round(hp)} / ${maxHp}`} color="red" width={`${(hp / maxHp) * 100}%`} />
-        <Meter label="FOKUS" value={`${Math.round(focus)} / 100`} color="amber" width={`${focus}%`} />
-      </div>
+      <PlayerVitals />
 
       <div className={`obj-card ${walkHint ? 'walk-hint' : ''}`}>
         <div className="obj-marker">M</div>
@@ -194,9 +227,6 @@ export function CombatHud() {
   const enemies = useCombat((s) => s.enemies);
   const index = useCombat((s) => s.index);
   const cur = enemies[index];
-  const hp = usePlayer((s) => s.hp);
-  const maxHp = usePlayer((s) => s.maxHp);
-  const focus = usePlayer((s) => s.focus);
 
   // v0.15.2: tandai body saat combat — notifikasi digeser turun supaya tidak
   // menumpuk panel darah musuh (anti-bertumpuk; CSS body.in-combat).
@@ -208,16 +238,7 @@ export function CombatHud() {
   return (
     <div className="combat-ui">
       <div className="cb-top">
-        <div className="cb-panel player">
-          <div className="cb-head"><b>REN PRATAMA</b><span>X-C</span></div>
-          <Meter label="HP" value={`${Math.round(hp)} / ${maxHp}`} color="red" width={`${(hp / maxHp) * 100}%`} />
-          <Meter label="FOKUS" value={`${Math.round(focus)} / 100`} color="amber" width={`${focus}%`} />
-          <span className="chip chip-amber">STREET BRAWLER</span>
-        </div>
-        <div className="cb-mid">
-          <span className="cb-mode">MODE SKIRMISH <i>//</i> DUEL</span>
-          <span className="cb-round">REN {Math.round(hp)} HP <i>·</i> {enemies.length} LAWAN</span>
-        </div>
+        <PlayerCombatPanel enemiesLength={enemies.length} />
         {cur && (
           <div className="cb-panel enemy">
             <div className="cb-head"><span>{enemies.length > 1 ? `TARGET ${index + 1}/${enemies.length}` : 'TARGET'}</span><b>{cur.name.toUpperCase()}</b></div>
