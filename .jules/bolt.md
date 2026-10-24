@@ -1,0 +1,3 @@
+## 2024-05-24 - Transient Zustand Subscriptions
+**Learning:** Reactive selectors like \`usePlayer((s) => s.x)\` for rapidly changing fields (e.g., position updated every frame) cause severe performance issues by forcing whole-component re-renders for every change, even in UI layers that don't need frame-perfect updates (like the map panel).
+**Action:** For UI components displaying rapidly changing state, use transient updates with \`useStore.subscribe()\` inside a \`useEffect\`. Initialize local state with \`useStore.getState()\` lazily to avoid UI flicker on mount, and conditionally trigger \`setState\` within the subscriber to throttle renders.
