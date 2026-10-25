@@ -1,0 +1,3 @@
+## 2026-10-25 - Zustand Selector and Polling Optimization
+**Learning:** Zustand's native equality checks are powerful enough to throttle re-renders simply by returning primitive values (like `Math.round(s.hp)`). Additionally, replacing throttled `setInterval` with unthrottled 60fps state subscriptions can degrade performance in heavy 3D contexts. For dynamically derived objects, checking primitive identifiers rather than reference equality prevents unnecessary React churn.
+**Action:** Use primitive selectors for high-frequency state updates to let Zustand handle bailouts naturally. Maintain interval polling for computationally heavy spatial checks to avoid flooding the main thread.
