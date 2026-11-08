@@ -14,14 +14,17 @@ import { useQuests } from './stores/questStore';
 import { useInventory } from './stores/inventoryStore';
 import { useFrame } from '@react-three/fiber';
 import { input } from './game/input';
-import { audio } from './game/audio';
+import { audio, bgm } from './game/audio';
+import { periodFor } from './game/systems/time';
 import { saveGame } from './game/save';
+import { loadGame } from './game/loadFlow';
 import { mobile } from './game/mobile';
-import { perfState, PREWARM } from './game/runtime';
+import { perfState, PREWARM, enemyPos } from './game/runtime';
 import { GraphicsManager, CullingManager, WorldReadyProbe } from './game/perf';
 import { OPENING_ROOT, OPENING_ACTORS, SCENE_ACTORS, type StorySpot } from './data/chapters';
 import { PLAYER_SPAWN } from './data/world';
 import { StoryPropFX } from './game/story/StoryProps';
+import { applyPlayerStaging } from './game/story/staging';
 import type { StoryPlacement } from './game/npc/Npc';
 
 import { World } from './game/world/World';
@@ -30,7 +33,10 @@ import { CameraRig } from './game/camera/CameraRig';
 import { Npcs, StoryActors } from './game/npc/Npc';
 import { CombatScene } from './game/combat/CombatScene';
 import { StoryDirector } from './game/StoryDirector';
-import { resetCombatRuntime } from './game/combat/combat';
+import { resetCombatRuntime, finishCombatWin } from './game/combat/combat';
+import { nextMode } from './game/camera/mode';
+import { useSettings } from './stores/settingsStore';
+import { lowSpecProfile } from './game/quality';
 import { SCENES } from './data/world';
 
 import { MainMenu } from './game-ui/MainMenu';
@@ -51,6 +57,7 @@ import {
   SaveLoadPanel,
   StudyPanel,
 } from './game-ui/menus';
+import { StudyQuiz } from './game-ui/StudyQuiz';
 
 // v0.9.0: desktop-class devices build the world during boot/menu (prewarm,
 // see runtime.ts) so "MULAI" lands in a ready scene and the loading bar
@@ -61,6 +68,12 @@ const BOOT_MIN_MS = 1600;
 // the minimum window instead of hanging the loading screen
 const BOOT_FAILSAFE_MS = 5100;
 
+// v0.14.3: weak-GPU profile at boot — weak device tier OR user-selected
+// RENDAH (persisted). Context-level knobs (MSAA, basic shadows) cannot change
+// live, so they key off this boot-time flag: picking RENDAH + reloading the
+// page gives the full low-spec treatment (crowd halving applies live, see Npc).
+const BOOT_LOW = lowSpecProfile(useSettings.getState().quality, mobile.tier);
+
 export default function App() {
   const phase = useGame((s) => s.phase);
   const mode = useGame((s) => s.mode);
@@ -69,6 +82,30 @@ export default function App() {
   const boot = useGame((s) => s.boot);
   const pointerLocked = useGame((s) => s.pointerLocked);
   const fade = useGame((s) => s.fade);
+
+  // v0.14.0 — BGM monitor (Task 8): SATU-satunya pemanggil bgm.sync di game.
+  // Snapshot state 1x/detik → musicDecision (murni) → setTrack dengan fade
+  // out/in bila track berubah. Komponen lain TIDAK boleh main musik sendiri
+  // (anti-overlap audio): menu/combat/ending/tensi cerita/suasana hari
+  // semuanya lewat sini.
+  useEffect(() => {
+    const tick = () => {
+      const g = useGame.getState();
+      const st = useStory.getState();
+      bgm.sync({
+        phase: g.phase,
+        mode: g.mode,
+        scene: g.scene,
+        chapter: st.chapter,
+        route: st.route,
+        periodId: periodFor(g.clock.minutes).id,
+        endingId: g.ending?.id ?? null,
+      });
+    };
+    tick();
+    const id = window.setInterval(tick, 1000);
+    return () => window.clearInterval(id);
+  }, []);
   // v0.9.0: world prewarm (see PREWARM) — mounted during boot/menu on
   // desktop-class devices, always during play
   const worldMounted = phase === 'play' || PREWARM;
@@ -96,6 +133,55 @@ export default function App() {
     return () => document.removeEventListener('pointerlockchange', onLockChange);
   }, []);
 
+  // v0.16.0 anti-softlock watchdog — every control-stealing mode has an owner
+  // that must restore control (close() for DIALOGUE, CameraRig for CINEMATIC,
+  // CombatScene/onLose for COMBAT). If an owner ever dies (edge case, bug,
+  // stale store), the watchdog snaps control back instead of freezing the
+  // player forever — "karakter stuck ga bisa jalan" must stay impossible.
+  // Deliberately conservative: each condition must hold 3–4s before acting.
+  useEffect(() => {
+    let combatStuck = 0;
+    const t = setInterval(() => {
+      const g = useGame.getState();
+      if (g.phase !== 'play') return;
+      const node = useDialogue.getState().nodeId;
+      if (g.mode === 'DIALOGUE' && !node) {
+        g.setMode('GAMEPLAY');
+        return;
+      }
+      if (
+        g.mode === 'CINEMATIC' &&
+        !node &&
+        g.pendingChapter == null &&
+        useStory.getState().flags.includes('opening_complete')
+      ) {
+        g.setMode('GAMEPLAY');
+        return;
+      }
+      if (g.mode === 'COMBAT') {
+        const c = useCombat.getState();
+        // 'won' resolves via CombatScene winTimer (1.4 s), 'lost' via onLose/
+        // GAME_OVER instantly — both normally gone in <2 s. Anything longer
+        // means the owner is dead; resolve the way the owner would have.
+        const dead = !c.encounterId || c.phase === null || (c.phase === 'fighting' && !c.enemy());
+        const stalled = (c.phase === 'won' || c.phase === 'lost') && ++combatStuck > 8;
+        if (dead || stalled) {
+          combatStuck = 0;
+          if (c.phase === 'won') finishCombatWin();
+          else {
+            c.reset();
+            resetCombatRuntime();
+            enemyPos.active = false;
+            g.setMode('GAMEPLAY');
+          }
+          return;
+        }
+      }
+      combatStuck = 0;
+    }, 500);
+    return () => clearInterval(t);
+  }, []);
+
   // UI keyboard shortcuts (mode-aware)
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -115,6 +201,15 @@ export default function App() {
           e.preventDefault();
           g.setMode('GAMEPLAY');
         }
+        return;
+      }
+      // v0.13.0: V toggles first-person / third-person camera in gameplay AND
+      // combat — persisted via settings so the choice survives reloads.
+      if (e.code === 'KeyV' && (inGameplay || g.mode === 'COMBAT')) {
+        const s = useSettings.getState();
+        const next = nextMode(s.camMode);
+        s.set('camMode', next);
+        g.notify(next === 'first' ? 'Kamera: Orang Pertama' : 'Kamera: Orang Ketiga', 'quest');
         return;
       }
       if (!inGameplay) return;
@@ -157,15 +252,15 @@ export default function App() {
 
   const continueGame = useCallback(() => {
     audio.unlock();
-    // lazy import to avoid cycle: loadGame applies + sets mode
-    import('./game/save').then(({ loadGame }) => {
-      const err = loadGame('auto');
-      if (err) useGame.getState().notify(err, 'warn');
-      else {
-        useGame.getState().setPhase('play');
-        audio.startAmbient();
-      }
-    });
+    // v0.17.0: static import again — loadGame moved to game/loadFlow.ts, whose
+    // dependency direction (UI → loadFlow → {save, combat}) no longer closes
+    // the save → combat → dialogueStore → effects → save module cycle.
+    const err = loadGame('auto');
+    if (err) useGame.getState().notify(err, 'warn');
+    else {
+      useGame.getState().setPhase('play');
+      audio.startAmbient();
+    }
   }, []);
 
   const restart = useCallback(() => {
@@ -186,14 +281,16 @@ export default function App() {
     <div className="app">
       <Canvas
         camera={{ position: [7, 1.62, 44], fov: 60, near: 0.1, far: 500 }}
-        shadows={mobile.lowSpec ? 'basic' : true}
+        shadows={BOOT_LOW ? 'basic' : true}
         // v0.5.0 mobile tier: dpr cap 1.5 + antialias off on phones — the v0.4.x
         // full-fat config (dpr 2 + MSAA + 2048 shadows) could kill the GPU loop
         // on mid-range Android = the "blank world" report. v0.9.0: GraphicsManager
         // re-applies dpr/shadows live from the quality preset.
+        // v0.14.3: MSAA off also when the boot profile is weak (preset RENDAH on
+        // any device — a weak laptop kept paying MSAA fill-rate at RENDAH).
         dpr={mobile.dpr}
         gl={{
-          antialias: !mobile.lowSpec,
+          antialias: !BOOT_LOW,
           toneMapping: THREE.ACESFilmicToneMapping,
           toneMappingExposure: 1.0,
           powerPreference: 'high-performance',
@@ -236,6 +333,7 @@ export default function App() {
               <InputJanitor />
               {mode === 'COMBAT' && <CombatScene />}
               {mode === 'CINEMATIC' && <CinematicActors />}
+              <StoryPlayerStaging />
               <FPViewModel />
             </>
           )}
@@ -293,6 +391,15 @@ export default function App() {
       {phase === 'play' && mode === 'STUDY' && (
         <FullMenu title={<>BELAJAR <em>//</em> SESI</>} onClose={() => useGame.getState().setMode('GAMEPLAY')} eyebrow="SCHOOL LIFE // STUDY SESSION">
           <StudyPanel />
+        </FullMenu>
+      )}
+      {/* v0.18.0: PTS mini-game (mode EXAM). onClose SENGAJA no-op — ujian
+          adalah beat cerita wajib; keluar di tengah quiz akan menggantung beat
+          ch1_pts (trigger montase sekali-saja). ESC di sini no-op, seperti
+          COMBAT. Penyelesaian lewat systems/exam.ts completeExam(). */}
+      {phase === 'play' && mode === 'EXAM' && (
+        <FullMenu title={<>UJIAN <em>//</em> PTS</>} onClose={() => {}} eyebrow="SCHOOL LIFE // MID-SEMESTER EXAM">
+          <StudyQuiz />
         </FullMenu>
       )}
 
@@ -375,6 +482,19 @@ function PointerLockHint() {
   );
 }
 
+// v0.14.0 — Story staging runner (Task 2/3): setiap node dialogue yang punya
+// data REN_STAGING memindahkan Ren ke titik cerita deterministik + menghadap-
+// kan dia. Input sudah terkunci saat DIALOGUE/CINEMATIC, dan scene-start
+// difade via NODE_FX — teleport tidak pernah terlihat kasar. Node tanpa data
+// (NPC talk, zone flavor, opening FP) tidak pernah disentuh → free roam utuh.
+function StoryPlayerStaging() {
+  const nodeId = useDialogue((s) => s.nodeId);
+  useEffect(() => {
+    if (nodeId) applyPlayerStaging(nodeId);
+  }, [nodeId]);
+  return null;
+}
+
 // Cinematic actor placement. v0.7.0: satu schema Spot { pos, face } untuk
 // OPENING_ACTORS (alur lambat "Minggu Pertama") dan SCENE_ACTORS (bab 2 tangga,
 // montage netral, graduasi). Semua koordinat kampus/interior (data/chapters.ts).
@@ -408,18 +528,9 @@ function CinematicActors() {
       cast.followers?.forEach((s, i) => push('follower', i, s, '#7f1d1d'));
       return list;
     }
-    if (nodeId.startsWith('ch3_') && !nodeId.startsWith('ch3_osis') && !nodeId.startsWith('ch3_f2')) {
-      // rooftop scene (local coords): Bimo at the north parapet
-      list.push({ id: 'bimo', x: 0.3, z: -5.6, color: '#ef4444', faceTo: [0, -10] });
-      return list;
-    }
-    // v0.11.0 GARIS MERAH: aktor gang/kelulusan kini dipasok data
-    // SCENE_ACTORS (chapters.ts) — tidak ada lagi hardcode di sini.
-    if (['ch4_res_1', 'ch4_res_2', 'ch4_res_3', 'ch4_res_4'].includes(nodeId)) {
-      list.push({ id: 'aris', x: 6, z: 33, color: '#3b82f6' });
-      list.push({ id: 'siti', x: 4.5, z: 34.5, color: '#10b981' });
-      return list;
-    }
+    // v0.14.1: staging rooftop ch3 + montase resistance ch4_res kini hidup di
+    // SCENE_ACTORS (chapters.ts) — satu sumber data untuk aktor + validasi
+    // camera shot; hardcode lama dihapus karena sudah tercakup data.
     return list;
   }, [nodeId]);
 

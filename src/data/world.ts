@@ -1,4 +1,4 @@
-import type { ZoneDef, CameraPose, SceneId } from '../types';
+import type { ZoneDef, CameraPose, SceneId, ZoneId } from '../types';
 
 // ============================================================================
 // WORLD v2 — multi-scene layout (rebuilt from scratch, no school GLB).
@@ -30,6 +30,11 @@ export type SceneDef = {
   bounds: Bounds;
   spawn: [number, number]; // where the player appears on scene enter
   zones: ZoneDef[];
+  // v0.17.0 (audit G1): scene exits are DATA — standing in `zone` moves the
+  // player to `to` (spawn override optional). Was two hardcoded if-branches
+  // in StoryDirector.tsx with the campus spawn coordinates buried in code.
+  // chapterMin preserves the rooftop door's chapter-3 gate.
+  exits?: { zone: ZoneId; to: SceneId; spawn?: [number, number]; chapterMin?: number }[];
 };
 
 // ---------------------------------------------------------------------------
@@ -88,8 +93,23 @@ export const WAREHOUSE_ZONES: ZoneDef[] = [
 // ---------------------------------------------------------------------------
 export const SCENES: Record<SceneId, SceneDef> = {
   campus: { id: 'campus', label: 'SMA Yuson — Kampus', bounds: CAMPUS_BOUNDS, spawn: [7, 36], zones: CAMPUS_ZONES },
-  rooftop: { id: 'rooftop', label: 'Atap Gedung Utama', bounds: ROOFTOP_BOUNDS, spawn: [0, 6], zones: ROOFTOP_ZONES },
-  warehouse: { id: 'warehouse', label: 'Gudang Tua — Dalam', bounds: WAREHOUSE_BOUNDS, spawn: [0, 7], zones: WAREHOUSE_ZONES },
+  rooftop: {
+    id: 'rooftop',
+    label: 'Atap Gedung Utama',
+    bounds: ROOFTOP_BOUNDS,
+    spawn: [0, 6],
+    zones: ROOFTOP_ZONES,
+    // v0.17.0: exit data moved from StoryDirector.tsx (chapter-3 gate kept)
+    exits: [{ zone: 'rooftop_door', to: 'campus', spawn: [0, -5], chapterMin: 3 }],
+  },
+  warehouse: {
+    id: 'warehouse',
+    label: 'Gudang Tua — Dalam',
+    bounds: WAREHOUSE_BOUNDS,
+    spawn: [0, 7],
+    zones: WAREHOUSE_ZONES,
+    exits: [{ zone: 'warehouse_door', to: 'campus', spawn: [-23.5, -26] }],
+  },
 };
 
 // Legacy flat campus list (HUD labels, tests). Kept for compatibility.

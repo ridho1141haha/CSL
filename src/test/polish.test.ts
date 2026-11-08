@@ -33,11 +33,13 @@ describe('STORY_PROPS (prop dunia pendukung cerita)', () => {
       expect(DIALOGUE[key], `node ${key} harus ada di DIALOGUE`).toBeDefined();
     }
   });
-  it('scene 2: pensil jatuh di o2_3, di lantai sampai o2_5, terkumpul di o2_6', () => {
+  it('scene 2: pensil jatuh di o2_3, di lantai sampai o2_5, terkumpul mulai cabang jawaban (o2_6a/6b)', () => {
     expect(STORY_PROPS['o2_3']?.pencase).toBe('fall');
     expect(STORY_PROPS['o2_3b']?.pencase).toBe('floor');
     expect(STORY_PROPS['o2_5']?.pencase).toBe('floor');
-    expect(STORY_PROPS['o2_6']?.pencase).toBe('none');
+    // v0.15.0: o2_6 terbelah jadi o2_6a/o2_6b (FLAVOR CHOICE 1)
+    expect(STORY_PROPS['o2_6a']?.pencase).toBe('none');
+    expect(STORY_PROPS['o2_6b']?.pencase).toBe('none');
     expect(STORY_PROPS['o2_1']?.pencase).toBe('desk');
   });
   it('bab 2: buku+botol dipegang saat intro, berserakan setelah tersandung, terkumpul di ch2_win_3', () => {

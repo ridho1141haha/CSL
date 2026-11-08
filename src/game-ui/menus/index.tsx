@@ -19,8 +19,10 @@ import { relLabel } from '../../game/systems/relationship';
 import { repLabel } from '../../game/systems/reputation';
 import { clockLabel, DAYS, formatHhmm } from '../../game/systems/time';
 import { pickActiveQuest, questTargetFor, distanceToTarget } from '../../game/waypoint';
-import { saveGame, loadGame, deleteSave, hasSave, slotInfo, SAVE_SLOTS, type SlotId } from '../../game/save';
+import { saveGame, deleteSave, hasSave, slotInfo, SAVE_SLOTS, type SlotId } from '../../game/save';
+import { loadGame } from '../../game/loadFlow';
 import { applyEffects } from '../../game/systems/effects';
+import { scoreStudy } from '../../game/systems/study';
 import { audio } from '../../game/audio';
 
 // Shared full-screen menu shell with keyboard navigation (arrows/WASD, Esc).
@@ -74,12 +76,22 @@ export function FullMenu({ title, onClose, children, eyebrow = 'DOSSIER // YUSON
 // Status — implementasi mockup Stitch "04-status" (TACTICAL DOSSIER):
 // kartu identitas kiri, deretan vitals 3 kolom kanan, chip metrik, catatan.
 export function StatusPanel() {
-  const { hp, maxHp, focus } = usePlayer();
-  const { academic, violence, diplomacy, reputation } = useStats();
+  // v0.17.0 (audit L1): field selectors — the whole-store subscriptions here
+  // re-rendered on EVERY playerStore write (incl. throttled position updates).
+  const hp = usePlayer((s) => s.hp);
+  const maxHp = usePlayer((s) => s.maxHp);
+  const focus = usePlayer((s) => s.focus);
+  const academic = useStats((s) => s.academic);
+  const violence = useStats((s) => s.violence);
+  const diplomacy = useStats((s) => s.diplomacy);
+  const reputation = useStats((s) => s.reputation);
   const flags = useStory((s) => s.flags.length);
   const clock = useGame((s) => s.clock);
   const rel = useSocial((s) => s.relationships);
-  const relAvg = Math.round(((rel.aris ?? 0) + (rel.siti ?? 0) + (rel.bimo ?? 0)) / 3);
+  // v0.17.0: story average derives from the NPC registry (storyCast flag,
+  // Pak Budi excluded — preserved behavior). Was hardcoded aris+siti+bimo/3.
+  const cast = NPCS.filter((n) => n.storyCast);
+  const relAvg = Math.round(cast.reduce((a, n) => a + (rel[n.id] ?? 0), 0) / Math.max(1, cast.length));
   const violenceTag = violence < 30 ? 'TERKENDALI' : violence < 60 ? 'MEMPRIHATINKAN' : 'TIDAK STABIL';
   const meter = (v: number, max: number, color: string) => (
     <div className="meter">
@@ -160,18 +172,9 @@ export function StatusPanel() {
 
 // Relationships — implementasi bagian "CAMPUS SYNDICATE & RELATIONSHIP LOG"
 // dari mockup Stitch "04-status": kartu per karakter + kutipan + meter relasi.
-const REL_QUOTES: Record<string, string> = {
-  aris: '“Ren, buku catatan aku titipin ya kalau ada kuis.”',
-  siti: '“Jangan lupa formulir OSIS kalau kamu yang bawa.”',
-  bimo: '“Kami melihatmu di gerbang. Hati-hati di jalan pulang.”',
-  budi: '“Kelas X-C? Jaga perilaku, aku mengamati dari ruang guru.”',
-};
-const REL_TAGS: Record<string, { text: string; cls: string }> = {
-  aris: { text: 'SEBANGKU', cls: 'chip-cyan' },
-  siti: { text: 'OSIS', cls: 'chip-green' },
-  bimo: { text: 'ANCAMAN', cls: 'chip-red' },
-  budi: { text: 'GURU', cls: '' },
-};
+// v0.17.0: per-NPC quote/chip live on NpcDef (relQuote/relTag) — the local
+// REL_QUOTES/REL_TAGS literal tables are gone; a new cast member needs no UI
+// edit (missing relQuote falls back to '…….' exactly as before).
 
 export function RelationshipsPanel() {
   const relationships = useSocial((s) => s.relationships);
@@ -182,7 +185,7 @@ export function RelationshipsPanel() {
         const v = relationships[n.id] ?? 0;
         const pct = Math.max(0, Math.min(100, ((v + 100) / 200) * 100));
         const tone = v < -10 ? 'hostile' : v >= 40 ? 'warm' : '';
-        const tag = REL_TAGS[n.id] ?? { text: 'SISWA', cls: '' };
+        const tag = n.relTag ?? { text: 'SISWA', cls: '' };
         return (
           <div className="relationship-row" key={n.id}>
             <div className="rel-top">
@@ -192,7 +195,7 @@ export function RelationshipsPanel() {
                 <span>{n.role} // SMA YUSON</span>
               </div>
             </div>
-            <p className="rel-quote">{REL_QUOTES[n.id] ?? '“…….”'}</p>
+            <p className="rel-quote">{n.relQuote ?? '“…….”'}</p>
             <div className="rel-meter">
               <div className="track"><b className={tone} style={{ width: `${pct}%` }} /></div>
               <span className="rel-val">{v > 0 ? '+' : ''}{v}</span>
@@ -503,6 +506,18 @@ export function SettingsPanel() {
   ];
   return (
     <div className="settings-panel">
+      {/* v0.13.0: first-person / third-person camera mode */}
+      <label>
+        <span>MODE KAMERA</span>
+        <select
+          className="settings-select"
+          value={s.camMode}
+          onChange={(e) => s.set('camMode', e.target.value as typeof s.camMode)}
+        >
+          <option value="third">ORANG KETIGA (TPS)</option>
+          <option value="first">ORANG PERTAMA (FPS)</option>
+        </select>
+      </label>
       {/* v0.9.0: graphics quality preset — applied live by GraphicsManager */}
       <label>
         <span>KUALITAS GRAFIK</span>
@@ -536,7 +551,7 @@ export function SettingsPanel() {
       <label><span>INVERT Y</span><input type="checkbox" checked={s.invertY} onChange={(e) => s.set('invertY', e.target.checked)} /></label>
       <label><span>REDUCED MOTION</span><input type="checkbox" checked={s.reducedMotion} onChange={(e) => s.set('reducedMotion', e.target.checked)} /></label>
       <label><span>SCREEN SHAKE</span><input type="checkbox" checked={s.screenShake} onChange={(e) => s.set('screenShake', e.target.checked)} /></label>
-      <p>CONTROLS: WASD MOVE · SHIFT RUN · SPACE JUMP · MOUSE CAMERA · WHEEL ZOOM · LMB ATTACK · Q HEAVY · RMB BLOCK · E INTERACT</p>
+      <p>CONTROLS: WASD MOVE · SHIFT RUN · SPACE JUMP · MOUSE CAMERA · V FIRST/THIRD · WHEEL ZOOM · LMB ATTACK · Q HEAVY · RMB BLOCK · E INTERACT</p>
     </div>
   );
 }
@@ -587,27 +602,31 @@ export function StudyPanel() {
   return (
     <div className="study-panel panel-cut">
       <div className="eyebrow">BELAJAR // PERTANYAAN {idx + 1}/{questions.length}</div>
-      <h2>{q.q}</h2>
+      <h2>{q.question}</h2>
       <div className="study-options">
         {q.options.map((opt, i) => (
           <button
             key={i}
-            className={picked === i ? (i === q.answer ? 'good' : 'bad') : picked != null && i === q.answer ? 'good' : ''}
+            className={picked === i ? (i === q.correctIndex ? 'good' : 'bad') : picked != null && i === q.correctIndex ? 'good' : ''}
             disabled={picked != null}
             onClick={() => {
               setPicked(i);
               audio.click();
-              if (i === q.answer) setCorrect((c) => c + 1);
+              if (i === q.correctIndex) setCorrect((c) => c + 1);
               setTimeout(() => {
                 if (idx + 1 >= questions.length) {
-                  const c = correct + (i === q.answer ? 1 : 0);
+                  // v0.18.0: delta stat kini dari scoreStudy() — SATU rumus
+                  // skoring untuk sesi belajar sukarela DAN PTS mini-game
+                  // (angka identik dengan math inline yang dulu: 3/benar,
+                  // +2/benar −1/salah untuk fokus).
+                  const r = scoreStudy(correct + (i === q.correctIndex ? 1 : 0), questions.length);
                   applyEffects([
-                    { k: 'stat', stat: 'academic', delta: c * 3 },
-                    { k: 'stat', stat: 'focus', delta: c * 2 - (questions.length - c) },
+                    { k: 'stat', stat: 'academic', delta: r.academicDelta },
+                    { k: 'stat', stat: 'focus', delta: r.focusDelta },
                     { k: 'flag', id: 'studied_once' },
                     { k: 'quest', id: 'study_habit', state: 'completed' },
                     { k: 'time', minutes: 25 },
-                    { k: 'notify', text: `Sesi belajar selesai: ${c}/${questions.length} benar. (Akademik +${c * 3})` },
+                    { k: 'notify', text: `Sesi belajar selesai: ${r.correct}/${r.total} benar. (Akademik +${r.academicDelta})` },
                   ]);
                   setDone(true);
                 } else {

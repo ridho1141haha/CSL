@@ -1,6 +1,344 @@
 # Project State
 
-Updated: 2026-09-17 (v0.12.0 — cinematic polish & world connectivity: camera hard-cut, bab 2 di jalur tangga→kantin, lorong lobi→kelas tembus, animasi duduk/jongkok/prop, peta blueprint, low-texture presets)
+Updated: 2026-09-28 (v0.18.0 — mini-game UJIAN/PTS: hari PTS kini dimainkan
+(5 soal existing, scoreStudy → Akademik/Fokus) di antara bonding perpustakaan
+dan pengumuman hasil kanon; mode EXAM wajib tanpa ESC, guard dua lapis
+bond_pts_done + pts_quiz_done, save v2 utuh; kanon 98/90 & cabang cerita tak
+berubah; 306 test)
+
+## v0.18.0 Snapshot (2026-09-28)
+
+**MINI-GAME PTS — alur: ch1_lib_6 → beat ch1_pts → ch1_pts_exam (`__exam__`)
+→ mode EXAM (StudyQuiz) → 5 soal → scoreStudy() → stats → montase hasil kanon
+ch1_pts_1..5 → beat ch1_break → cerita normal.**
+- DATA: `STUDY_QUESTIONS` (chapters.ts) refactor ke `StudyQuestion {id,question,
+  options,correctIndex}` — isi soal PERSIS (terkunci test); node `ch1_pts_exam`
+  + `PTS_EXAM {doneFlag,resume,resultNote}` di bonding.ts; `montage_pts.open`
+  → ch1_pts_exam (once `bond_pts_done` UTUH — save-compat); `SPECIAL_NODES.exam`.
+- SYSTEMS: `systems/exam.ts completeExam()` — scoreStudy() existing →
+  applyEffects (academic/focus/flag/notify) → open montase hasil kanon.
+  StudyPanel refactor pakai scoreStudy (duplikasi formula dihapus).
+- STORES: dialogueStore handler `__exam__` — flag pts_quiz_done → langsung
+  hasil kanon (quiz tak pernah diulang); else mode EXAM.
+- RUNTIME: StoryDirector TIDAK disentuh; mode `EXAM` baru (wajib, ESC no-op,
+  completion → cerita; player/touch otomatis beku via gating mode existing).
+- SAVE: flag pts_quiz_done tersimpan di csl-save-v2 (schema v2 utuh) —
+  PTS yang sudah selesai tidak dimainkan ulang setelah load (terkunci test).
+- VERIFY: 306/306 test · tsc ✓ · build ✓ · cycles 0 · qa-nav ✓ · qa-walk 15/15 ·
+  qa-face 5/5 · qa-pts 15/15 (BARU) · CONSOLE_ERRORS none.
+- Kanon/ending/rute/dialog cerita TIDAK diubah; Choice 1/2/3 & 6 ending utuh.
+
+
+Updated: 2026-09-25 (v0.17.1 — story architecture scalability: StoryTriggerDef
+registry (16 baris data menggantikan 15 blok if per-beat StoryDirector — 366 →
+~175 baris, nol id cerita), quest completion explore_school/rooftop_meeting
+jadi completeWhen/onComplete data, MONTAGE_ROOTS/STORY_TRIGGER_NODES derivasi,
+runner murni systems/storyTriggers.ts; save-compat once-flag dikunci test;
+290 test)
+
+## v0.17.1 Snapshot (2026-09-25)
+
+**Directive Phase 8: story progression data-driven — menambah story beat TIDAK
+lagi butuh if/switch baru di StoryDirector.tsx. Tanpa ubah arsitektur, kanon,
+ending, rute, save schema, controls.**
+- STORY TRIGGER registry (`data/story/triggers.ts` BARU): 16
+  `StoryTriggerDef { id, once?, when, scene?, duringCinematic?, open?, fire? }`
+  — 6 montase, sergapan parkiran, 3 kelulusan, SECRET CHOICE POINT 2 cabang
+  (guard `neu_secret_done` dikelola bersama — zona pertama yang kena mengunci
+  keduanya, perilaku asli), rooftop intro, kartu+scene BAB II, find_aris.
+  Kondisi = sistem Condition eksisting; efek = pipeline applyEffects
+  eksisting. Tidak ada EventBus/ECS/DI.
+- Runner generik MURNI (`systems/storyTriggers.ts`): urutan registry = urutan
+  evaluasi; guard once-flag / dialogue terbuka / mode (montase GAMEPLAY+
+  CINEMATIC = montageReady asli; lainnya GAMEPLAY) / scene default campus.
+  StoryDirector mengeksekusi hasil match via setFlag/applyEffects/dialogue.open.
+- SAVE COMPAT: nama `once` = flag historis persis (bond_lib_done,
+  ch2_scene_started, neu_secret_done, dst.) — terkunci test storyTriggers.
+  Schema v2 tidak berubah.
+- QUEST DATA: explore_school (completeWhen: beat + `visited` 4 zona;
+  onComplete: time-to 10:05 → beat ch1_friendship → 2 toast → save) dan
+  rooftop_meeting (completeWhen: back_stairs+ch3; onComplete: beat+flag+toast+
+  scene rooftop) — urutan efek persis blok engine lama. EXPLORE_TARGETS
+  dihapus dari engine.
+- Primitif baru minimal: Condition `beat` + `visited`; Effect `time-to` +
+  `notify.kind` + `quest.silent` (opt-out toast, nol delta UX).
+- MONTAGE_ROOTS/STORY_TRIGGER_NODES kini derivasi registry — staging/cinema/
+  storyFlow tests otomatis mengunci staging+camera semua pintu masuk scene.
+- VERIFIKASI: 290/290 (23 baru storyTriggers.test.ts) · tsc ✓ · build ✓ ·
+  cycles 0 · qa-walk 15/15 · qa-face 5/5 · qa-nav ✓ · qa-mentor ✓. Kanon,
+  ending, rute, teks dialog, schema save: tidak berubah.
+- Sisa debt (tercatat): App.tsx decomposition, eksternalisasi koordinat
+  StoryProps, i18n penuh; chapters.ts (927 baris data staging) masih satu file
+  — dianjurkan dipecah per-bab HANYA kalau melewati ~1200 baris atau bab 5
+  benar-benar datang.
+
+## v0.17.0 Snapshot (2026-09-24)
+
+**Directive: scalable & maintainable TANPA rewrite, tanpa ubah kanon, tanpa
+rusak save. Fase 0 audit dulu (tanpa kode), lalu refactor bertahap.**
+- CYCLES 2 → 0 (madge; `npm run check:cycles` = gate baru): dialogueStore ⇄
+  effects dipecah (ENDING-guard di store); `loadGame` pindah ke
+  `game/loadFlow.ts` — save.ts kini storage murni; hack dynamic-import lama
+  tinggal satu (effects 'save', terdokumentasi).
+- SATU SUMBER: menambah NPC kini = types union + `data/npcs.ts` + dialog —
+  socialStore, migrateV1, UI relasi/ending, visibility dunia semua DERIVASI
+  (`storyCast/relTag/relQuote/hiddenWhen`). Quest baru = baris data
+  (`waypoint`, `completeWhen/onComplete` — 4 blok hardcode StoryDirector
+  dihapus). Bab/scene = baris data (`defaultBeat/subtitleByRoute/exits`,
+  `SCENE_VIEWS` map).
+- SAVE: route enum-checked (ROUTES), chapter vs CHAPTERS, beat type-checked;
+  save.test.ts BARU 15 test (migrasi v1, defaults, roundtrip, korupsi).
+  Schema v2 TIDAK berubah — save lama aman.
+- PERF: ray/Vector3 reuse di hot path, registry posisi NPC in-place,
+  StatusPanel field-selectors.
+- VERIFIKASI: 267/267 · tsc ✓ · build ✓ · cycles 0 · qa-nav ✓ · qa-walk 15/15
+  · qa-face 5/5. Kanon & data cerita tidak berubah.
+- TERTUNDA (debt tercatat): App.tsx decomposition, trigger-table
+  StoryDirector, eksternalisasi koordinat StoryProps, i18n penuh.
+
+## v0.16.1 Snapshot (2026-09-24)
+
+**User: "arah hadap karakter tidak mengikuti kamera, buat mengikuti kamera".**
+- GAMEPLAY idle kini mengikuti kamera: `systems/facing.ts` baru —
+  `camForwardAngle(yaw)` (konvensi PERSIS lokomosi: facing = atan2(dirX,dirZ),
+  forward = (−sin yaw, −cos yaw) → melepas W tak menyentakkan figur) +
+  `approachFacing` (busur terpendek, wrap ±π, snap tanpa overshoot, 9 rad/s).
+  Sambil berjalan tetap menghadap arah gerak (sudah relatif-kamera).
+- COMBAT idle/blok menghadap MUSUH, bukan kamera: percobaan pertama (semua
+  idle ikut kamera) membuat pukulan berdiri melesat di qa-walk 14/15 — cone
+  hit membaca playerPos.facing yang tertarik ke arah kamera. Final: idle +
+  blok squares-up ke musuh 12 rad/s; attack/block cone selalu valid.
+- QA BARU `qa-face.mjs`: drag kamera nyata (LMB+geser) → poll konvergensi
+  badan via `__csl.camYaw()/camFacingTarget()`; GAMEPLAY 2 arah + COMBAT
+  musuh-vs-kamera — 5/5 PASS. `combat.test.ts` +2, `facing.test.ts` +10 →
+  **249/249** · tsc ✓ · build ✓ · qa-nav ✓ · qa-walk 15/15 ✓.
+- Simpan lama aman; tidak ada perubahan data/story/encounter.
+
+## v0.16.0 Snapshot (2026-09-24)
+
+**User: "kasih batas/collision setiap karakter" + "karakter kita belum bisa
+jalan2" + "test semua rute/alur/ending/scene/combat". Tiga lapisan dikerjakan.**
+- COLLISION: `systems/collision.ts` baru (resolveOverlaps/stripIntoVelocity/
+  nearbyBodies; CHAR_RADIUS 0.42). Pemain kini slide & terdorong keluar dari
+  NPC/crowd/musuh; crowd meregistrasi posisi (runtime.crowdPositions) dan NPC/
+  crowd menahan langkah dekat pemain; combat ring 0.95/0.8 m. Bug lama blok
+  "keep enemy at fair distance" ternyata arahnya terbalik (menyeret musuh ke
+  pemain) — diganti koreksi posisi keras dari posisi terkini.
+- STUCK: (1) combatTick setLinvel tanpa wake=true → rapier body tidur di
+  combat dan mengabaikan semua input gerak — FIX wake; (2) body menembus
+  lantai saat collider belum solid → yo-yo respawn (headless: 4x/15dtk) —
+  FIX pin spawn-settle real-time 2.5 dtk + re-arm di respawn/teleport;
+  (3) settings korup (quality:"RENDAH") → white-screen permanen — FIX
+  validasi nilai per kunci + resolveQuality fallback.
+- WATCHDOG: interval 500 ms memulihkan DIALOGUE/CINEMATIC/COMBAT yatim ke
+  GAMEPLAY (won/lost >4 dtk di-resolve sesuai ownernya) — softlock mustahil.
+- QA BARU: qa-walk.mjs (input nyata headless via window.__csl) 15/15 PASS;
+  storyGraph.test.ts (closure graf dialog + konektivitas 5 chain ending +
+  wiring ENCOUNTERS dua arah). Test 232 → 237/237 · tsc -b ✓ · build ✓ ·
+  qa-nav ✓ CONSOLE_ERRORS none.
+- Simpan lama aman; tidak ada perubahan data/story/encounter.
+
+## v0.15.2 Snapshot (2026-09-24)
+
+**User: "musuh masih menjauhi pemain, pemain juga belum bisa bergerak (wasd,
+spasi)". Tiga bug dilaporkan; akar masalah masing-masing beda file.**
+- `combat.ts` approach: arah GERAK dibalik — dulu `enemyPos += n` (vektor
+  pemain→musuh) musuh berjalan lurus MENJAUH dan tak pernah menyerang; kini
+  `-= n`. Anti-kite: dist > 3.5 m → kejar ≥ 3.6 m/s (jalan pemain 3.4, lari
+  5.6 tetap lolos).
+- `dialogueStore.ts`: fallback `?? 'gate_fight'` (id sudah dihapus sejak
+  v0.7.0) membuat start() gagal diam-diam → mode COMBAT tanpa musuh → pemain
+  dibekukan selamanya. Kini guard: beat tanpa encounter valid tidak memulai
+  combat, pulih ke GAMEPLAY + console.warn.
+- `Player.tsx`: anti-stuck — mode COMBAT tanpa encounterId pulih sendiri ke
+  GAMEPLAY (fase 'won'/'lost' tetap freeze 1 frame sampai finish/onLose).
+- `Hud.tsx` + `styles.css`: body.in-combat — notifikasi turun di bawah panel
+  darah musuh; layar sentuh: chip hint keyboard disembunyikan (bertumpuk dgn
+  tombol ATK/HEV/BLK/DGE), panel darah turun, cb-mid hilang di layar sempit.
+- Test: combat.test.ts +4 (musuh mendekat→windup/strike, anti-kite 3.6 m/s,
+  speed data saat dekat, guard BEAT_ENCOUNTER↔ENCOUNTERS) → **216/216** ·
+  tsc -b ✓ · build ✓ · qa-nav CONSOLE_ERRORS none.
+- Simpan lama aman; tidak ada perubahan data/story.
+
+## v0.15.1 Snapshot (2026-09-23)
+
+**User: "fix combat system". Pertarungan sebelumnya mustahil dimenangkan:
+satu ayunan musuh = ±7× dmg (multi-hit per frame), Fokus tak pernah pulih,
+dodge menghempas KE arah musuh.**
+- `combat.ts`: `hitDone` pada EnemyState — strike hanya menghubungkan sekali
+  (jendela aktif 0.12 dtk ≈ 7 frame @60fps; Anak Bimo dmg 9 → ±63/ayunan).
+- Ekonomi Fokus: regen +7/dtk saat bebas gerak, +4 per hit yang connect;
+  `playerStore.setFocus` tanpa pembulatan (akumulasi fraksional per frame).
+- Dodge: arah = input gerak tertahan (relatif kamera); tanpa input backstep
+  menjauh. `CombatScene`: ganti lawan → `resetEnemyRuntime()` (baru) saja —
+  attack/dodge/invuln/block pemain selamat; winTimer pakai dt nyata.
+- Test: combat.test.ts BARU 18 test (suite pertama utk combatTick; termasuk
+  onLose secret_fight → bukan GAME_OVER) → **212/212** · tsc -b ✓ · build ✓
+  · qa-nav CONSOLE_ERRORS none.
+- Simpan lama aman; tidak ada perubahan data/story/encounter — murni runtime.
+
+## v0.15.0 Snapshot (2026-09-22)
+
+**User: "sesuaikan alur" + laporan final project (naskah GARIS MERAH). Celah
+game vs naskah ditutup penuh; dialog baru = teks dokumen.**
+- FLAVOR CHOICE 1–5 (o2_c1, o3_c2, n2_c3, ch3_fc4, ch4_fc5) — dua opsi,
+  selalu menyatu kembali, efek rel/stat kecil.
+- Bonding arc (doc Ch3 perpustakaan + Ch4 PTS): beat ch1_friendship →
+  ch1_pts → ch1_break; montase otomatis ch1_lib_* / ch1_pts_* (tidak bisa
+  terlewat sebelum insiden tangga).
+- Montase netral diurut ulang per doc: n3 surat Aris (Budi) → n4 pengabaian
+  Bimo → n5 bulan-bulan sunyi + tryout (doc CH8/CH9).
+- SECRET CHOICE POINT (doc CH10): beat ch4_neu_secret — keluar gerbang (zona
+  street) → "LULUS TANPA NAMA"; balik ke gang → secret_fight (3 goon + Bimo,
+  onLose baru) → kalah "BONYOK TANPA NAMA" / menang "KEMENANGAN TERLAMBAT".
+  resolveEnding kini 6 ending; combat loss bisa jadi cabang cerita.
+- Test: 194/194 · tsc -b ✓ · build ✓ · qa-nav CONSOLE_ERRORS none.
+- Simpan lama aman (ch1_break melompati bonding; simpanan gerbang netral
+  tetap mendarat di secret choice).
+
+## v0.14.4 Snapshot (2026-09-22)
+
+**Laporan audit eksternal (Playwright 60 d): 18.3 FPS di laptop iGPU — default
+auto = TINGGI (DPR 2.0) karena classifyTier tak mengenali grafis integrasi;**
+plus NPC tersembunyi masih dianimasikan & crowd ber-detail mikro.
+- mobile.ts: `classifyGpu(renderer)` murni + probe `WEBGL_debug_renderer_info`
+  sekali di boot → `mobile.gpu` ('dgpu'|'igpu'|'soft'|'unknown').
+- quality.ts: `resolveQuality(selected, tier, gpu=mobile.gpu)` — auto: soft →
+  RENDAH, igpu → SEDANG, tier low → SEDANG, dgpu/unknown → TINGGI; eksplisit
+  selalu menang. `lowSpecProfile`: iGPU di SEDANG ikut profil lemah (MSAA off
+  sejak reload, crowd 14→7 live, kain tanpa peta).
+- Character.tsx: useFrame pulang awal bila owner group invisible (distance
+  hide / first-person); prop `trim` melepas tombol + catchlight + hem band
+  untuk pelajar ambient pada boot lemah (−5 mesh/figur).
+- Test: perf.test.ts +3 → 187/187 · tsc -b ✓ · build ✓ · qa-nav headless
+  (SwiftShader → soft → RENDAH otomatis) CONSOLE_ERRORS none.
+- Follow-up tersisa: instancing penuh (InstancedMesh per bagian tubuh) —
+  refactor besar, hanya bila masih ada keluhan setelah versi ini.
+
+## v0.14.3 Snapshot (2026-09-22)
+
+**Preset RENDAH kini = profil lemah penuh, bukan cuma knob shader:**
+- Audit kelanjutan "masih patah-patah": draw call (19 figur × ~30 mesh),
+  MSAA context attr, bundle di luar fog, kain ber-peta, dan dpr mentok —
+  semuanya mengikuti device tier, bukan preset.
+- `lowSpecProfile(quality, tier)` (quality.ts, murni): tier low ATAU RENDAH.
+  - Npcs: crowd ambient 14→7 LIVE (subscribe quality).
+  - App `BOOT_LOW`: MSAA off + shadows 'basic' (berlaku sejak reload).
+  - Character: weave normal/rough map kain tak dibangun saat boot lemah.
+- Fog culling: `cullDecision` +opt `farRange` (fogFar) — bundle yang tepi
+  terdekatnya > fogFar disembunyikan walau di frustum (piksel = warna fog).
+- NPC distance visibility: `visible=false` bila kamera > fogFar−25 (≥45 m);
+  interaksi (≤3.5 m) & cutscene (≤ ~20 m) aman; dicek sebelum freeze
+  CINEMATIC.
+- Adaptive dpr (murni `adaptiveDpr` + loop GraphicsManager): window 1.2 s,
+  <42 fps turun 15%/langkah (floor 0.55), >56 fps pulih ke preset; ganti
+  preset reset. worldReady guard mengabaikan spike boot.
+- Test: perf.test.ts +3 (lowSpecProfile, adaptiveDpr, fog culling) →
+  184/184 · tsc -b ✓ · build ✓ · qa-nav CONSOLE_ERRORS none.
+- Follow-up (kalau masih ada keluhan): merge geometri statik / instancing
+  prop berulang (pohon/bangku) — refactor lebih besar, belum diperlukan.
+
+## v0.14.2 Snapshot (2026-09-22)
+
+**Biaya shader PBR kini mengikuti preset kualitas (bukan cuma VRAM):**
+- Laporan user: "texture pbr terlalu berat apalagi refleksi cahayanya".
+- Audit: refleksi = IBL `<Environment frames={1}>` lokal (World.tsx ×3) yang
+  menghidupkan indirect specular+diffuse di SEMUA material standard per piksel;
+  tekstur berat = map+normalMap+roughnessMap per `<Pbr>` (TBN rebuild + 3
+  sampel + GGX per piksel). VRAM bukan masalah (v0.12.0), shader-cost iya.
+- `quality.ts` +2 knob (pola texScale): `pbrMaps` (false → `<Pbr>` albedo-only,
+  roughness tetap skalar) & `envMul` (0 → `<Environment>` tak di-mount →
+  scene.environment null → material dikompilasi tanpa blok IBL).
+- Nilai: TINGGI {pbrMaps:1, envMul:0.8} · SEDANG {1, 0.5} · RENDAH {0, 0}.
+- Live switching: `<Pbr>` subscribe quality (remount material saat fitur
+  flip — program baru dijamin benar); World membaca cfg per scene; gudang
+  kini baca cfg hanya utk envMul (fog/lampu tetap quality-independent).
+- Semua perubahan di sistem existing (quality.ts preset, pbr.tsx Pbr,
+  World.tsx scene) — tanpa sistem paralel; geometri/culling/story tak disentuh.
+- Test: perf.test.ts +3 (urutan envMul, RENDAH=0, pbrMaps RENDAH off).
+- Verify: tsc -b ✓ · 181/181 test ✓ · vite build ✓. Chip BUILD Screens yang
+  tertinggal 0.14.0 ikut disamakan ke 0.14.2.
+
+## v0.14.1 Snapshot (2026-09-22)
+
+**Kamera sinematik = milik story scene aktif (bukan tebakan):**
+- `resolveCinematicCamera(nodeId)` (game/story/staging.ts, murni & teruji):
+  `node.cam` (preset shot dialogue, speaker/listener wajib distage) →
+  pose authoran `CAM_BY_NODE` → null (CameraRig memframing Ren yang
+  distage — tidak ada lagi konstanta 'courtyard_view').
+- Kamera CINEMATIC TIDAK membaca registry live (actorPositions/npcPositions)
+  — posisi hantu scene lama (bullies kantin o4, gang tangga ch2, Bimo rooftop)
+  tidak lagi menyeret kamera dari scene aktif. Registry live hanya untuk mode
+  DIALOGUE (obrolan NPC yang memang berdiri di depan pemain).
+- `storyCastSpots(nodeId)` = ekspansi cast (konvensi id sama dgn CinematicActors);
+  `stagedEntityPosition(nodeId, id)` = posisi dari DATA staging.
+- `StoryActor` cleanup `actorPositions[id]` saat unmount (anti-hantu, cermin
+  guard ScheduledNpc).
+- Story scene selalu CINEMATIC: ch2 (`StoryDirector`) + 5 node onWin
+  (`finishCombatWin`) dibuka `cinematic=true` → aktor SCENE_ACTORS terpasang,
+  pose authoran aktif.
+- cameraStage/actorStages dilengkapi dari audit 146 node: ch2_close,
+  ch4_bad_4/4b, ch3_osis_* (hall_* memframing spot Siti), ch4_res_1/4
+  (courtyard); Bimo rooftop/gudang + Aris/Siti courtyard pindah ke
+  SCENE_ACTORS (hardcode App dihapus).
+- Guard test (test/cinema.test.ts): INVARIANT LOKASI — look-target pose
+  wajib ≤18 m dari entity scene yang distage; semua node sinematik wajib
+  punya keputusan kamera; regresi hantu kantin/kelas/rooftop.
+- Follow-up (bukan kamera): ch2_win_6 (Bimo menyaksi) & n3_2/n3_4 (suara
+  gang) speaker sah tapi aktornya belum distage — kamera aman (pose authoran),
+  konten render menyusul bila diperlukan.
+
+## v0.14.0 Snapshot (2026-09-18)
+
+**Story staging (WHERE/WHO/POSE/CAMERA/DIALOGUE):**
+- `REN_STAGING` (data/chapters.ts, PlayerStaging { pos, face?, scene? }) —
+  posisi deterministik Ren per node cerita. Diterapkan `<StoryPlayerStaging/>`
+  (App) via `applyPlayerStaging()` (game/story/staging.ts) saat node terbuka;
+  setPos → rigid-body teleport existing, facing langsung ke playerPos.facing.
+- Aturan: opening FP (o*) tidak distage; node kombat biar combat yang pegang;
+  scene non-kampus wajib field `scene` (rooftop/warehouse koordinat lokal);
+  bab 2 wajib x ≥ 4.4 (shaft tangga x -4..4 z -2..4 = undakan). Semua diuji
+  test/staging.test.ts. FIX n2: Siti + Ren kini di interior perpustakaan
+  (sinkron kamera library_*).
+- `startStoryScene(nodeId, cinematic?)` = pintu masuk deterministik (Task 3)
+  yang tetap satu jalur dengan trigger lain (staging otomatis di node open).
+
+**Struktur cerita (src/data/story/):**
+- opening / chapter2 / chapter3 / routes{neutral,bad,resistance} /
+  endings{neutralEnding,bad1Ending,goodEnding,bad2Ending} / npc / discoveries /
+  ambient + index.ts perakit. data/dialogue.ts = re-export shim (0 import
+  churn). endingResolver tetap murni; scene ending terpisah per file dan
+  teruji pairwise-disjoint (test/storyStructure.test.ts).
+
+**Mission nav & transition:**
+- HUD obj-card: [TELEPORT] (requestScene campus + fade; objective TIDAK auto-
+  selesai) / [JALAN] (hint waypoint ◆ + jarak, kontrol tetap pemain).
+- requestScene same-scene kini fade out→setPos→in (= transitionToScene);
+  sceneLoading guard anti-transisi-tumpuk.
+
+**BGM:**
+- audio.ts += MusicDirector + musicDecision (murni) + PATTERNS prosedural
+  (menu/school_day/school_evening/tension/combat/neutral/ending_*). Satu
+  pemantau interval-1s di App memanggil bgm.sync (komponen lain tidak boleh
+  main musik). Fade out→ganti→in via gain track di atas bus MUSIC; volume
+  tetap ikut setelan MUSIC. bgm.reset() dipakai saat ending/reset store.
+
+## v0.13.0 Snapshot (2026-09-18)
+
+**Mode kamera (src/game/camera/mode.ts — murni, teruji):**
+- `CamMode` = 'third' | 'first'; `clampPitch(mode)` — TP 0.06..0.85, FP
+  -1.05..1.2 (+ = lihat bawah); `fpLookDir(yaw,pitch)` forward (-sin,-cos)·cos
+  (konvensi orbit sama); `FP_EYE` 1.52 m di atas kaki.
+- settingsStore += `camMode` (persist localStorage, default 'third').
+- CameraRig: cabang gameplay kini bercabang FP/TP. FP hard-attach tanpa lerp
+  (anti swim/through-wall), shake skala 0.22; TP kini mengikuti
+  `smoothY = lerp(smoothY, playerPos.y, 1-e^(-9dt))` — lantai 2/3 Gedung B tak
+  lagi menenggelamkan kamera. Mode switch → re-clamp pitch + snap 1 frame.
+- App.tsx: tombol **V** toggle FP/TP di GAMEPLAY/COMBAT + notify;
+  SettingsPanel: dropdown MODE KAMERA; Hud: crosshair `.fp-crosshair` saat FP
+  + chip V KAMERA; PlayerFigure visible=false saat FP gameplay/kombat.
+- Aturan main: DIALOGUE/CINEMATIC SELALU tampilkan badan Ren (shot butuh dia);
+  wheel zoom hanya TPS; opening `fp_gate` tidak terpengaruh camMode.
 
 ## v0.12.0 Snapshot (2026-09-17)
 

@@ -6,7 +6,10 @@ import { input } from '../input';
 import { useGame } from '../../stores/gameStore';
 import { usePlayer } from '../../stores/playerStore';
 import { useCombat } from '../../stores/combatStore';
-import { playerPos, camState } from '../runtime';
+import { playerPos, camState, npcPositions, crowdPositions, enemyPos } from '../runtime';
+import { resolveOverlaps, stripIntoVelocity, nearbyBodies } from '../systems/collision';
+import { approachFacing, camForwardAngle } from '../systems/facing';
+import { useSettings } from '../../stores/settingsStore';
 import { Figure } from '../npc/Character';
 import { acting } from '../systems/acting';
 import { playerAnim, combatTick, camYaw } from '../combat/combat';
@@ -27,8 +30,20 @@ export function Player() {
   const stepTimer = useRef(0);
   const gravityHold = useRef(0);
   const spawnRef = useRef({ x: spawnX, z: spawnZ });
+  // v0.16.0 spawn-settle pin (real time). On every mount AND after every
+  // fall-through respawn the rapier body used to sink through the not-yet-
+  // stepped ground colliders, hit the y<-2 respawn, and yo-yo with the
+  // camera yanking (headless repro: 4 respawns / 15 s — on weak devices this
+  // reads as "karakter stuck ga bisa jalan"). Pinning the body at y=1.2 for
+  // 0.75 s of REAL time lets the collider graph finish mounting, then the
+  // body drops gently onto the floor. Respawn re-arms the pin.
+  const groundHoldUntil = useRef(typeof performance !== 'undefined' ? performance.now() + 2500 : 0);
 
   const asBody = (b: RapierRigidBody) => b as unknown as Parameters<typeof combatTick>[1];
+  // v0.17.0 perf: one reusable ray for the settle-pin + grounded checks —
+  // both shoot straight down; only the origin moves per frame (was 1-2
+  // `new rapier.Ray` allocations EVERY rendered frame, audit M1).
+  const downRay = useRef(new rapier.Ray({ x: 0, y: 0, z: 0 }, { x: 0, y: -1, z: 0 }));
 
   // BUG-FIX: Teleport effect. When store x/z changes (e.g. ch4_bad_warehouse
   // teleport to warehouse), move the rigid body to the new position. Without
@@ -45,6 +60,10 @@ export function Player() {
     if (Math.hypot(dx, dz) > 1.0) {
       rb.setTranslation({ x: spawnX, y: 0.75, z: spawnZ }, true);
       rb.setLinvel({ x: 0, y: 0, z: 0 }, true);
+      // v0.16.0: re-arm the settle pin — story teleports and scene changes
+      // mount new world bundles; without the pin the body sinks through the
+      // floor until their colliders step for the first time.
+      groundHoldUntil.current = performance.now() + 2500;
       // Also update runtime playerPos so camera/combat read the new position
       playerPos.x = spawnX;
       playerPos.z = spawnZ;
@@ -63,10 +82,37 @@ export function Player() {
     const t = rb.translation();
     const lv = rb.linvel();
 
+    // spawn-settle pin — hold the body above the floor until colliders are
+    // live (see groundHoldUntil above). Runs in every mode: a teleport or
+    // scene change mid-cutscene must settle the same way. Releases EARLY the
+    // moment a ground ray hits — fast devices never see the float.
+    if (groundHoldUntil.current > 0) {
+      if (performance.now() < groundHoldUntil.current) {
+        rb.setTranslation({ x: t.x, y: 1.2, z: t.z }, true);
+        rb.setLinvel({ x: 0, y: 0, z: 0 }, true);
+        const settleRay = downRay.current;
+        settleRay.origin.x = t.x;
+        settleRay.origin.y = t.y;
+        settleRay.origin.z = t.z;
+        const settleHit = world.castRay(settleRay, 2.0, true, undefined, undefined, undefined, rb);
+        if (settleHit) {
+          // a ray hit means the collider graph is live — drop normally right
+          // away (fast devices never see the float; slow ones hold ≤ 2.5 s)
+          groundHoldUntil.current = 0;
+        }
+        syncFrom(t.x, 1.2, t.z, 0, 0);
+        return;
+      }
+      groundHoldUntil.current = 0;
+    }
+
     // keep above ground (safety)
     if (t.y < -2) {
       rb.setTranslation({ x: spawnRef.current.x, y: 1.2, z: spawnRef.current.z }, true);
       rb.setLinvel({ x: 0, y: 0, z: 0 }, true);
+      // v0.16.0: re-arm the settle pin — the old plain respawn made the body
+      // fall through the same missing colliders again in a loop.
+      groundHoldUntil.current = performance.now() + 2500;
       return;
     }
 
@@ -87,6 +133,12 @@ export function Player() {
       } else {
         // combat resolving: freeze gently
         rb.setLinvel({ x: 0, y: lv.y, z: 0 }, true);
+        // v0.15.2: anti-stuck — mode COMBAT tanpa encounter aktif (start()
+        // gagal karena id tak dikenal, atau store tertinggal dalam keadaan
+        // reset) tidak boleh membekukan pemain selamanya; pulihkan kontrol.
+        // Fase transien 'won'/'lost' masih membawa encounterId → tetap freeze
+        // 1 frame sampai finishCombatWin/onLose memindahkan mode.
+        if (!combat.encounterId) useGame.getState().setMode('GAMEPLAY');
       }
       syncFrom(t.x, t.y, t.z, lv.x, lv.z);
       return;
@@ -119,14 +171,43 @@ export function Player() {
 
     const accel = ix || iz ? 12 : 16;
     const k = 1 - Math.exp(-accel * dt);
-    const nvx = THREE.MathUtils.lerp(lv.x, tx, k);
-    const nvz = THREE.MathUtils.lerp(lv.z, tz, k);
+    let nvx = THREE.MathUtils.lerp(lv.x, tx, k);
+    let nvz = THREE.MathUtils.lerp(lv.z, tz, k);
+
+    // v0.16.0 character collision — figures are kinematic visuals (no rapier
+    // colliders), so without this the player walks straight through NPCs,
+    // ambient students and (in combat) the enemy. Slide around bodies + push
+    // out of any existing overlap.
+    const bodies = nearbyBodies([npcPositions, crowdPositions], t.x, t.z);
+    if (enemyPos.active) {
+      const ex = enemyPos.x - t.x;
+      const ez = enemyPos.z - t.z;
+      if (Math.abs(ex) <= 1.4 && Math.abs(ez) <= 1.4) bodies.push({ x: enemyPos.x, z: enemyPos.z });
+    }
+    if (bodies.length) {
+      for (const o of bodies) {
+        if (Math.hypot(t.x - o.x, t.z - o.z) < 0.9) {
+          const sv = stripIntoVelocity(nvx, nvz, t.x, t.z, o.x, o.z);
+          nvx = sv.vx;
+          nvz = sv.vz;
+        }
+      }
+      const res = resolveOverlaps({ x: t.x, z: t.z }, bodies);
+      if (res.hit) {
+        rb.setTranslation({ x: res.x, y: t.y, z: res.z }, true);
+        t.x = res.x;
+        t.z = res.z;
+      }
+    }
 
     // grounded check (ray down, exclude self) — BUG-3.4 fix: extended ray
     // length from 1.05 to 1.3 so small bumps/steps don't false-airborne the
     // player. Capsule center is at y≈0.75 (resting on ground at y=0); ray
     // 1.3 reaches y=-0.55, covering any reasonable step height.
-    const ray = new rapier.Ray({ x: t.x, y: t.y, z: t.z }, { x: 0, y: -1, z: 0 });
+    const ray = downRay.current;
+    ray.origin.x = t.x;
+    ray.origin.y = t.y;
+    ray.origin.z = t.z;
     const hit = world.castRay(ray, 1.3, true, undefined, undefined, undefined, rb);
     const grounded = !!hit;
     playerPos.grounded = grounded;
@@ -142,10 +223,16 @@ export function Player() {
 
     rb.setLinvel({ x: nvx, y: vy, z: nvz }, true);
 
-    // facing follows movement
+    // facing follows movement; while standing it follows the CAMERA
+    // (v0.16.1 "arah hadap mengikuti kamera"): rotating the orbit/drag camera
+    // with no keys held now turns the body with it, instead of freezing on
+    // the last walk direction. The target is the exact angle a W-press would
+    // produce, so releasing a key never snaps the figure.
     const hSpeed = Math.hypot(nvx, nvz);
     if (hSpeed > 0.4) {
       playerPos.facing = Math.atan2(nvx, nvz);
+    } else {
+      playerPos.facing = approachFacing(playerPos.facing, camForwardAngle(camYaw()), dt);
     }
 
     // footsteps
@@ -215,6 +302,13 @@ function PlayerFigure() {
     const g = group.current;
     if (!g) return;
     const game = useGame.getState();
+    // v0.13.0: hide Ren's body while the FP head-cam is active in gameplay /
+    // combat — otherwise the figure fills the whole screen. Story modes
+    // (DIALOGUE / CINEMATIC) always show the body: their cameras are
+    // authored third-person shots that need Ren in frame.
+    const s = useSettings.getState();
+    const fpActive = s.camMode === 'first' && (game.mode === 'GAMEPLAY' || game.mode === 'COMBAT');
+    g.visible = !fpActive;
     const act = acting['ren'];
     // During dialogue Ren turns his body toward the conversation partner
     // (mentor #3 — body orientation). In gameplay the body follows movement.

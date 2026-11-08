@@ -30,7 +30,11 @@ export const usePlayer = create<Store>((set) => ({
   damage: (n) => set((s) => ({ hp: Math.max(0, s.hp - Math.max(0, Math.round(n))) })),
   heal: (n) => set((s) => ({ hp: Math.min(s.maxHp, s.hp + Math.max(0, Math.round(n))) })),
   addFocus: (n) => set((s) => ({ focus: Math.max(0, Math.min(100, s.focus + Math.round(n))) })),
-  setFocus: (n) => set({ focus: Math.max(0, Math.min(100, Math.round(n))) }),
+  // v0.15.1: tanpa Math.round — drain block (12/dtk) & regen Fokus (7/dtk)
+  // butuh akumulasi fraksional per frame; pembulatan per-set membuat +0.11
+  // per frame selalu terbulatkan balik ke nilai lama (regen tak pernah jalan).
+  // HUD sendiri membulatkan saat menampilkan.
+  setFocus: (n) => set({ focus: Math.max(0, Math.min(100, n)) }),
   setDefeated: (defeated) => set({ defeated }),
   resetAll: () => set({ ...START }),
 }));

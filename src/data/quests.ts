@@ -8,6 +8,25 @@ export const QUESTS: QuestDef[] = [
     desc: 'Hari pertama. Kenali lingkungan sekolah sebelum bel berikutnya.',
     objective: 'Kunjungi halaman, kantin, lapangan, dan gang belakang',
     chapter: 1,
+    // v0.17.1: completion choreography moved from StoryDirector.tsx (engine
+    // block) to data — same order: complete → clock jump to break (10:05) →
+    // bonding beat → toasts → auto-save. `visited` + `time-to` are the two
+    // new primitives this needed.
+    completeWhen: {
+      k: 'and',
+      all: [
+        { k: 'beat', id: 'ch1_explore' },
+        { k: 'visited', zones: ['courtyard', 'canteen', 'field', 'back_alley'] },
+      ],
+    },
+    onComplete: [
+      { k: 'quest', id: 'explore_school', state: 'completed', silent: true },
+      { k: 'time-to', minutes: 10 * 60 + 5 }, // maju ke jam istirahat
+      { k: 'beat', id: 'ch1_friendship' },
+      { k: 'notify', text: 'Quest selesai: Jelajahi SMA Yuson', kind: 'quest' },
+      { k: 'notify', text: 'Sore itu, Ren menemui Aris di perpustakaan...' },
+      { k: 'save' },
+    ],
   },
   {
     // v0.7.0: menggantikan gate_trouble — Bab 2 kini "Kesalahan Kecil Aris"
@@ -17,6 +36,7 @@ export const QUESTS: QuestDef[] = [
     desc: 'Jam istirahat. Ren mencari tempat makan — tangga belakang menuju kantin adalah jalur terdekat.',
     objective: 'Lewati tangga belakang menuju kantin saat istirahat',
     chapter: 2,
+    waypoint: 'back_stairs',
   },
   {
     // v0.7.0: rute netral — pemicu scene ending di gerbang
@@ -26,6 +46,7 @@ export const QUESTS: QuestDef[] = [
     desc: 'Bulan-bulan berlalu. SMA Yuson akhirnya melepaskan Ren dengan nilai tertinggi di angkatan.',
     objective: 'Pulang lewat gerbang utama untuk terakhir kali',
     chapter: 4,
+    waypoint: 'gate',
   },
   {
     id: 'rooftop_meeting',
@@ -34,6 +55,17 @@ export const QUESTS: QuestDef[] = [
     desc: 'Bimo memanggil Ren lewat salah satu anaknya.Tempat: tangga belakang.',
     objective: 'Temui Bimo di tangga belakang setelah jam pelajaran',
     chapter: 3,
+    waypoint: 'back_stairs',
+    // v0.17.1: arrival rule moved from StoryDirector.tsx — same order:
+    // complete → beat → flag → objective toast → rooftop scene transfer.
+    completeWhen: { k: 'and', all: [{ k: 'zone', id: 'back_stairs' }, { k: 'chapter', id: 3 }] },
+    onComplete: [
+      { k: 'quest', id: 'rooftop_meeting', state: 'completed', silent: true },
+      { k: 'beat', id: 'ch3_rooftop' },
+      { k: 'flag', id: 'rooftop_arrived' },
+      { k: 'notify', text: 'Tujuan: Naik ke atap', kind: 'quest' },
+      { k: 'scene', id: 'rooftop' },
+    ],
   },
   {
     // v0.11.0 GARIS MERAH: teror fisik letnan geng sebelum rooftop [FIGHT 2]
@@ -43,6 +75,7 @@ export const QUESTS: QuestDef[] = [
     desc: 'Anak-anak geng mulai panas karena keberanian Ren. Siti sempat memperingatkan — parkiran adalah jalur paling sepi.',
     objective: 'Lewati area parkir setelah jam pelajaran',
     chapter: 3,
+    waypoint: 'parking',
   },
   {
     id: 'warehouse_call',
@@ -51,6 +84,7 @@ export const QUESTS: QuestDef[] = [
     desc: 'Bimo membutuhkan "tenaga" Ren untuk urusan di gudang tua. Bukan permintaan.',
     objective: 'Ikuti Bimo ke gudang',
     chapter: 4,
+    waypoint: 'warehouse',
   },
   {
     // v0.11.0 GARIS MERAH: penyanderaan Aris — pemicu klimaks gang belakang
@@ -60,6 +94,7 @@ export const QUESTS: QuestDef[] = [
     desc: 'Aris tidak muncul sejak pulang sekolah. Pesan terakhirnya, jam tiga pagi: "maaf ya".',
     objective: 'Cari Aris — mulai dari gang belakang kantin',
     chapter: 4,
+    waypoint: 'back_alley',
   },
   {
     id: 'osis_form',
@@ -68,6 +103,7 @@ export const QUESTS: QuestDef[] = [
     desc: 'Siti minta tolong mengantar formulir OSIS ke ruang guru.',
     objective: 'Antarkan formulir ke Pak Budi',
     chapter: 1,
+    waypoint: 'teacher_room',
   },
   {
     id: 'study_habit',
@@ -76,6 +112,7 @@ export const QUESTS: QuestDef[] = [
     desc: 'Pak Budi menyarankan Ren menjaga ritme belajarnya.',
     objective: 'Selesaikan satu sesi belajar',
     chapter: 1,
+    waypoint: 'classroom',
   },
   // ---- side quests v0.6 (mentor feedback #6) ----
   {
@@ -85,6 +122,15 @@ export const QUESTS: QuestDef[] = [
     desc: 'Aris menawarkan buku catatannya. Catatan itu hanya berguna kalau Ren benar-benar membacanya.',
     objective: 'Selesaikan satu sesi belajar dengan catatan Aris',
     chapter: 1,
+    waypoint: 'classroom',
+    // v0.17.0: completion rule moved from StoryDirector.tsx (hardcoded block).
+    completeWhen: { k: 'flag', id: 'studied_once' },
+    onComplete: [
+      { k: 'quest', id: 'aris_notes', state: 'completed' },
+      { k: 'stat', stat: 'academic', delta: 3 },
+      { k: 'rel', target: 'aris', delta: 2 },
+      { k: 'notify', text: 'Quest selesai: Pinjaman Catatan (Akademik +3)' },
+    ],
   },
   {
     id: 'canteen_teh',
@@ -93,6 +139,13 @@ export const QUESTS: QuestDef[] = [
     desc: 'Siti minta satu favor kecil: teh kotak dari kantin saat istirahat siang.',
     objective: 'Bawakan teh dari kantin saat istirahat siang',
     chapter: 1,
+    waypoint: 'canteen',
+    completeWhen: { k: 'and', all: [{ k: 'zone', id: 'canteen' }, { k: 'period', id: 'lunch' }] },
+    onComplete: [
+      { k: 'quest', id: 'canteen_teh', state: 'completed' },
+      { k: 'flag', id: 'canteen_teh_done' },
+      { k: 'notify', text: 'Teh dibawa. Pulangkan ke Siti.' },
+    ],
   },
   {
     id: 'field_training',
@@ -101,6 +154,14 @@ export const QUESTS: QuestDef[] = [
     desc: 'Aris bilang ada anak-anak latihan di lapangan setelah pulang sekolah. Ren ingin tubuhnya tidak berdiri diam lagi.',
     objective: 'Berlatih di lapangan setelah pulang sekolah',
     chapter: 2,
+    waypoint: 'field',
+    completeWhen: { k: 'and', all: [{ k: 'zone', id: 'field' }, { k: 'period', id: 'after' }] },
+    onComplete: [
+      { k: 'quest', id: 'field_training', state: 'completed' },
+      { k: 'stat', stat: 'violence', delta: 2 },
+      { k: 'hp', delta: 10 },
+      { k: 'notify', text: 'Latihan senja selesai. (Instink +2, Tenaga +10)' },
+    ],
   },
   {
     id: 'alley_check',
@@ -109,6 +170,14 @@ export const QUESTS: QuestDef[] = [
     desc: 'Siti mencatat aktivitas anak-anak Bimo. Satu titik kosong: gang belakang. Dia tidak bisa lewat sana tanpa menarik perhatian.',
     objective: 'Periksa gang belakang, cari tanda aktivitas geng',
     chapter: 2,
+    waypoint: 'back_alley',
+    completeWhen: { k: 'any', of: [{ k: 'zone', id: 'back_alley' }, { k: 'flag', id: 'alley_mark' }] },
+    onComplete: [
+      { k: 'quest', id: 'alley_check', state: 'completed' },
+      { k: 'flag', id: 'alley_checked' },
+      { k: 'stat', stat: 'diplomacy', delta: 2 },
+      { k: 'notify', text: 'Tanda geng tercatat. Laporkan ke Siti. (Diplomasi +2)' },
+    ],
   },
 ];
 
@@ -166,6 +235,25 @@ export const ENCOUNTERS: Record<string, EncounterDef> = {
       { id: 'bimo_boss', name: 'Bimo', hp: 150, dmg: 11, speed: 2.7, color: '#7f1d1d', scale: 1.12 },
     ],
     onWin: 'ch4_res_choice',
+    music: 'dark',
+  },
+  // v0.15.0 GARIS MERAH — doc SUB-CABANG 1B: SECRET BATTLE rute netral.
+  // "Ren datang sendirian tanpa bantuan OSIS/guru/polisi. Bimo berdiri
+  // bersama 6-8 anggota gengnya." Musuh berurutan (sistem duel 1v1):
+  // tiga anak buah dulu, Bimo terakhir — kalah jumlah terasa akumulatif.
+  // KALAH adalah hasil cerita yang sah (onLose → Secret Bad Ending A
+  // "Bonyok Tanpa Nama"); MENANG → Secret Bad Ending B "Kemenangan Terlambat".
+  secret_fight: {
+    id: 'secret_fight',
+    arena: 'back_alley',
+    enemies: [
+      { id: 'secret_goon_1', name: 'Anak Bimo', hp: 70, dmg: 9, speed: 2.3, color: '#b91c1c' },
+      { id: 'secret_goon_2', name: 'Anak Bimo', hp: 70, dmg: 9, speed: 2.3, color: '#991b1b' },
+      { id: 'secret_goon_3', name: 'Anak Bimo', hp: 75, dmg: 10, speed: 2.4, color: '#7f1d1d' },
+      { id: 'secret_bimo', name: 'Bimo', hp: 150, dmg: 11, speed: 2.7, color: '#450a0a', scale: 1.12 },
+    ],
+    onWin: 'ch4_neu_sbw_1',
+    onLose: 'ch4_neu_sbl_1',
     music: 'dark',
   },
 };

@@ -66,10 +66,17 @@ export function resetCullRegistry(): void {
 export function cullDecision(
   entry: Pick<CullEntry, 'center' | 'radius' | 'mode'>,
   camPos: { x: number; y: number; z: number },
-  opts: { interiorRange: number; margin: number; inFrustum: boolean },
+  opts: { interiorRange: number; margin: number; inFrustum: boolean; farRange?: number },
 ): boolean {
   const d2 = (entry.center[0] - camPos.x) ** 2 + (entry.center[1] - camPos.y) ** 2 + (entry.center[2] - camPos.z) ** 2;
   if (entry.mode === 'interior' && d2 > opts.interiorRange * opts.interiorRange) return true; // hide
+  // v0.14.3 fog culling: beyond fogFar the fragment color IS the fog color, so
+  // a bundle whose near edge sits past it contributes nothing on screen —
+  // hidden even while inside the frustum (radius keeps the near edge safe).
+  if (opts.farRange !== undefined) {
+    const far = opts.farRange + entry.radius;
+    if (d2 > far * far) return true; // fully fogged out → hide
+  }
   if (opts.inFrustum) return false; // visible
   const reach = entry.radius + opts.margin;
   return d2 > reach * reach; // fully outside frustum AND far → hide
@@ -81,6 +88,12 @@ export const camState = { yaw: 0, shake: 0 };
 // NPC positions (updated by ScheduledNpc) for interaction checks.
 export const npcPositions: Record<string, { x: number; z: number }> = {};
 
+// v0.16.0 ambient crowd positions (updated by <Student>) — consumed by the
+// character collision system so wanderers no longer merge with the player.
+// Keyed by student index; entries are deleted on unmount (same stale guard
+// pattern as ScheduledNpc/StoryActor).
+export const crowdPositions: Record<string, { x: number; z: number }> = {};
+
 // Cinematic story-actor positions (updated by StoryActor) — lets the dialogue
 // camera + acting system frame/aim at bullies, gang members, route actors etc.
 // Keyed by actor id ('bully1', 'gang1', 'aris'…).
@@ -88,9 +101,4 @@ export const actorPositions: Record<string, { x: number; z: number }> = {};
 
 export function requestShake(mag: number) {
   camState.shake = Math.max(camState.shake, mag);
-}
-
-// TEMP DEBUG (remove before release): expose runtime + key stores on window.
-if (typeof window !== 'undefined') {
-  (window as unknown as Record<string, unknown>).__csl = { playerPos, camState };
 }

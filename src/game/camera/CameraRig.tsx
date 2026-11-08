@@ -14,9 +14,17 @@ import { SHOT_PRESETS, DEFAULT_SHOT } from '../../data/shots';
 import { getDialogue } from '../../data/dialogue';
 import { resolveCast, entityPosition } from '../systems/acting';
 import { computeShot, type ShotResult } from '../systems/shot';
+import { resolveCinematicCamera } from '../story/staging';
+import { clampPitch, fpLookDir, reclampOnSwitch, FP_EYE, type CamMode } from './mode';
 
 const lerpV = new THREE.Vector3();
 const lookV = new THREE.Vector3();
+// v0.17.0 perf: shared occlusion/transition temps — were 2-4 `new
+// THREE.Vector3` per rendered frame inside useFrame (audit M1).
+const occlDirV = new THREE.Vector3();
+const occlPosV = new THREE.Vector3();
+const transPosV = new THREE.Vector3();
+const transLookV = new THREE.Vector3();
 const rayV = new THREE.Raycaster();
 const shotLookV = new THREE.Vector3();
 const shotDirV = new THREE.Vector3();
@@ -39,11 +47,18 @@ export function isPoseCut(
 }
 
 // ---------------------------------------------------------------------------
-// Dialogue shot resolution (mentor feedback #2).
+// Dialogue shot resolution (mentor feedback #2) — DIALOGUE MODE ONLY.
 // Speaker-driven framing computed from LIVE entity positions. Resolution chain
 // per node: SHOT_PRESETS[node.cam] → DEFAULT_SHOT[speaker] → medium_speaker.
 // Returns null when nothing is framable (FP opening, narrator-only lines,
-// no placed entities) — callers fall back to authored static poses.
+// no placed entities) — callers fall back to the orbit rig.
+//
+// v0.14.1: CINEMATIC story scenes NO LONGER use this path. Live registries
+// (actorPositions/npcPositions) are global across scenes, so an unstaged
+// speaker used to resolve to a ghost position from an older scene (e.g. the
+// opening's canteen bullies) and yank the camera away from the active story
+// scene. Cinematic nodes resolve through resolveCinematicCamera() (story
+// staging data) instead — see the CINEMATIC branch below.
 // ---------------------------------------------------------------------------
 function shotForNode(nodeId: string | null): ShotResult | null {
   if (!nodeId) return null;
@@ -113,6 +128,10 @@ export function CameraRig() {
   const lookAt = useRef(new THREE.Vector3(0, 1.5, 20));
   const targetDist = useRef(4.6);
   const lastPose = useRef<{ key: string | null; pos: THREE.Vector3 }>({ key: null, pos: new THREE.Vector3() });
+  // v0.13.0: first-person / third-person gameplay modes
+  const lastCamMode = useRef<CamMode>('third');
+  const smoothY = useRef(0);
+  const smoothInit = useRef(false);
 
   // Camera control: drag-look (primary) + pointer lock (optional enhancement).
   // Primary: hold LMB and move mouse to orbit camera. Always works.
@@ -129,10 +148,11 @@ export function CameraRig() {
       // v0.10.0: user-tunable look feel (settings persist to localStorage)
       const { sensitivity, invertY } = useSettings.getState();
       const inv = invertY ? -1 : 1;
+      const mode = useSettings.getState().camMode;
       // Pointer-lock mode: raw mouse movement (no button needed)
       if (document.pointerLockElement != null) {
         yaw.current -= e.movementX * 0.0026 * sensitivity;
-        pitch.current = THREE.MathUtils.clamp(pitch.current + e.movementY * 0.0018 * sensitivity * inv, 0.06, 0.85);
+        pitch.current = clampPitch(mode, pitch.current + e.movementY * 0.0018 * sensitivity * inv);
         return;
       }
       // Drag-look: hold ANY mouse button and move to orbit
@@ -142,7 +162,7 @@ export function CameraRig() {
         lastX = e.clientX;
         lastY = e.clientY;
         yaw.current -= dx * 0.008 * sensitivity;
-        pitch.current = THREE.MathUtils.clamp(pitch.current + dy * 0.005 * sensitivity * inv, 0.06, 0.85);
+        pitch.current = clampPitch(mode, pitch.current + dy * 0.005 * sensitivity * inv);
       }
     };
     const onDown = (e: MouseEvent) => {
@@ -191,7 +211,7 @@ export function CameraRig() {
       if (look.dx || look.dy) {
         const inv = settings.invertY ? -1 : 1;
         yaw.current -= look.dx * 0.0042 * settings.sensitivity;
-        pitch.current = THREE.MathUtils.clamp(pitch.current + look.dy * 0.0028 * settings.sensitivity * inv, 0.06, 0.85);
+        pitch.current = clampPitch(settings.camMode, pitch.current + look.dy * 0.0028 * settings.sensitivity * inv);
       }
     } else {
       // wheel is explicit-consume only since the input janitor took over
@@ -220,10 +240,9 @@ export function CameraRig() {
       if (node && node !== lastNode.current) {
         lastNode.current = node;
       }
-      const poseKey = (node && CAM_BY_NODE[node]) || (fp.current ? 'fp_gate' : 'courtyard_view');
+      const poseKey = (node && CAM_BY_NODE[node]) || 'fp_gate';
       const pose = CAMERA_POSES[poseKey] ?? CAMERA_POSES.fp_gate;
       const openingFp = !story.flags.includes('opening_complete');
-
       if (openingFp) {
         // v0.12.0: hard cut between scenes, smooth head-cam inside a scene
         const cut = poseKey !== lastPose.current.key && isPoseCut(lastPose.current.key === poseKey ? null : lastPose.current.pos, { x: pose.pos[0], y: pose.pos[1], z: pose.pos[2] });
@@ -250,12 +269,12 @@ export function CameraRig() {
         const startDist = 3.2;
         const tx = playerPos.x;
         const tz = playerPos.z;
-        const orbitPos = new THREE.Vector3(
+        const orbitPos = transPosV.set(
           tx + Math.sin(yaw.current) * startDist,
           1.1 + startDist * pitch.current,
           tz + Math.cos(yaw.current) * startDist,
         );
-        const orbitLook = new THREE.Vector3(tx, 1.35, tz);
+        const orbitLook = transLookV.set(tx, 1.35, tz);
         camera.position.lerpVectors(transitionFrom.current.pos, orbitPos, e);
         lookAt.current.lerpVectors(transitionFrom.current.look, orbitLook, e);
         camera.lookAt(lookAt.current);
@@ -286,13 +305,19 @@ export function CameraRig() {
           game.setMode('GAMEPLAY');
           return;
         }
-        // speaker-driven shot first (mentor #2); authored static pose fallback
-        const shot = shotForNode(dialogue.nodeId);
-        if (shot) {
-          applyShot(camera, lookAt.current, shot, dt, reduced);
-        } else {
+        // v0.14.1: the ACTIVE STORY SCENE owns the camera. Resolution comes
+        // from staging data only — node.cam shot (validated against the node's
+        // cast) → authored CAM_BY_NODE pose → frame the staged Ren. Live
+        // registries are never consulted here, so a ghost position from an
+        // older scene (opening canteen bullies, previous rooftop staging)
+        // can no longer pull the camera away from the scene in progress.
+        const cam = resolveCinematicCamera(dialogue.nodeId);
+        if (cam?.kind === 'shot') {
+          applyShot(camera, lookAt.current, cam.shot, dt, reduced);
+        } else if (cam?.kind === 'pose') {
+          const pose = CAMERA_POSES[cam.key]!;
           // v0.12.0: same hard-cut rule for third-person montage poses
-          const cut = poseKey !== lastPose.current.key && isPoseCut(lastPose.current.key === poseKey ? null : lastPose.current.pos, { x: pose.pos[0], y: pose.pos[1], z: pose.pos[2] });
+          const cut = cam.key !== lastPose.current.key && isPoseCut(lastPose.current.key === cam.key ? null : lastPose.current.pos, { x: pose.pos[0], y: pose.pos[1], z: pose.pos[2] });
           if (cut || reduced) {
             camera.position.set(pose.pos[0], pose.pos[1], pose.pos[2]);
             lookAt.current.set(pose.look[0], pose.look[1], pose.look[2]);
@@ -301,9 +326,15 @@ export function CameraRig() {
             camera.position.lerp(lerpV.set(pose.pos[0], pose.pos[1], pose.pos[2]), k);
             lookAt.current.lerp(lookV.set(pose.look[0], pose.look[1], pose.look[2]), k);
           }
-          lastPose.current.key = poseKey;
+          lastPose.current.key = cam.key;
           lastPose.current.pos.copy(camera.position);
           camera.lookAt(lookAt.current);
+        } else {
+          // no authored camera staging for this node → frame the staged Ren
+          // (medium single). Ren is placed by applyPlayerStaging before the
+          // dialogue shows, so this default can never point at another zone.
+          const shot = computeShot(SHOT_PRESETS.medium_speaker, { x: playerPos.x, z: playerPos.z }, null);
+          applyShot(camera, lookAt.current, shot, dt, reduced);
         }
       }
       return;
@@ -321,9 +352,51 @@ export function CameraRig() {
       }
     }
 
-    // ---------- third person ----------
+    // ---------- gameplay camera (v0.13.0: first-person / third-person) ----------
     fp.current = false;
+
+    // Mode switch (settings toggle or V key): re-clamp pitch so a stale FP
+    // look-up can't drive the TP orbit under the floor, and snap this frame.
+    const switched = lastCamMode.current !== settings.camMode;
+    if (switched) {
+      lastCamMode.current = settings.camMode;
+      pitch.current = reclampOnSwitch(settings.camMode, pitch.current);
+    }
+
+    // Smoothed floor height under the feet. playerPos.y is feet height
+    // (0 on ground, ≈3.5 / 7.0 on Gedung B L2/L3) — following it fixes the
+    // orbit camera sinking into upper floors; smoothing keeps jumps from
+    // yanking the rig. Wheel is drained every frame in both modes so it
+    // never piles up while FP ignores it.
+    if (!smoothInit.current) {
+      smoothInit.current = true;
+      smoothY.current = playerPos.y;
+    }
+    smoothY.current = THREE.MathUtils.lerp(smoothY.current, playerPos.y, 1 - Math.exp(-9 * dt));
+
     const w = input.consumeWheel();
+
+    if (settings.camMode === 'first') {
+      // ---- first-person head-cam ----
+      // Hard-attach to the eye point (no position lerp): FP must never lag
+      // behind the body or swim while strafing. Look direction comes from
+      // the shared yaw/pitch (same convention as the orbit rig).
+      let sx = 0;
+      let sy = 0;
+      if (camState.shake > 0.001 && settings.screenShake) {
+        sx = (Math.random() - 0.5) * camState.shake * 0.22;
+        sy = (Math.random() - 0.5) * camState.shake * 0.22;
+        camState.shake = Math.max(0, camState.shake - dt * 1.8);
+      } else camState.shake = 0;
+      const eyeY = smoothY.current + FP_EYE;
+      const dir = fpLookDir(yaw.current, pitch.current);
+      camera.position.set(playerPos.x + sx, eyeY + sy, playerPos.z);
+      lookAt.current.set(playerPos.x + dir.x * 8, eyeY + dir.y * 8, playerPos.z + dir.z * 8);
+      camera.lookAt(lookAt.current);
+      return;
+    }
+
+    // ---- third-person orbit ----
     if (w) targetDist.current = THREE.MathUtils.clamp(targetDist.current + w * 0.004, settings.camMin, settings.camMax);
     dist.current = THREE.MathUtils.lerp(dist.current, targetDist.current, 1 - Math.exp(-8 * dt));
 
@@ -333,15 +406,15 @@ export function CameraRig() {
     const shoulderZ = -Math.sin(yaw.current) * 0.4;
 
     let camX = tx + Math.sin(yaw.current) * dist.current + shoulder;
-    let camY = 1.15 + dist.current * pitch.current;
+    let camY = smoothY.current + 1.15 + dist.current * pitch.current;
     let camZ = tz + Math.cos(yaw.current) * dist.current + shoulderZ;
 
     // occlusion: pull in when blocked
-    const look = lookV.set(tx + shoulder * 0.4, 1.35, tz + shoulderZ * 0.4);
+    const look = lookV.set(tx + shoulder * 0.4, smoothY.current + 1.35, tz + shoulderZ * 0.4);
     if (occluders.objects.length) {
-      rayV.set(camera.position.lengthSq() > 0 ? camera.position : new THREE.Vector3(camX, camY, camZ), look);
+      rayV.set(camera.position.lengthSq() > 0 ? camera.position : occlPosV.set(camX, camY, camZ), look);
       // ray from look toward camera
-      const dir = new THREE.Vector3(camX, camY, camZ).sub(look);
+      const dir = occlDirV.set(camX, camY, camZ).sub(look);
       const len = dir.length();
       rayV.set(look, dir.normalize());
       rayV.far = len;
@@ -363,7 +436,9 @@ export function CameraRig() {
       camState.shake = Math.max(0, camState.shake - dt * 1.8);
     } else camState.shake = 0;
 
-    const k = reduced ? 1 : 1 - Math.exp(-9 * dt);
+    // v0.13.0: snap on a just-happened FP→TP switch — the camera is still at
+    // the eye point and lerping from there would fly it across the room.
+    const k = switched || reduced ? 1 : 1 - Math.exp(-9 * dt);
     camera.position.lerp(lerpV.set(camX + shakeX, camY + shakeY, camZ), k);
     lookAt.current.lerp(look, 1 - Math.exp(-11 * dt));
     camera.lookAt(lookAt.current);
