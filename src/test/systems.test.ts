@@ -5,6 +5,7 @@ import { advance, formatHhmm, periodFor, clockLabel } from '../game/systems/time
 import { scoreStudy } from '../game/systems/study';
 import { resolveEnding } from '../game/systems/endingResolver';
 import { evalCondition } from '../game/systems/conditions';
+import type { Condition } from '../types';
 import { parseSave, migrateV1 } from '../game/save';
 
 describe('relationship', () => {
@@ -75,27 +76,42 @@ describe('study scoring', () => {
   });
 });
 
-describe('ending resolver (canon routes)', () => {
+describe('ending resolver (canon GARIS MERAH)', () => {
   const base = { flags: [], stats: { academic: 70, violence: 5, diplomacy: 8, reputation: 20 }, focus: 50, relationships: {} };
-  it('bad route → Rantai Dendam', () => {
+  it('bad route → Tunduk Pada Kekuasaan', () => {
     const e = resolveEnding({ ...base, route: 'bad' });
     expect(e.id).toBe('bad');
-    expect(e.title).toBe('Rantai Dendam');
+    expect(e.title).toBe('Tunduk Pada Kekuasaan');
   });
-  it('resistance + helped → True', () => {
-    const e = resolveEnding({ ...base, route: 'resistance', flags: ['helped_aris_final'] });
+  it('resistance + restrained_bimo → True (Lulus Bersama)', () => {
+    const e = resolveEnding({ ...base, route: 'resistance', flags: ['restrained_bimo'] });
     expect(e.id).toBe('true');
-    expect(e.title).toBe('Kebenaran & Solidaritas');
+    expect(e.title).toBe('Lulus Bersama');
   });
-  it('resistance + walked away → Bitter', () => {
-    const e = resolveEnding({ ...base, route: 'resistance', flags: ['ignored_aris_final'] });
+  it('resistance + brutal_bimo → Bitter (Rantai Dendam)', () => {
+    const e = resolveEnding({ ...base, route: 'resistance', flags: ['brutal_bimo'] });
     expect(e.id).toBe('bitter');
-    expect(e.title).toBe('Lulus Tapi Sendirian');
+    expect(e.title).toBe('Rantai Dendam');
   });
   it('v0.7.0: neutral route → Lulus Tanpa Nama', () => {
     const e = resolveEnding({ ...base, route: 'neutral' });
     expect(e.id).toBe('neutral');
     expect(e.title).toBe('Lulus Tanpa Nama');
+  });
+  // v0.15.0 — doc SUB-CABANG 1B: dua SECRET BAD ENDING rute netral
+  it('v0.15.0: neutral + secret battle kalah → Bonyok Tanpa Nama', () => {
+    const e = resolveEnding({ ...base, route: 'neutral', flags: ['secret_fought_lost'] });
+    expect(e.id).toBe('neutral_lost');
+    expect(e.title).toBe('Bonyok Tanpa Nama');
+  });
+  it('v0.15.0: neutral + secret battle menang → Kemenangan Terlambat', () => {
+    const e = resolveEnding({ ...base, route: 'neutral', flags: ['secret_fought_won'] });
+    expect(e.id).toBe('neutral_won');
+    expect(e.title).toBe('Kemenangan Terlambat');
+  });
+  it('v0.15.0: secret flag menang atas route neutral biasa (urutan resolusi)', () => {
+    const e = resolveEnding({ ...base, route: 'neutral', flags: ['secret_fought_won', 'secret_fought_lost'] });
+    expect(['neutral_lost', 'neutral_won']).toContain(e.id);
   });
 });
 
@@ -104,6 +120,7 @@ describe('conditions', () => {
     flags: ['helped_aris'],
     chapter: 2,
     route: 'none',
+    beat: 'ch2_key_error' as const,
     quests: { explore_school: 'completed' },
     relationships: { aris: 10 },
     stats: { academic: 70, violence: 5, diplomacy: 8, reputation: 0 },
@@ -116,6 +133,21 @@ describe('conditions', () => {
   it('and-composition', () => {
     expect(evalCondition({ k: 'and', all: [{ k: 'flag', id: 'helped_aris' }, { k: 'chapter', id: 2 }] }, ctx)).toBe(true);
     expect(evalCondition({ k: 'and', all: [{ k: 'flag', id: 'helped_aris' }, { k: 'chapter', id: 3 }] }, ctx)).toBe(false);
+  });
+  // v0.17.0 combinators (audit H1)
+  it('any-composition is an inclusive OR over nested conditions', () => {
+    expect(evalCondition({ k: 'any', of: [{ k: 'flag', id: 'nope' }, { k: 'flag', id: 'helped_aris' }] }, ctx)).toBe(true);
+    expect(evalCondition({ k: 'any', of: [{ k: 'flag', id: 'nope' }, { k: 'chapter', id: 3 }] }, ctx)).toBe(false);
+    expect(evalCondition({ k: 'any', of: [] }, ctx)).toBe(false); // empty OR = false
+  });
+  it('not negates any nested condition (including combinators)', () => {
+    expect(evalCondition({ k: 'not', not: { k: 'flag', id: 'helped_aris' } }, ctx)).toBe(false);
+    expect(evalCondition({ k: 'not', not: { k: 'flag', id: 'nope' } }, ctx)).toBe(true);
+    expect(evalCondition({ k: 'not', not: { k: 'any', of: [{ k: 'flag', id: 'nope' }] } }, ctx)).toBe(true);
+  });
+  it('combinators nest arbitrarily (the alley_check quest rule shape)', () => {
+    const rule: Condition = { k: 'any', of: [{ k: 'zone', id: 'back_alley' }, { k: 'and', all: [{ k: 'flag', id: 'helped_aris' }, { k: 'not', not: { k: 'chapterMin', id: 3 } }] }] };
+    expect(evalCondition(rule, ctx)).toBe(true);
   });
   it('quest + rel checks', () => {
     expect(evalCondition({ k: 'quest', id: 'explore_school', state: 'completed' }, ctx)).toBe(true);

@@ -1,5 +1,5 @@
 import { RigidBody, CuboidCollider } from '@react-three/rapier';
-import { WallMeshes, WallColliders, SchoolSign, Door, type Seg } from './props';
+import { WallMeshes, WallColliders, SchoolSign, Door, Cull, type Seg } from './props';
 import { Pbr } from './pbr';
 
 // Gedung B — three-storey classroom building (v0.8.0), east of the rear yard
@@ -178,8 +178,9 @@ function Flight({ x0, z, dir, y0 }: { x0: number; z: number; dir: 1 | -1; y0: nu
 }
 
 function StairCore() {
+  // v0.9.0: whole stair core is one frustum-cull bundle
   return (
-    <group>
+    <Cull center={[41, 5, -14.8]} radius={9}>
       {/* flights: A ground->mid (east), B mid->L2 (west), C L2->mid, D mid->L3 */}
       <Flight x0={38.6} z={-15.3} dir={1} y0={0} />
       <Flight x0={41.7} z={-14.25} dir={-1} y0={1.75} />
@@ -206,7 +207,7 @@ function StairCore() {
       <Railing x={40} z={-15.95} w={8} d={0.1} y0={7} h={1.9} />
       <Railing x={42.85} z={-15.95} w={2.3} d={0.1} y0={1.75} h={1.9} />
       <Railing x={42.85} z={-15.95} w={2.3} d={0.1} y0={5.25} h={1.9} />
-    </group>
+    </Cull>
   );
 }
 
@@ -347,7 +348,9 @@ function FloorLevel({ y0 }: { y0: number }) {
   const ekskulName = y0 === 0 ? 'RUANG OSIS' : y0 === 3.5 ? 'RUANG UKS' : 'RUANG LOKER';
   const top = y0 + 3.5;
   return (
-    <group>
+    // v0.9.0: each floor is its own frustum-cull bundle — looking away from
+    // the building drops an entire level's meshes at once
+    <Cull center={[34, y0 + 1.75, -7.8]} radius={13}>
       {/* shell walls (elevated for L2/L3) */}
       <WallMeshes segs={shellAt(y0)} color={WALL_CREAM} />
       <WallColliders segs={shellAt(y0)} defaultH={WALL_H} />
@@ -410,7 +413,7 @@ function FloorLevel({ y0 }: { y0: number }) {
       <SchoolSign position={[41, y0 + 2.55, -13.74]} text={`LANTAI ${floorNo}`} size={0.3} color="#dfe7f0" rotY={Math.PI} />
       <SchoolSign position={[29.7, y0 + 2.55, -13.74]} text={kelasName} size={0.26} color="#9fc2e8" rotY={Math.PI} />
       <SchoolSign position={[37.3, y0 + 2.55, -13.74]} text={ekskulName} size={0.22} color="#9fc2e8" rotY={Math.PI} />
-    </group>
+    </Cull>
   );
 }
 

@@ -126,6 +126,7 @@ dan rute ketiga (NETRAL) dari GDD §"Alur yang lebih lambat" + §"Rute Netral".
 - **Bundle:** app code 34KB gzip · React vendor 76KB · Three.js engine3d 1.03MB · CSS 5KB
 - **Zero world GLB payload:** the entire school, rooftop and warehouse are procedural geometry (world was rebuilt from scratch in 0.3.0; the 7.3MB school GLB was removed from `public/`)
 - **Render guards:** DPR clamp [1,2], shadow map 2048, throttled store writes (@12 frames), few physics bodies (player + walls + ground; NPCs kinematic)
+- **v0.9.0 render optimization:** graphics quality presets (auto/high/medium/low — DPR, shadow maps, Sky shader, view distance; persisted, live-applied), frustum + interior render culling over registered static bundles (`<Cull>` + `CullingManager`), single shadow-casting light rig per scene (duplicate root rig removed), and a real-progress loading screen with desktop world-prewarm
 - **Code-splitting:** Three.js + R3F isolated in `engine3d` chunk for better caching
 
 ---

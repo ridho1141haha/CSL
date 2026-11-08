@@ -6,7 +6,7 @@ import { useGame } from '../../stores/gameStore';
 import { usePlayer } from '../../stores/playerStore';
 import { enemyPos, playerPos, requestShake } from '../runtime';
 import { Figure } from '../npc/Character';
-import { enemyAnim, resetCombatRuntime, finishCombatWin } from './combat';
+import { enemyAnim, resetCombatRuntime, resetEnemyRuntime, finishCombatWin } from './combat';
 import { audio } from '../audio';
 
 // Renders the encounter enemy + drives victory transition. The enemy FSM runs
@@ -16,7 +16,6 @@ export function CombatScene() {
   const group = useRef<THREE.Group>(null);
   const winTimer = useRef(-1);
   const encounterId = useCombat((s) => s.encounterId);
-  const enemyCount = useCombat((s) => s.enemies.length);
   // BUG-FIX: subscribe to index so component re-renders when enemy advances.
   // Previously, when enemy #1 died and index advanced to #2, the Figure
   // kept enemy #1's color/scale/name because the component didn't re-render.
@@ -25,7 +24,11 @@ export function CombatScene() {
   // (re)initialize when a new encounter or enemy starts
   useEffect(() => {
     if (!encounterId) return;
-    resetCombatRuntime();
+    // v0.15.1: lawan berikutnya maju (enemyIndex > 0, encounter sama) → hanya
+    // sisi MUSUH yang di-reset. resetCombatRuntime penuh membatalkan attack/
+    // dodge/invuln/block pemain di tengah pukulan pembunuh lawan sebelumnya.
+    if (enemyIndex > 0) resetEnemyRuntime();
+    else resetCombatRuntime();
     const a = Math.random() * Math.PI * 2;
     enemyPos.x = playerPos.x + Math.sin(a) * 3.4;
     enemyPos.z = playerPos.z + Math.cos(a) * 3.4;
@@ -34,9 +37,9 @@ export function CombatScene() {
     winTimer.current = -1;
     audio.combatStart();
     inputRelease();
-  }, [encounterId, enemyCount, enemyIndex]);
+  }, [encounterId, enemyIndex]);
 
-  useFrame(() => {
+  useFrame((_, dt) => {
     const g = group.current;
     if (g) {
       g.position.x = THREE.MathUtils.lerp(g.position.x, enemyPos.x, 0.5);
@@ -56,7 +59,9 @@ export function CombatScene() {
         winTimer.current = 1.4;
         requestShake(0.3);
       } else {
-        winTimer.current -= 1 / 60;
+        // v0.15.1: pakai delta frame nyata — dulu 1/60 tetap, jadi jeda kemenangan
+        // memanjang di perangkat low-FPS (iGPU 30fps ≈ 2.8 dtk menunggu).
+        winTimer.current -= dt;
         if (winTimer.current <= 0) finishCombatWin();
       }
     }

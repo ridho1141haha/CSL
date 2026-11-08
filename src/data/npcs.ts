@@ -15,15 +15,28 @@ export const NPCS: NpcDef[] = [
     pants: '#334155',
     hair: { color: '#241c16', style: 'short' },
     schedule: {
+      // v0.12.0: jam kelas Aris duduk di kursinya (kursi -4.0, 11.3 — meja
+      // -4.8) menghadap papan tulis; sesuai scene 2 GARIS MERAH
       arrive: [11, 34],
-      class: [-9, 9.5],
+      class: [-4.0, 11.3],
       break: [3.5, 35.5],
-      class2: [-9, 9.5],
+      class2: [-4.0, 11.3],
       lunch: [26, 10],
-      class3: [-9, 9.5],
+      class3: [-4.0, 11.3],
       after: [-22, 14],
     },
+    sitAt: ['class', 'class2', 'class3'],
+    sitFace: [-15.7, 9.5],
     dialogueRoot: 'npc_aris',
+    // v0.17.0 registry metadata — single source for stores, migration and UI (was
+    // hand-synced literals in socialStore / save.migrateV1 / menus / Screens
+    // / Npc.tsx engine branch).
+    storyCast: true,
+    relTag: { text: 'SEBANGKU', cls: 'chip-cyan' },
+    relQuote: '“Ren, buku catatan aku titipin ya kalau ada kuis.”',
+    // v0.7.0 rute netral: Aris mengundurkan diri di akhir bab 3 (montage n4)
+    // — dari bab 4 dia tidak lagi muncul di sekolah.
+    hiddenWhen: { route: 'neutral', chapterMin: 4 },
   },
   {
     id: 'siti',
@@ -36,15 +49,22 @@ export const NPCS: NpcDef[] = [
     skirt: '#1f2937',
     hair: { color: '#17110c', style: 'ponytail' },
     schedule: {
+      // v0.12.0: jam kelas Siti duduk satu barisan dengan Aris (kursi -6.75,
+      // 11.3 — meja -7.6) menghadap papan tulis
       arrive: [3, 30],
-      class: [-7, 10.5],
+      class: [-6.75, 11.3],
       break: [12, 32],
-      class2: [-7, 10.5],
+      class2: [-6.75, 11.3],
       lunch: [30, 6],
-      class3: [-7, 10.5],
+      class3: [-6.75, 11.3],
       after: [30, 20], // v0.8.0: Siti selepas sekolah di perpustakaan (sesuai alur netral)
     },
+    sitAt: ['class', 'class2', 'class3'],
+    sitFace: [-15.7, 9.5],
     dialogueRoot: 'npc_siti',
+    storyCast: true,
+    relTag: { text: 'OSIS', cls: 'chip-green' },
+    relQuote: '“Jangan lupa formulir OSIS kalau kamu yang bawa.”',
   },
   {
     id: 'bimo',
@@ -66,6 +86,9 @@ export const NPCS: NpcDef[] = [
       after: [6, -19],
     },
     dialogueRoot: 'npc_bimo',
+    storyCast: true,
+    relTag: { text: 'ANCAMAN', cls: 'chip-red' },
+    relQuote: '“Kami melihatmu di gerbang. Hati-hati di jalan pulang.”',
   },
   {
     id: 'budi',
@@ -87,6 +110,8 @@ export const NPCS: NpcDef[] = [
       after: [9, 8.5],
     },
     dialogueRoot: 'npc_budi',
+    relTag: { text: 'GURU', cls: '' },
+    relQuote: '“Kelas X-C? Jaga perilaku, aku mengamati dari ruang guru.”',
   },
 ];
 

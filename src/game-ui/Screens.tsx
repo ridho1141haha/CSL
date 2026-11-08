@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useProgress } from '@react-three/drei';
 import { useGame } from '../stores/gameStore';
 import { useStory } from '../stores/storyStore';
 import { usePlayer } from '../stores/playerStore';
@@ -6,18 +7,45 @@ import { useStats } from '../stores/statsStore';
 import { useSocial } from '../stores/socialStore';
 import { chapterCardText } from '../game/systems/effects';
 import { CHAPTERS } from '../data/chapters';
+import { NPCS } from '../data/npcs';
 import { audio } from '../game/audio';
-import { loadGame, hasSave } from '../game/save';
+import { hasSave } from '../game/save';
+import { loadGame } from '../game/loadFlow';
+import { perfState, PREWARM } from '../game/runtime';
+import { mobile } from '../game/mobile';
 
+// v0.9.0: loading screen with REAL progress — weighted blend of async asset
+// progress (drei useProgress), world-first-frame readiness (perfState) and
+// the minimum branding window. The indeterminate CSS slide remains as the
+// fallback underlay while pct is still 0.
 export function LoadingScreen() {
+  const { active, progress } = useProgress();
+  const [pct, setPct] = useState(0);
+  useEffect(() => {
+    const t0 = Date.now();
+    const iv = setInterval(() => {
+      const elapsed = Date.now() - t0;
+      const timePct = Math.min(20, (elapsed / 1600) * 20);
+      const assetPct = active || progress < 100 ? Math.max(2, (progress / 100) * 30) : 30;
+      // same fail-open as BootGate: a dead render loop skips the world wait
+      const loopDead = mobile.lastFrameAt === 0 || Date.now() - mobile.lastFrameAt > 1200;
+      const worldPct = perfState.worldReady || !PREWARM || loopDead ? 50 : 0;
+      setPct(Math.min(99, Math.round(timePct + assetPct + worldPct)));
+    }, 120);
+    return () => clearInterval(iv);
+  }, [active, progress]);
+
+  const ready = perfState.worldReady || !PREWARM || mobile.lastFrameAt === 0;
+  const stage = ready ? 'MENYIAPKAN DUNIA SEKOLAH…' : 'MEMUAT ASET SEKOLAH…';
   return (
     <div className="loading-screen">
       <div className="boot-logo brackets">
         <h1>CHAOS SCHOOL <em>LIFE</em></h1>
-        <p>MEMUAT ASET SEKOLAH…</p>
-        <div className="boot-bar"><i /></div>
+        <p>{stage}</p>
+        <div className="boot-bar boot-bar-real"><i style={{ width: `${pct}%` }} /></div>
         <div className="boot-meta">
-          <span className="chip">BUILD 0.8.0</span>
+          <span className="chip">{pct}%</span>
+          <span className="chip">BUILD 0.18.0</span>
           <span className="chip">TEAM CHAOS</span>
           <span className="chip chip-amber">SMA YUSON</span>
         </div>
@@ -100,9 +128,11 @@ export function EndingScreen({ onRestart, onMenu }: { onRestart: () => void; onM
         <span>FOKUS<b>{Math.round(focus)}</b></span>
         <span>KEKERASAN<b>{stats.violence}</b></span>
         <span>DIPLOMASI<b>{stats.diplomacy}</b></span>
-        <span>ARIS<b>{rel.aris}</b></span>
-        <span>SITI<b>{rel.siti}</b></span>
-        <span>BIMO<b>{rel.bimo}</b></span>
+        {/* v0.17.0: story cast from the NPC registry (Pak Budi excluded —
+            preserved behavior). Was hardcoded ARIS/SITI/BIMO spans. */}
+        {NPCS.filter((n) => n.storyCast).map((n) => (
+          <span key={n.id}>{n.name.toUpperCase()}<b>{rel[n.id] ?? 0}</b></span>
+        ))}
       </div>
       <div className="ending-actions">
         <button onClick={onRestart}>MULAI ULANG</button>

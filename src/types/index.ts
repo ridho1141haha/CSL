@@ -23,6 +23,13 @@ export type GameMode =
   | 'SAVELOAD_MENU'
   | 'SETTINGS'
   | 'STUDY'
+  // v0.18.0: story-driven PTS mini-game (mandatory exam between the library
+  // bonding montage and the canon results scene). Distinct from 'STUDY' (the
+  // voluntary study session): completion resumes the STORY (systems/exam.ts
+  // opens the results dialogue) instead of returning to gameplay, and the
+  // mode is intentionally NOT ESC-closable — abandoning mid-quiz would strand
+  // beat ch1_pts (the montage trigger is once-only).
+  | 'EXAM'
   | 'GAME_OVER'
   | 'ENDING'
   | 'TRANSITION';
@@ -31,28 +38,52 @@ export type NpcId = 'aris' | 'siti' | 'bimo' | 'budi';
 
 // Route 'neutral' (v0.7.0): Ren mengabaikan Aris saat insiden tangga belakang —
 // memasuki alur "Dinding Dingin" menuju Netral Ending "Lulus Tanpa Nama".
-export type Route = 'none' | 'bad' | 'resistance' | 'neutral';
+// v0.17.0: runtime list (save validation reads it — route drives ending
+// resolution, so a corrupted save must not write an unknown route).
+export const ROUTES = ['none', 'bad', 'resistance', 'neutral'] as const;
+export type Route = (typeof ROUTES)[number];
 
 export type ChapterId = 1 | 2 | 3 | 4;
 
 export type StoryBeat =
   | 'ch1_explore'
+  // v0.15.0 — dokumen laporan: Ch3 "Persahabatan Aris" (perpustakaan) +
+  // Ch4 "Ujian Pertama" (PTS) disisipkan SEBELUM insiden tangga (doc Ch5).
+  // Beat-chain: ch1_explore → ch1_friendship → ch1_pts → ch1_break.
+  | 'ch1_friendship'     // montase perpustakaan (Ren ↔ Aris tukar catatan)
+  | 'ch1_pts'            // montase pembagian hasil PTS (Pak Budi, nilai 98)
   | 'ch1_break'
   // v0.7.0: Bab 2 reworked — "Kesalahan Kecil Aris" replaces the gate fight
   | 'ch2_key_error'
   | 'ch2_aftermath'
+  // v0.11.0 GARIS MERAH: bab 3 dibuka montase OSIS, lalu sergapan parkiran,
+  // lalu rooftop. Rute bad berakhir di kelulusan; rute resistance berakhir
+  // di FINAL BOSS Bimo → CHOICE 3 → kelulusan (good) / penangkapan (bad 2).
+  | 'ch3_osis'          // montase pendekatan OSIS pending
+  | 'ch3_parking'       // sergapan parkiran [FIGHT 2] pending
   | 'ch3_rooftop'
   // v0.7.0: neutral route beats
   | 'ch3_neutral'        // montage "Dinding Dingin" pending
   | 'ch4_neutral_grad'   // graduation-day trigger pending (gate)
+  // v0.15.0 — SECRET CHOICE POINT (doc CH10 & epilog): setelah dialog Siti di
+  // gerbang, pemain mengontrol Ren — keluar lewat gerbang (standard neutral)
+  // atau balik ke gang belakang (secret battle → 2 secret bad endings).
+  | 'ch4_neu_secret'
   | 'ch4_bad_warehouse'
   | 'ch4_bad_aftermath'
+  | 'ch4_bad_grad'       // GARIS MERAH: bad ending 1 di gerbang
   | 'ch4_res_search'
   | 'ch4_res_alley'
   | 'ch4_res_aftermath'
+  | 'ch4_res_bimo'       // GARIS MERAH: FINAL BOSS Bimo
+  | 'ch4_good_grad'      // GARIS MERAH: good ending di gerbang
   | 'done';
 
 export type Clock = { day: number; minutes: number };
+
+// Notification color kinds (gameStore queue + the 'notify' effect). Lives here
+// so data files (Effect) and the store share one union (v0.17.1).
+export type NotificationKind = 'info' | 'quest' | 'social' | 'warn';
 
 export type ZoneId =
   | 'gate'
@@ -90,6 +121,16 @@ export type Stats = {
   reputation: number;
 };
 
+// v0.18.0 — study/exam question (shared by the voluntary StudyPanel and the
+// PTS mini-game). Content lives in data/chapters.ts STUDY_QUESTIONS; scoring
+// lives in game/systems/study.ts scoreStudy().
+export type StudyQuestion = {
+  id: string;
+  question: string;
+  options: string[];
+  correctIndex: number;
+};
+
 export type QuestState = 'locked' | 'available' | 'active' | 'completed' | 'failed';
 export type QuestType = 'main' | 'side';
 
@@ -119,20 +160,59 @@ export type Effect =
   | { k: 'rel'; target: NpcId; delta: number }
   | { k: 'stat'; stat: keyof Stats | 'focus'; delta: number }
   | { k: 'hp'; delta: number }
-  | { k: 'quest'; id: string; state: QuestState }
+  // v0.17.1: silent opts out of the standard 'Quest selesai/diperbarui' toast —
+  // story triggers that complete a quest via data keep their original UX
+  // (the engine block they replaced never toasted).
+  | { k: 'quest'; id: string; state: QuestState; silent?: boolean }
   | { k: 'item'; id: string; remove?: boolean }
   | { k: 'time'; minutes: number }
+  // v0.17.1: advance to the next occurrence of a wall-clock time (minutes of
+  // day). Was inline math in StoryDirector's explore_school block.
+  | { k: 'time-to'; minutes: number }
   | { k: 'chapter'; id: ChapterId }
   | { k: 'beat'; id: StoryBeat }
   | { k: 'route'; id: Route }
   | { k: 'ending' }
   | { k: 'combat'; encounter: string }
-  | { k: 'notify'; text: string }
+  | { k: 'notify'; text: string; kind?: NotificationKind }
   | { k: 'visit-zone'; zone: ZoneId }
   | { k: 'scene'; id: SceneId; spawn?: [number, number] }
   | { k: 'teleport'; x: number; z: number }
   | { k: 'study' }
   | { k: 'save' };
+
+// ---------------------------------------------------------------------------
+// v0.17.1 — StoryTriggerDef: dunia → cerita (STORY TRIGGER registry).
+//
+// Replaces the per-beat if-blocks that lived in StoryDirector.tsx (montages,
+// parking ambush, graduations, secret choice point, chapter-2 card/scene,
+// find_aris). Adding a story beat that "opens a dialogue when X" is now a
+// registry row, not an engine branch.
+//
+//   once    — story flag guarding re-fire. MUST reuse the historical flag
+//             names (old saves already carry them); omit for triggers that
+//             one-shot themselves via their own condition (e.g. quest state
+//             flips to 'completed' inside `fire`).
+//   when    — story-state condition, evaluated with the existing condition
+//             system (beat/route/chapter/zone/quest/flag/…). No new semantics.
+//   scene   — ENGINE context, not story state: required scene (default
+//             'campus') — protects against async requestScene swaps.
+//   duringCinematic — ENGINE context: montages may fire while the mode is
+//             still CINEMATIC (beat handoff between chained scenes). Default
+//             GAMEPLAY-only.
+//   open    — dialogue node opened cinematically on fire.
+//   fire    — effects applied before `open` (reuses the effect pipeline; do
+//             NOT duplicate game logic here).
+// ---------------------------------------------------------------------------
+export type StoryTriggerDef = {
+  id: string;
+  once?: string;
+  when: Condition;
+  scene?: SceneId;
+  duringCinematic?: boolean;
+  open?: string;
+  fire?: Effect[];
+};
 
 export type Condition =
   | { k: 'flag'; id: string; not?: boolean }
@@ -145,8 +225,19 @@ export type Condition =
   | { k: 'focusAbove'; v: number }
   | { k: 'period'; id: string }        // time-of-day window (systems/time PeriodId)
   | { k: 'zone'; id: ZoneId }          // player currently inside zone
+  // v0.17.1: story position + exploration history (StoryTriggerDef /
+  // QuestDef.completeWhen). `beat` mirrors storyStore.beat via ConditionContext.
+  | { k: 'beat'; id: StoryBeat }
+  | { k: 'visited'; zones: ZoneId[] }  // ALL listed zones already visited
   | { k: 'talks'; target: NpcId; v: number } // has talked to NPC >= v times
-  | { k: 'and'; all: Condition[] };
+  | { k: 'and'; all: Condition[] }
+  // v0.17.0 combinators (audit H1): content can express OR / negation and
+  // inventory checks without engine special-cases. `and` keeps its
+  // historical shape (`all`); the switch in systems/conditions.ts is
+  // exhaustive — adding a kind here FORCES the interpreter update.
+  | { k: 'any'; of: Condition[] }
+  | { k: 'not'; not: Condition }
+  | { k: 'item'; id: string; not?: boolean }; // inventory has (not) item
 
 export type Choice = {
   id: string;
@@ -192,6 +283,11 @@ export type ChapterDef = {
   subtitle: string;
   onStart?: Effect[];
   onComplete?: Effect[];
+  // v0.17.0 (audit C1): story data moved out of engine code (effects.ts) —
+  // the beat a { k:'chapter' } effect lands on, and route-specific chapter
+  // card subtitles. Adding chapter 5 = adding a CHAPTERS row + content.
+  defaultBeat?: StoryBeat;
+  subtitleByRoute?: Partial<Record<Route, string>>;
 };
 
 export type EncounterEnemy = {
@@ -228,6 +324,16 @@ export type QuestDef = {
   desc: string;
   objective: string;
   chapter: ChapterId;
+  // v0.17.0 (audit N2): waypoint target zone — was a 12-case `switch
+  // (quest.id)` in game/waypoint.ts ("data lives here instead of on
+  // QuestDef"). A new quest with a `waypoint` gets its marker for free.
+  waypoint?: ZoneId;
+  // v0.17.0 (audit N2): data-driven completion rule. While the quest is
+  // 'active', when `completeWhen` evaluates true the story director runs
+  // `onComplete` once (the effects themselves flip the quest to 'completed').
+  // Was: four hardcoded per-id if-blocks in StoryDirector.tsx.
+  completeWhen?: Condition;
+  onComplete?: Effect[];
 };
 
 // Hidden/optional interaction (mentor feedback #5). Data-driven; runner lives
@@ -250,6 +356,9 @@ export type HiddenEventDef = {
   oneTime?: boolean;              // default true
 };
 
+// v0.12.0: props that a Figure can hold in its hands (story-support detail).
+export type HoldKind = 'book' | 'map' | 'pencil' | 'eraser' | 'stack' | 'bottle' | 'phone';
+
 export type NpcDef = {
   id: NpcId;
   name: string;
@@ -258,12 +367,29 @@ export type NpcDef = {
   accent: string;
   height: number;
   schedule: Partial<Record<string, [number, number]>>; // period -> [x, z]
+  // v0.12.0: when the NPC arrives at a waypoint marked `sit` below, it sits
+  // (classroom desks) and turns toward this world point while seated
+  sitAt?: string[]; // period ids where the NPC sits after arriving
+  sitFace?: [number, number]; // look-at point while seated
   dialogueRoot: string; // dialogue node id used when interacted
   // stylized-realistic look overrides (see game/npc/Character.tsx Figure)
   skin?: string;
   pants?: string;
   skirt?: string; // color — presence enables skirt mesh
   hair?: { color: string; style: 'short' | 'wave' | 'ponytail' | 'buzz' };
+  // ── v0.17.0 registry metadata (single source: stores/migration/UI derive
+  // from here instead of hand-synced literal tables per file) ──
+  // Counted in the Status "story average" and on the Ending screen. Pak Budi
+  // (teacher, side content) is excluded — preserved behavior.
+  storyCast?: boolean;
+  // Relationship log chip (tag + css class) — was menus/index REL_TAGS.
+  relTag?: { text: string; cls: string };
+  // Relationship log quote — was menus/index REL_QUOTES.
+  relQuote?: string;
+  // Story visibility rule for the world renderer — was engine code
+  // `def.id === 'aris' && route === 'neutral' && chapter >= 4` in Npc.tsx.
+  // The NPC is not mounted when ALL provided fields match.
+  hiddenWhen?: { route?: Route; chapterMin?: number };
 };
 
 export type ZoneDef = {

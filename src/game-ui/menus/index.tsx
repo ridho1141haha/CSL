@@ -7,18 +7,22 @@ import { useSocial } from '../../stores/socialStore';
 import { useQuests } from '../../stores/questStore';
 import { useInventory } from '../../stores/inventoryStore';
 import { useSettings } from '../../stores/settingsStore';
+import { QUALITY_LABELS } from '../../game/quality';
 import { QUESTS } from '../../data/quests';
 import { ITEM_BY_ID } from '../../data/items';
 import { NPCS } from '../../data/npcs';
-import { SCENES } from '../../data/world';
+import { SCENES, ZONE_BY_ID } from '../../data/world';
 import { STUDY_QUESTIONS } from '../../data/chapters';
 import { HIDDEN_EVENTS } from '../../data/hiddenEvents';
 import { isDiscovered, HIDDEN_EVENT_COUNT } from '../../game/systems/hiddenEvents';
 import { relLabel } from '../../game/systems/relationship';
 import { repLabel } from '../../game/systems/reputation';
 import { clockLabel, DAYS, formatHhmm } from '../../game/systems/time';
-import { saveGame, loadGame, deleteSave, hasSave, slotInfo, SAVE_SLOTS, type SlotId } from '../../game/save';
+import { pickActiveQuest, questTargetFor, distanceToTarget } from '../../game/waypoint';
+import { saveGame, deleteSave, hasSave, slotInfo, SAVE_SLOTS, type SlotId } from '../../game/save';
+import { loadGame } from '../../game/loadFlow';
 import { applyEffects } from '../../game/systems/effects';
+import { scoreStudy } from '../../game/systems/study';
 import { audio } from '../../game/audio';
 
 // Shared full-screen menu shell with keyboard navigation (arrows/WASD, Esc).
@@ -72,12 +76,22 @@ export function FullMenu({ title, onClose, children, eyebrow = 'DOSSIER // YUSON
 // Status — implementasi mockup Stitch "04-status" (TACTICAL DOSSIER):
 // kartu identitas kiri, deretan vitals 3 kolom kanan, chip metrik, catatan.
 export function StatusPanel() {
-  const { hp, maxHp, focus } = usePlayer();
-  const { academic, violence, diplomacy, reputation } = useStats();
+  // v0.17.0 (audit L1): field selectors — the whole-store subscriptions here
+  // re-rendered on EVERY playerStore write (incl. throttled position updates).
+  const hp = usePlayer((s) => s.hp);
+  const maxHp = usePlayer((s) => s.maxHp);
+  const focus = usePlayer((s) => s.focus);
+  const academic = useStats((s) => s.academic);
+  const violence = useStats((s) => s.violence);
+  const diplomacy = useStats((s) => s.diplomacy);
+  const reputation = useStats((s) => s.reputation);
   const flags = useStory((s) => s.flags.length);
   const clock = useGame((s) => s.clock);
   const rel = useSocial((s) => s.relationships);
-  const relAvg = Math.round(((rel.aris ?? 0) + (rel.siti ?? 0) + (rel.bimo ?? 0)) / 3);
+  // v0.17.0: story average derives from the NPC registry (storyCast flag,
+  // Pak Budi excluded — preserved behavior). Was hardcoded aris+siti+bimo/3.
+  const cast = NPCS.filter((n) => n.storyCast);
+  const relAvg = Math.round(cast.reduce((a, n) => a + (rel[n.id] ?? 0), 0) / Math.max(1, cast.length));
   const violenceTag = violence < 30 ? 'TERKENDALI' : violence < 60 ? 'MEMPRIHATINKAN' : 'TIDAK STABIL';
   const meter = (v: number, max: number, color: string) => (
     <div className="meter">
@@ -158,18 +172,9 @@ export function StatusPanel() {
 
 // Relationships — implementasi bagian "CAMPUS SYNDICATE & RELATIONSHIP LOG"
 // dari mockup Stitch "04-status": kartu per karakter + kutipan + meter relasi.
-const REL_QUOTES: Record<string, string> = {
-  aris: '“Ren, buku catatan aku titipin ya kalau ada kuis.”',
-  siti: '“Jangan lupa formulir OSIS kalau kamu yang bawa.”',
-  bimo: '“Kami melihatmu di gerbang. Hati-hati di jalan pulang.”',
-  budi: '“Kelas X-C? Jaga perilaku, aku mengamati dari ruang guru.”',
-};
-const REL_TAGS: Record<string, { text: string; cls: string }> = {
-  aris: { text: 'SEBANGKU', cls: 'chip-cyan' },
-  siti: { text: 'OSIS', cls: 'chip-green' },
-  bimo: { text: 'ANCAMAN', cls: 'chip-red' },
-  budi: { text: 'GURU', cls: '' },
-};
+// v0.17.0: per-NPC quote/chip live on NpcDef (relQuote/relTag) — the local
+// REL_QUOTES/REL_TAGS literal tables are gone; a new cast member needs no UI
+// edit (missing relQuote falls back to '…….' exactly as before).
 
 export function RelationshipsPanel() {
   const relationships = useSocial((s) => s.relationships);
@@ -180,7 +185,7 @@ export function RelationshipsPanel() {
         const v = relationships[n.id] ?? 0;
         const pct = Math.max(0, Math.min(100, ((v + 100) / 200) * 100));
         const tone = v < -10 ? 'hostile' : v >= 40 ? 'warm' : '';
-        const tag = REL_TAGS[n.id] ?? { text: 'SISWA', cls: '' };
+        const tag = n.relTag ?? { text: 'SISWA', cls: '' };
         return (
           <div className="relationship-row" key={n.id}>
             <div className="rel-top">
@@ -190,7 +195,7 @@ export function RelationshipsPanel() {
                 <span>{n.role} // SMA YUSON</span>
               </div>
             </div>
-            <p className="rel-quote">{REL_QUOTES[n.id] ?? '“…….”'}</p>
+            <p className="rel-quote">{n.relQuote ?? '“…….”'}</p>
             <div className="rel-meter">
               <div className="track"><b className={tone} style={{ width: `${pct}%` }} /></div>
               <span className="rel-val">{v > 0 ? '+' : ''}{v}</span>
@@ -289,58 +294,156 @@ export function InventoryPanel() {
 }
 
 // Map — implementasi mockup Stitch "07-map" (SCHEMATIC CAMPUS OVERVIEW):
-// header dengan tag MAP // GND, grid node, panel samping target & statistik.
+// header dengan tag scene, grid node, panel samping target & statistik.
+// v0.10.0 fixes (feedback "fix fitur map"):
+//   - hitungan zona dikunjungi kini PER-SCENE (dulu global — di atap bisa
+//     muncul "20 / 2" karena visitedZones mencampur zona lintas scene)
+//   - node zona yang berbagi titik pusat (Kelas 10-A / 12-A / 12-B Gedung B)
+//     ditumpuk rapi dengan chip lantai, bukan menimpa satu sama lain
+//   - marker TUJUAN mision aktif (sejalan dengan waypoint dunia) + sorotan
+//     zona yang sedang diinjak + panah arah hadap Ren
+//   - tag header mengikuti scene (GND / ROOF / GUDANG), bukan statis GND
+const SCENE_TAG: Record<string, string> = { campus: 'GND', rooftop: 'ROOF', warehouse: 'GUDANG' };
+const MAP_FLOOR_RX = /\s*\(Lantai (\d+)\)$/;
+
+type MapFootprint = { x0: number; z0: number; x1: number; z1: number; kind: 'bldg' | 'road' | 'ring' | 'path' };
+// Footprint dalam koordinat dunia kampus (lihat game/world/CampusWorld.tsx).
+const MAP_FOOTPRINTS: MapFootprint[] = [
+  { x0: -16, z0: 4, x1: 16, z1: 28, kind: 'bldg' },      // gedung utama
+  { x0: -4, z0: -2, x1: 4, z1: 4, kind: 'bldg' },        // tangga belakang
+  { x0: 22, z0: 2, x1: 34, z1: 14, kind: 'bldg' },       // kantin
+  { x0: 23, z0: 16, x1: 39, z1: 24, kind: 'bldg' },      // perpustakaan
+  { x0: 24, z0: -16, x1: 44, z1: -2, kind: 'bldg' },     // gedung B
+  { x0: -46, z0: -36, x1: -26, z1: -18, kind: 'bldg' },  // gudang tua
+  { x0: 26, z0: 26, x1: 42, z1: 42, kind: 'bldg' },      // parkir
+  { x0: -6, z0: -30, x1: 18, z1: -12, kind: 'bldg' },    // gang belakang
+  { x0: -43, z0: 5, x1: -23, z1: 25, kind: 'ring' },     // lapangan
+  { x0: -48, z0: 46, x1: 48, z1: 54, kind: 'road' },     // jalan depan
+  { x0: -10, z0: 28, x1: 24, z1: 44, kind: 'path' },     // halaman utama
+  { x0: 10.75, z0: 0.75, x1: 21.25, z1: 5.35, kind: 'path' }, // lorong kantin (v0.12.0)
+];
+
 export function MapPanel() {
   // zustand v5: object-literal selectors create a new snapshot every poll and
   // crash React with "Maximum update depth exceeded" — select primitives.
   const px = usePlayer((s) => s.x);
   const pz = usePlayer((s) => s.z);
+  const facing = usePlayer((s) => s.facing);
   const sceneId = useGame((s) => s.scene);
   const visited = useGame((s) => s.visitedZones);
+  const currentZone = useGame((s) => s.currentZone);
   const quests = useQuests((s) => s.quests);
-  const activeQuest = QUESTS.find((q) => quests[q.id] === 'active');
   const def = SCENES[sceneId] ?? SCENES.campus;
   const b = def.bounds;
+
+  const activeQuest = pickActiveQuest(quests);
+  const target = activeQuest && sceneId === 'campus'
+    ? questTargetFor(activeQuest, { visited, px, pz })
+    : null;
+  const targetDist = target ? Math.round(distanceToTarget(target, px, pz)) : 0;
+
   // scene-local coords → map panel coords (top = minZ / north)
   const toMap = (x: number, z: number): [string, string] => [
     `${50 + ((x - (b.minX + b.maxX) / 2) / (b.maxX - b.minX)) * 46}%`,
     `${50 + ((z - (b.minZ + b.maxZ) / 2) / (b.maxZ - b.minZ)) * 44}%`,
   ];
+
+  // v0.12.0: blueprint layer — footprint gedung/jalan/jalur (kampus) supaya
+  // overlay peta terbaca sebagai DENAH sekolah, bukan kumpulan titik lepas.
+  // (feedback user: "ui/overlay map")
+  const toRect = (f: MapFootprint) => {
+    const [l, t] = toMap(f.x0, f.z0);
+    const [r, bm] = toMap(f.x1, f.z1);
+    return { left: l, top: t, width: `calc(${r} - ${l})`, height: `calc(${bm} - ${t})` };
+  };
+
+  // group zones that share a center so stacked floors don't overlap:
+  // each extra member is offset vertically around the shared point
+  const zoneGroups: { zone: (typeof def.zones)[number]; offset: number }[][] = [];
+  const groupIndex = new Map<string, number>();
+  def.zones.forEach((zone) => {
+    const key = `${zone.center[0]}|${zone.center[1]}`;
+    let gi = groupIndex.get(key);
+    if (gi === undefined) {
+      gi = zoneGroups.length;
+      groupIndex.set(key, gi);
+      zoneGroups.push([]);
+    }
+    zoneGroups[gi].push({ zone, offset: 0 });
+  });
+  zoneGroups.forEach((members) => {
+    members.forEach((m, idx) => {
+      m.offset = (idx - (members.length - 1) / 2) * 19; // px, ± around center
+    });
+  });
+
+  const visitedInScene = def.zones.filter((z) => visited.includes(z.id)).length;
+  // facing = atan2(dx, dz) (model forward +z) → compass clockwise from north(-z)
+  const headingDeg = (Math.atan2(Math.sin(facing), -Math.cos(facing)) * 180) / Math.PI;
+
   return (
     <div className="map-wrap">
       <section className="map-panel panel-cut">
         <div className="map-head">
-          <span className="mh-tag">MAP // GND</span>
+          <span className="mh-tag">MAP // {SCENE_TAG[sceneId] ?? 'GND'}</span>
           <b>{sceneId === 'campus' ? 'BLUEPRINT LINGKUNGAN SEKOLAH' : def.label.toUpperCase()}</b>
           <span className="right">
             <span className="chip">ZONA: {def.zones.length}</span>
-            <span className="chip chip-cyan">DIKUNJUNGI: {visited.length}</span>
+            <span className="chip chip-cyan">DIKUNJUNGI: {visitedInScene}</span>
           </span>
         </div>
         <div className="map-grid">
           {activeQuest && <div className="map-objective">OBJEKTIF: {activeQuest.objective}</div>}
-          {def.zones.map((zone) => {
+          {sceneId === 'campus' && MAP_FOOTPRINTS.map((f, i) => (
+            <i key={`bp${i}`} className={`map-bp map-bp-${f.kind}`} style={toRect(f)} />
+          ))}
+          {zoneGroups.flat().map(({ zone, offset }) => {
             const [left, top] = toMap(zone.center[0], zone.center[1]);
-            return <span key={zone.id} className={`node ${visited.includes(zone.id) ? '' : 'unvisited'}`} style={{ left, top }}>{zone.label.toUpperCase()}</span>;
+            const fl = zone.label.match(MAP_FLOOR_RX);
+            const name = zone.label.replace(MAP_FLOOR_RX, '');
+            const isCurrent = zone.id === currentZone;
+            const isTarget = target?.zoneId === zone.id;
+            return (
+              <span
+                key={zone.id}
+                className={`node ${visited.includes(zone.id) ? '' : 'unvisited'} ${isCurrent ? 'current' : ''} ${isTarget ? 'target' : ''}`}
+                style={{ left, top, transform: `translate(-50%, calc(-50% + ${offset}px))` }}
+              >
+                {name.toUpperCase()}
+                {fl && <em className="fl">L{fl[1]}</em>}
+              </span>
+            );
           })}
-          <div className="map-player" style={{ left: toMap(px, pz)[0], top: toMap(px, pz)[1] }} />
+          {target && (
+            <div className="map-target" style={{ left: toMap(target.pos[0], target.pos[1])[0], top: toMap(target.pos[0], target.pos[1])[1] }}>
+              ◆ TUJUAN
+            </div>
+          )}
+          <div className="map-player" style={{ left: toMap(px, pz)[0], top: toMap(px, pz)[1] }}>
+            <i className="map-heading" style={{ transform: `rotate(${headingDeg}deg)` }} />
+          </div>
         </div>
       </section>
       <aside className="map-side">
         <div className="panel-cut">
           <span className="ms-title">// TARGET AKTIF</span>
           <div className="ms-target">{activeQuest ? activeQuest.title : 'JELAJAHI SEKOLAH'}</div>
+          {target && (
+            <div className="ms-target-loc">{target.label.toUpperCase()} · {targetDist} M</div>
+          )}
         </div>
         <div className="panel-cut">
           <span className="ms-title">// VEKTOR NAVIGASI</span>
           <div className="ms-row"><span>SCENE</span><b>{def.label.toUpperCase()}</b></div>
           <div className="ms-row"><span>POSISI REN</span><b>X {Math.round(px)} · Z {Math.round(pz)}</b></div>
-          <div className="ms-row"><span>ZONA DIKUNJUNGI</span><b>{visited.length} / {def.zones.length}</b></div>
+          <div className="ms-row"><span>ZONA DIKUNJUNGI</span><b>{visitedInScene} / {def.zones.length}</b></div>
+          {currentZone && <div className="ms-row"><span>SEDANG DI</span><b>{ZONE_BY_ID[currentZone]?.label.toUpperCase() ?? '—'}</b></div>}
         </div>
         <div className="panel-cut">
           <span className="ms-title">// LEGENDA</span>
           <div className="map-legend">
             <span className="chip chip-amber">POSISI REN</span>
+            <span className="chip chip-amber">◆ TUJUAN MISI</span>
             <span className="chip chip-cyan">ZONA DIKUNJUNGI</span>
             <span className="chip">BELUM DIJELAJAH</span>
           </div>
@@ -392,14 +495,42 @@ export function SettingsPanel() {
   const s = useSettings();
   const rows: [keyof typeof s, string, number, number, number][] = [
     ['camDistance', 'CAMERA DISTANCE', 2.6, 8, 0.1],
+    ['sensitivity', 'SENSITIVITAS KAMERA', 0.4, 2, 0.05],
     ['master', 'MASTER VOLUME', 0, 1, 0.05],
     ['music', 'MUSIC', 0, 1, 0.05],
     ['sfx', 'SFX', 0, 1, 0.05],
     ['ui', 'UI', 0, 1, 0.05],
     ['ambient', 'AMBIENT', 0, 1, 0.05],
+    ['typewriterCps', 'KECEPATAN TEKS DIALOG', 10, 80, 2],
+    ['subtitleScale', 'UKURAN SUBTITLE', 0.85, 1.5, 0.05],
   ];
   return (
     <div className="settings-panel">
+      {/* v0.13.0: first-person / third-person camera mode */}
+      <label>
+        <span>MODE KAMERA</span>
+        <select
+          className="settings-select"
+          value={s.camMode}
+          onChange={(e) => s.set('camMode', e.target.value as typeof s.camMode)}
+        >
+          <option value="third">ORANG KETIGA (TPS)</option>
+          <option value="first">ORANG PERTAMA (FPS)</option>
+        </select>
+      </label>
+      {/* v0.9.0: graphics quality preset — applied live by GraphicsManager */}
+      <label>
+        <span>KUALITAS GRAFIK</span>
+        <select
+          className="settings-select"
+          value={s.quality}
+          onChange={(e) => s.set('quality', e.target.value as typeof s.quality)}
+        >
+          {(Object.keys(QUALITY_LABELS) as (keyof typeof QUALITY_LABELS)[]).map((q) => (
+            <option key={q} value={q}>{QUALITY_LABELS[q]}</option>
+          ))}
+        </select>
+      </label>
       {rows.map(([key, label, min, max, step]) => (
         <label key={String(key)}>
           <span>{label}</span>
@@ -417,9 +548,10 @@ export function SettingsPanel() {
           />
         </label>
       ))}
+      <label><span>INVERT Y</span><input type="checkbox" checked={s.invertY} onChange={(e) => s.set('invertY', e.target.checked)} /></label>
       <label><span>REDUCED MOTION</span><input type="checkbox" checked={s.reducedMotion} onChange={(e) => s.set('reducedMotion', e.target.checked)} /></label>
       <label><span>SCREEN SHAKE</span><input type="checkbox" checked={s.screenShake} onChange={(e) => s.set('screenShake', e.target.checked)} /></label>
-      <p>CONTROLS: WASD MOVE · SHIFT RUN · SPACE JUMP · MOUSE CAMERA · WHEEL ZOOM · LMB ATTACK · Q HEAVY · RMB BLOCK · E INTERACT</p>
+      <p>CONTROLS: WASD MOVE · SHIFT RUN · SPACE JUMP · MOUSE CAMERA · V FIRST/THIRD · WHEEL ZOOM · LMB ATTACK · Q HEAVY · RMB BLOCK · E INTERACT</p>
     </div>
   );
 }
@@ -470,27 +602,31 @@ export function StudyPanel() {
   return (
     <div className="study-panel panel-cut">
       <div className="eyebrow">BELAJAR // PERTANYAAN {idx + 1}/{questions.length}</div>
-      <h2>{q.q}</h2>
+      <h2>{q.question}</h2>
       <div className="study-options">
         {q.options.map((opt, i) => (
           <button
             key={i}
-            className={picked === i ? (i === q.answer ? 'good' : 'bad') : picked != null && i === q.answer ? 'good' : ''}
+            className={picked === i ? (i === q.correctIndex ? 'good' : 'bad') : picked != null && i === q.correctIndex ? 'good' : ''}
             disabled={picked != null}
             onClick={() => {
               setPicked(i);
               audio.click();
-              if (i === q.answer) setCorrect((c) => c + 1);
+              if (i === q.correctIndex) setCorrect((c) => c + 1);
               setTimeout(() => {
                 if (idx + 1 >= questions.length) {
-                  const c = correct + (i === q.answer ? 1 : 0);
+                  // v0.18.0: delta stat kini dari scoreStudy() — SATU rumus
+                  // skoring untuk sesi belajar sukarela DAN PTS mini-game
+                  // (angka identik dengan math inline yang dulu: 3/benar,
+                  // +2/benar −1/salah untuk fokus).
+                  const r = scoreStudy(correct + (i === q.correctIndex ? 1 : 0), questions.length);
                   applyEffects([
-                    { k: 'stat', stat: 'academic', delta: c * 3 },
-                    { k: 'stat', stat: 'focus', delta: c * 2 - (questions.length - c) },
+                    { k: 'stat', stat: 'academic', delta: r.academicDelta },
+                    { k: 'stat', stat: 'focus', delta: r.focusDelta },
                     { k: 'flag', id: 'studied_once' },
                     { k: 'quest', id: 'study_habit', state: 'completed' },
                     { k: 'time', minutes: 25 },
-                    { k: 'notify', text: `Sesi belajar selesai: ${c}/${questions.length} benar. (Akademik +${c * 3})` },
+                    { k: 'notify', text: `Sesi belajar selesai: ${r.correct}/${r.total} benar. (Akademik +${r.academicDelta})` },
                   ]);
                   setDone(true);
                 } else {

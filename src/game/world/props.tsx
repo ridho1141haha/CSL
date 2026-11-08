@@ -1,6 +1,9 @@
 import type { ReactNode } from 'react';
+import { useEffect, useRef } from 'react';
 import { RigidBody, CuboidCollider } from '@react-three/rapier';
 import { Text } from '@react-three/drei';
+import * as THREE from 'three';
+import { registerCull, unregisterCull, type CullMode } from '../runtime';
 import { Pbr, type SurfaceName } from './pbr';
 
 // Shared world-building primitives for the rebuilt (no-GLB) scenes.
@@ -165,6 +168,42 @@ export function Planter({ x, z, w = 2.4, d = 1.2 }: { x: number; z: number; w?: 
 
 export function Wrapper({ children }: { children: ReactNode }) {
   return <>{children}</>;
+}
+
+// ---------------------------------------------------------------------------
+// Cull — render-culling wrapper (v0.9.0, "yang ga keliatan ga dirender").
+// Wraps a static world bundle and registers it with CullingManager:
+//   mode 'frustum'  → hidden while the bundle sphere is fully outside the
+//                     camera frustum (beyond the safety margin)
+//   mode 'interior' → additionally hidden past `interiorRange` meters —
+//                     interior furniture the player cannot see through walls
+// Every scene-switch unmount unregisters, and CullingManager restores
+// visibility for anything still registered when it unmounts.
+// ---------------------------------------------------------------------------
+export function Cull({
+  center,
+  radius,
+  mode = 'frustum',
+  children,
+}: {
+  center: [number, number, number];
+  radius: number;
+  mode?: CullMode;
+  children: ReactNode;
+}) {
+  const ref = useRef<THREE.Group>(null);
+  useEffect(() => {
+    if (!ref.current) return;
+    const id = registerCull({ obj: ref.current, center, radius, mode });
+    ref.current.matrixAutoUpdate = false; // static bundle — compose once
+    ref.current.updateMatrixWorld(true);
+    return () => {
+      unregisterCull(id);
+      if (ref.current) ref.current.visible = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+  return <group ref={ref}>{children}</group>;
 }
 
 // ---------------------------------------------------------------------------

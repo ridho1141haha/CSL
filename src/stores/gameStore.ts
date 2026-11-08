@@ -1,11 +1,13 @@
 import { create } from 'zustand';
-import type { Clock, GameMode, Phase, SceneId, ZoneId } from '../types';
+import type { Clock, GameMode, NotificationKind, Phase, SceneId, ZoneId } from '../types';
 import { advance } from '../game/systems/time';
 import type { Ending } from '../game/systems/endingResolver';
 import { SCENES } from '../data/world';
 import { usePlayer } from './playerStore';
 
-export type NotificationKind = 'info' | 'quest' | 'social' | 'warn';
+// NotificationKind lives in types/index.ts (shared with the 'notify' Effect);
+// re-exported here so existing UI import sites keep working.
+export type { NotificationKind } from '../types';
 export type Notification = { id: number; text: string; kind: NotificationKind };
 
 let notifSeq = 1;
@@ -81,14 +83,30 @@ export const useGame = create<Store>((set, get) => ({
   setPointerLocked: (pointerLocked) => set({ pointerLocked }),
   setScene: (scene) => set({ scene }),
   // Multi-scene transition: fade out → swap scene bundle → teleport player →
-  // fade in. If already in the target scene, just reposition the player.
+  // fade in. If already in the target scene, just reposition the player —
+  // v0.14.0: same-scene reposition kini JUGA lewat fade (out → place → in),
+  // jadi mission teleport & staging tidak pernah terlihat sebagai lompatan
+  // kasar. Ini abstraction "transitionToScene" — satu pintu untuk semua
+  // perpindahan player antar lokasi (rooftop/warehouse exit, teleport misi).
   requestScene: (id, spawn) => {
     const g = get();
+    if (g.sceneLoading) return; // a transition is already running
     if (g.scene === id) {
-      if (spawn) usePlayer.getState().setPos(spawn[0], spawn[1]);
+      if (!spawn) return;
+      g.setFade('out');
+      set({ sceneLoading: true });
+      window.setTimeout(() => {
+        usePlayer.getState().setPos(spawn[0], spawn[1]);
+        const st = get();
+        // stale zone guard: zoneAt re-resolves next tick anyway
+        st.setFade('in');
+        window.setTimeout(() => {
+          get().setFade('none');
+          set({ sceneLoading: false });
+        }, 700);
+      }, 480);
       return;
     }
-    if (g.sceneLoading) return; // a transition is already running
     g.setFade('out');
     set({ sceneLoading: true });
     window.setTimeout(() => {

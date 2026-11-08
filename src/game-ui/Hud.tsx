@@ -1,13 +1,51 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useGame } from '../stores/gameStore';
 import { usePlayer } from '../stores/playerStore';
 import { useCombat } from '../stores/combatStore';
 import { useQuests } from '../stores/questStore';
+import { useSettings } from '../stores/settingsStore';
 import { useStory } from '../stores/storyStore';
 import { QUESTS } from '../data/quests';
 import { DAYS, formatHhmm, periodFor } from '../game/systems/time';
 import { ZONE_BY_ID } from '../data/world';
-import { notifySound } from '../game/audio';
+import { audio, notifySound } from '../game/audio';
+import { pickActiveQuest, questTargetFor, distanceToTarget, type WaypointTarget } from '../game/waypoint';
+
+// v0.10.0: live objective distance for the HUD mission card. Polls (400ms,
+// getState-based) instead of per-frame store subscriptions — position changes
+// every frame but the readout only needs meter-ish resolution.
+export function useObjective(): { target: WaypointTarget | null; dist: number } {
+  const [state, setState] = useState<{ target: WaypointTarget | null; dist: number }>({ target: null, dist: 0 });
+  useEffect(() => {
+    let alive = true;
+    const tick = () => {
+      if (!alive) return;
+      const quests = useQuests.getState().quests;
+      const game = useGame.getState();
+      const { x, z } = usePlayer.getState();
+      const q = pickActiveQuest(quests);
+      const target = q && game.scene === 'campus' ? questTargetFor(q, { visited: game.visitedZones, px: x, pz: z }) : null;
+      setState((prev) => {
+        const dist = Math.round(distanceToTarget(target, x, z));
+        if (
+          prev.target?.questId === target?.questId &&
+          prev.target?.zoneId === target?.zoneId &&
+          prev.dist === dist
+        ) {
+          return prev; // avoid churn
+        }
+        return { target, dist };
+      });
+    };
+    tick();
+    const id = window.setInterval(tick, 400);
+    return () => {
+      alive = false;
+      window.clearInterval(id);
+    };
+  }, []);
+  return state;
+}
 
 function Meter({ label, value, color, width }: { label: string; value: string; color: 'red' | 'amber' | 'cyan' | 'green'; width: string }) {
   return (
@@ -21,18 +59,45 @@ function Meter({ label, value, color, width }: { label: string; value: string; c
 // HUD eksplorasi — implementasi mockup Stitch "03-exploration":
 // top bar (brand + jam), kartu vitals, kartu misi, tag zona,
 // prompt interaksi ber-bracket, dan chip kontrol bawah.
+// v0.14.0: kartu misi punya pilihan navigasi [TELEPORT] / [JALAN].
 export function Hud() {
-  const hp = usePlayer((s) => s.hp);
+  // Bolt optimization: Math.round() prevents 60fps re-renders during fractional regen
+  const hp = usePlayer((s) => Math.round(s.hp));
   const maxHp = usePlayer((s) => s.maxHp);
-  const focus = usePlayer((s) => s.focus);
+  const focus = usePlayer((s) => Math.round(s.focus));
   const clock = useGame((s) => s.clock);
   const zone = useGame((s) => s.currentZone);
   const interactTarget = useGame((s) => s.interactTarget);
   const chapter = useStory((s) => s.chapter);
-  const quests = useQuests((s) => s.quests);
-  const activeQuest = QUESTS.find((q) => q.type === 'main' && quests[q.id] === 'active');
+  // v0.13.0: first-person crosshair + camera control chip
+  const camMode = useSettings((s) => s.camMode);
+  const gameMode = useGame((s) => s.mode);
   const lastHit = useCombat((s) => s.lastPlayerHitAt);
   const hurtFlash = Date.now() - lastHit < 400;
+  // v0.10.0: waypoint-backed mission card — title, objective AND live distance
+  const { target, dist } = useObjective();
+  const activeQuest = target ? QUESTS.find((q) => q.id === target.questId) ?? null : null;
+  // v0.14.0: mission navigation (Task 1). Teleport memindahkan Ren ke target
+  // via requestScene (fade out → place → fade in) — objective TIDAK otomatis
+  // selesai; kondisi objective tetap dievaluasi sistem yang ada (zona/flag/
+  // periode). Walk tidak mengambil alih kontrol — waypoint ◆ + jarak di HUD
+  // sudah aktif, jadi cukup menegaskan arah ke pemain.
+  const [walkHint, setWalkHint] = useState(false);
+  const sceneLoading = useGame((s) => s.sceneLoading);
+  const teleportToMission = () => {
+    const g = useGame.getState();
+    if (!target || g.sceneLoading) return;
+    audio.click();
+    g.requestScene('campus', [target.pos[0], target.pos[1] + 1.4]);
+    g.notify(`Menuju misi: ${target.label}`, 'info');
+  };
+  const walkToMission = () => {
+    if (!target) return;
+    audio.click();
+    setWalkHint(true);
+    window.setTimeout(() => setWalkHint(false), 3200);
+    useGame.getState().notify(`Ikuti penanda ◆ ke ${target.label} (${dist}m)`, 'info');
+  };
 
   return (
     <div className={`minimal-hud ${hurtFlash ? 'hurt' : ''}`}>
@@ -57,12 +122,25 @@ export function Hud() {
         <Meter label="FOKUS" value={`${Math.round(focus)} / 100`} color="amber" width={`${focus}%`} />
       </div>
 
-      <div className="obj-card">
+      <div className={`obj-card ${walkHint ? 'walk-hint' : ''}`}>
         <div className="obj-marker">M</div>
         <div className="obj-body">
-          <b>MISI UTAMA</b>
+          <b>{activeQuest?.type === 'side' ? 'MISI SAMPINGAN' : 'MISI UTAMA'}</b>
           <strong>{activeQuest ? activeQuest.objective : 'Ikuti alur cerita'}</strong>
-          <span>{activeQuest ? activeQuest.title : 'PROLOG SMA YUSON'}</span>
+          <span>
+            {activeQuest ? activeQuest.title : 'PROLOG SMA YUSON'}
+            {target && <i className="obj-dist">{dist > 4 ? ` // ${dist}m` : ' // DI SINI'}</i>}
+          </span>
+          {target && (
+            <span className="obj-actions">
+              <button onClick={teleportToMission} disabled={sceneLoading} title="Pindah langsung ke lokasi misi">
+                TELEPORT
+              </button>
+              <button onClick={walkToMission} title="Tandai arah — jalan sendiri via waypoint">
+                JALAN
+              </button>
+            </span>
+          )}
         </div>
       </div>
 
@@ -70,6 +148,10 @@ export function Hud() {
         <div className="zone-tag">
           LOKASI <b>//</b> {ZONE_BY_ID[zone]?.label ?? ''}
         </div>
+      )}
+
+      {(camMode === 'first' && (gameMode === 'GAMEPLAY' || gameMode === 'COMBAT')) && (
+        <div className="fp-crosshair" />
       )}
 
       {interactTarget && (
@@ -84,6 +166,7 @@ export function Hud() {
         <span><kbd>SPACE</kbd> LOMPAT</span>
         <span><kbd>LMB</kbd> SERANG</span>
         <span><kbd>E</kbd> INTERAKSI</span>
+        <span><kbd>V</kbd> KAMERA</span>
         <span><kbd>ESC</kbd> JEDA</span>
       </footer>
     </div>
@@ -118,9 +201,17 @@ export function CombatHud() {
   const enemies = useCombat((s) => s.enemies);
   const index = useCombat((s) => s.index);
   const cur = enemies[index];
-  const hp = usePlayer((s) => s.hp);
+  // Bolt optimization: Math.round() prevents 60fps re-renders during fractional regen
+  const hp = usePlayer((s) => Math.round(s.hp));
   const maxHp = usePlayer((s) => s.maxHp);
-  const focus = usePlayer((s) => s.focus);
+  const focus = usePlayer((s) => Math.round(s.focus));
+
+  // v0.15.2: tandai body saat combat — notifikasi digeser turun supaya tidak
+  // menumpuk panel darah musuh (anti-bertumpuk; CSS body.in-combat).
+  useEffect(() => {
+    document.body.classList.add('in-combat');
+    return () => document.body.classList.remove('in-combat');
+  }, []);
 
   return (
     <div className="combat-ui">
