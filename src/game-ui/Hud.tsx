@@ -27,7 +27,13 @@ export function useObjective(): { target: WaypointTarget | null; dist: number } 
       const target = q && game.scene === 'campus' ? questTargetFor(q, { visited: game.visitedZones, px: x, pz: z }) : null;
       setState((prev) => {
         const dist = Math.round(distanceToTarget(target, x, z));
-        if (prev.target === target && prev.dist === dist) return prev; // avoid churn
+        if (
+          prev.target?.questId === target?.questId &&
+          prev.target?.zoneId === target?.zoneId &&
+          prev.dist === dist
+        ) {
+          return prev; // avoid churn
+        }
         return { target, dist };
       });
     };
@@ -55,9 +61,10 @@ function Meter({ label, value, color, width }: { label: string; value: string; c
 // prompt interaksi ber-bracket, dan chip kontrol bawah.
 // v0.14.0: kartu misi punya pilihan navigasi [TELEPORT] / [JALAN].
 export function Hud() {
-  const hp = usePlayer((s) => s.hp);
+  // Bolt optimization: Math.round() prevents 60fps re-renders during fractional regen
+  const hp = usePlayer((s) => Math.round(s.hp));
   const maxHp = usePlayer((s) => s.maxHp);
-  const focus = usePlayer((s) => s.focus);
+  const focus = usePlayer((s) => Math.round(s.focus));
   const clock = useGame((s) => s.clock);
   const zone = useGame((s) => s.currentZone);
   const interactTarget = useGame((s) => s.interactTarget);
@@ -194,9 +201,10 @@ export function CombatHud() {
   const enemies = useCombat((s) => s.enemies);
   const index = useCombat((s) => s.index);
   const cur = enemies[index];
-  const hp = usePlayer((s) => s.hp);
+  // Bolt optimization: Math.round() prevents 60fps re-renders during fractional regen
+  const hp = usePlayer((s) => Math.round(s.hp));
   const maxHp = usePlayer((s) => s.maxHp);
-  const focus = usePlayer((s) => s.focus);
+  const focus = usePlayer((s) => Math.round(s.focus));
 
   // v0.15.2: tandai body saat combat — notifikasi digeser turun supaya tidak
   // menumpuk panel darah musuh (anti-bertumpuk; CSS body.in-combat).
