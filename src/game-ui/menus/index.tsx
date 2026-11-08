@@ -326,9 +326,26 @@ const MAP_FOOTPRINTS: MapFootprint[] = [
 export function MapPanel() {
   // zustand v5: object-literal selectors create a new snapshot every poll and
   // crash React with "Maximum update depth exceeded" — select primitives.
-  const px = usePlayer((s) => s.x);
-  const pz = usePlayer((s) => s.z);
-  const facing = usePlayer((s) => s.facing);
+  // ⚡ Bolt: Replace reactive hooks with transient subscription to avoid unnecessary re-renders
+  // Player position updates frequently causing MapPanel to re-render constantly.
+  // Using usePlayer.subscribe allows us to selectively update local state only when changes are substantial,
+  // bypassing the reactive hook trap.
+  const [pos, setPos] = useState(() => {
+    const s = usePlayer.getState();
+    return { px: Math.round(s.x), pz: Math.round(s.z), facing: s.facing };
+  });
+  useEffect(() => {
+    return usePlayer.subscribe((state) => {
+      setPos(prev => {
+        const rx = Math.round(state.x);
+        const rz = Math.round(state.z);
+        // Only trigger React render if the rounded coordinates or facing angle changed
+        if (prev.px === rx && prev.pz === rz && prev.facing === state.facing) return prev;
+        return { px: rx, pz: rz, facing: state.facing };
+      });
+    });
+  }, []);
+  const { px, pz, facing } = pos;
   const sceneId = useGame((s) => s.scene);
   const visited = useGame((s) => s.visitedZones);
   const currentZone = useGame((s) => s.currentZone);
