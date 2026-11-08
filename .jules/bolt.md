@@ -1,3 +1,3 @@
-## 2024-05-24 - Transient Zustand Subscriptions
-**Learning:** Reactive selectors like \`usePlayer((s) => s.x)\` for rapidly changing fields (e.g., position updated every frame) cause severe performance issues by forcing whole-component re-renders for every change, even in UI layers that don't need frame-perfect updates (like the map panel).
-**Action:** For UI components displaying rapidly changing state, use transient updates with \`useStore.subscribe()\` inside a \`useEffect\`. Initialize local state with \`useStore.getState()\` lazily to avoid UI flicker on mount, and conditionally trigger \`setState\` within the subscriber to throttle renders.
+## 2026-10-25 - Zustand Selector and Polling Optimization
+**Learning:** Zustand's native equality checks are powerful enough to throttle re-renders simply by returning primitive values (like `Math.round(s.hp)`). Additionally, replacing throttled `setInterval` with unthrottled 60fps state subscriptions can degrade performance in heavy 3D contexts. For dynamically derived objects, checking primitive identifiers rather than reference equality prevents unnecessary React churn.
+**Action:** Use primitive selectors for high-frequency state updates to let Zustand handle bailouts naturally. Maintain interval polling for computationally heavy spatial checks to avoid flooding the main thread.
