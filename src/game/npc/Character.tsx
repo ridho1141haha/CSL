@@ -256,7 +256,7 @@ export function Figure(props: Props) {
         .join(';')
     : '';
 
-  const { cloned, joints } = useMemo(() => {
+  const { cloned, joints, tintedMaterials } = useMemo(() => {
     // scene.clone(true): these GLBs contain plain meshes (no skins, no
     // animation clips — joints are posed in useFrame below), so cloning the
     // hierarchy is safe. Geometries and untouched materials stay shared
@@ -305,8 +305,29 @@ export function Figure(props: Props) {
         legL: clone.getObjectByName('LegL') ?? null,
         legR: clone.getObjectByName('LegR') ?? null,
       },
+      // Per-instance tinted material clones — the ONLY GPU resources this
+      // Figure owns exclusively (see the dispose effect below).
+      tintedMaterials: [...tintedClones.values()],
     };
   }, [scene, SH, tintKey]);
+
+  // Lifecycle: tinted clones are owned by this Figure instance alone, so they
+  // are disposed on unmount (campus → other-world switches remount every
+  // Student). Geometries and untinted materials are shared with the useGLTF
+  // cache and intentionally NOT disposed here — disposing those would break
+  // every other instance of the same base model. material.dispose() never
+  // disposes textures, so the shared face texture is safe.
+  // React 18 StrictMode (dev) runs setup→cleanup→setup on mount: the
+  // intermediate cleanup disposes materials while still mounted, and three.js
+  // transparently re-initializes a disposed material on its next render —
+  // same tradeoff as R3F's own auto-dispose. Production unmounts run the
+  // cleanup exactly once.
+  useEffect(() => {
+    const mats = tintedMaterials;
+    return () => {
+      for (const m of mats) m.dispose();
+    };
+  }, [tintedMaterials]);
 
   // Sambungkan grup HoldProp ke sendi tangan kanan GLB
   useEffect(() => {

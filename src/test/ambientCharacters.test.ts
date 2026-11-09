@@ -1,4 +1,5 @@
 import { describe, it, expect } from 'vitest';
+import { readFileSync } from 'node:fs';
 import {
   CHAR_GLB_PATHS,
   MAIN_CHARACTERS,
@@ -145,5 +146,40 @@ describe('ambient crowd variety (actual data)', () => {
     const ids = AMBIENT_STUDENTS.map((s) => s.id);
     expect(new Set(ids).size).toBe(ids.length);
     for (const id of ids) expect(id).toMatch(/^amb_\d+$/);
+  });
+});
+
+describe('tint targets vs the actual GLB assets', () => {
+  // Parse the JSON chunk of each character GLB (12-byte header + 8-byte chunk
+  // header, JSON first) — the registry must match the REAL asset layout, not
+  // an assumption. All five files ship the same 18-material layout; only
+  // mat_head_tex carries the baked face texture.
+  const glbMaterialNames = (file: string): string[] => {
+    const buf = readFileSync(new URL(`../../public/models/${file}`, import.meta.url));
+    expect(buf.readUInt32LE(0)).toBe(0x46546c67); // 'glTF' magic
+    const jsonLen = buf.readUInt32LE(12);
+    const gltf = JSON.parse(buf.toString('utf8', 20, 20 + jsonLen)) as { materials: { name: string }[] };
+    return gltf.materials.map((m) => m.name);
+  };
+
+  const glbFiles = Object.values(CHAR_GLB_PATHS).map((p) => p.split('/').pop()!);
+  const perFile = new Map(glbFiles.map((f) => [f, glbMaterialNames(f)]));
+
+  it('every tint material name exists in all five character GLBs', () => {
+    for (const slot of Object.keys(TINT_SLOT_MATERIALS) as TintSlot[]) {
+      const matName = TINT_SLOT_MATERIALS[slot];
+      for (const [file, names] of perFile) {
+        expect(names, `${matName} (slot ${slot}) tidak ada di ${file}`).toContain(matName);
+      }
+    }
+  });
+
+  it('the textured face material is never a tint target', () => {
+    const slots = Object.values(TINT_SLOT_MATERIALS);
+    expect(slots).not.toContain('mat_head_tex');
+    expect(new Set(slots).size).toBe(slots.length); // satu slot = satu material
+    for (const [file, names] of perFile) {
+      expect(names, `mat_head_tex harus ada di ${file}`).toContain('mat_head_tex');
+    }
   });
 });
