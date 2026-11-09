@@ -1,808 +1,234 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useMemo, useRef } from 'react';
 import * as THREE from 'three';
+import { useGLTF } from '@react-three/drei';
 import { RigidBody, CuboidCollider } from '@react-three/rapier';
 import { registerOccluders } from '../runtime';
-import { WallMeshes, WallColliders, Blockers, Tree, LampPost, Bench, Planter, SchoolSign, Door, Cull, type Seg } from './props';
-import { Pbr } from './pbr';
-import { CampusInterior } from './CampusInterior';
-import { GedungB } from './GedungB';
-import { Library } from './Library';
+import { WallColliders, Blockers, SchoolSign, type Seg } from './props';
 
-// SMA Yuson campus — rebuilt from scratch (no school GLB). Grounds, main
-// building with accessible interior, canteen, field, parking, back alley,
-// rear yard, the old warehouse exterior, the 3-storey Gedung B (all floors
-// walkable) and the library. Colliders mirror every wall.
+export const CAMPUS_GLB_PATH = '/models/csl_campus_world.glb';
 
-const GRASS = '#5f7a52';
-const GRASS_D = '#546c4a';
-const PAVE = '#a7a9ab';
-const PAVE_D = '#8e9194';
-const ROAD = '#41464c';
-const WALL_CREAM = '#e9e2d2';
-const TRIM_BLUE = '#31547a';
-const ROOF_GREY = '#5c636b';
-
-// ---------------------------------------------------------------------------
-// Walls (data)
-// ---------------------------------------------------------------------------
 const MAIN_SHELL: Seg[] = [
-  // south facade z=28, door gap x -1.6..1.6
-  { x: -8.8, z: 28, w: 14.4, d: 0.3, color: WALL_CREAM },
-  { x: 8.8, z: 28, w: 14.4, d: 0.3, color: WALL_CREAM },
-  // north wall z=4, stair-shaft door gap x -1..1
-  { x: -8.5, z: 4, w: 15, d: 0.3, color: WALL_CREAM },
-  { x: 8.5, z: 4, w: 15, d: 0.3, color: WALL_CREAM },
-  // west / east
-  { x: -16, z: 16, w: 0.3, d: 24.3, color: WALL_CREAM },
-  { x: 16, z: 16, w: 0.3, d: 24.3, color: WALL_CREAM },
-  // hall/corridor divider z=21, gap x -2.5..2.5 — v0.12.0: gap kini NYATA
-  // menghubungkan lobi ↔ koridor (dulu tertutup inti gudang = lorong buntu,
-  // feedback user "lorong dari gedung utama ke kelas tidak ada pintu/lobang")
-  { x: -9.25, z: 21, w: 13.5, d: 0.25, color: '#ded5c2' },
-  { x: 9.25, z: 21, w: 13.5, d: 0.25, color: '#ded5c2' },
-  // storage core (z 16..21, x -2..2) — v0.12.0: dinding selatan (z=16)
-  // DIHAPUS sehingga inti jadi lorong tembus lobi → koridor kelas;
-  // dinding sisi x=±2 dipertahankan sebagai dinding lorong sempit
-  { x: -2, z: 18.5, w: 0.25, d: 5.25, color: '#ded5c2' },
-  { x: 2, z: 18.5, w: 0.25, d: 5.25, color: '#ded5c2' },
-  // rooms wall z=14 — classroom door x -9.5..-7.5, teacher door x 8..10
-  { x: -12.75, z: 14, w: 6.5, d: 0.25, color: '#ded5c2' },
-  { x: -0.25, z: 14, w: 15.5, d: 0.25, color: '#ded5c2' },
-  { x: 13, z: 14, w: 6, d: 0.25, color: '#ded5c2' },
-  // room dividers x=±2 (z 5.4..14) — v0.12.0: dipendekkan agar ada bukaan
-  // z 4..5.4 = vestibule tangga belakang ↔ kelas 1-X & ruang guru
-  { x: -2, z: 9.7, w: 0.25, d: 8.6, color: '#ded5c2' },
-  { x: 2, z: 9.7, w: 0.25, d: 8.6, color: '#ded5c2' },
-];
-
-// v0.8.0: lintels above the classroom / teacher-room door gaps (visual only)
-// v0.12.0: + lintel bukaan vestibule di dinding x=±2 (z 4..5.4)
-const MAIN_LINTELS: Seg[] = [
-  { x: -8.75, z: 14, w: 1.7, d: 0.25, h: 0.78, y0: 2.52, color: WALL_CREAM },
-  { x: 8.75, z: 14, w: 2.6, d: 0.25, h: 0.78, y0: 2.52, color: WALL_CREAM },
-  { x: -2, z: 4.7, w: 0.25, d: 1.4, h: 0.78, y0: 2.52, color: WALL_CREAM },
-  { x: 2, z: 4.7, w: 0.25, d: 1.4, h: 0.78, y0: 2.52, color: WALL_CREAM },
-];
-
-// Second-floor facade bands + roof (visual only, above reachable space)
-const UPPER_FACADE: Seg[] = [
-  { x: 0, z: 28.05, w: 32.3, d: 0.3, h: 3.2, y0: 3.35, color: WALL_CREAM },
-  { x: 0, z: 3.95, w: 32.3, d: 0.3, h: 3.2, y0: 3.35, color: WALL_CREAM },
-  { x: -16.05, z: 16, w: 0.3, d: 24.3, h: 3.2, y0: 3.35, color: WALL_CREAM },
-  { x: 16.05, z: 16, w: 0.3, d: 24.3, h: 3.2, y0: 3.35, color: WALL_CREAM },
+  { x: -8.8, z: 28, w: 14.4, d: 0.3 },
+  { x: 8.8, z: 28, w: 14.4, d: 0.3 },
+  { x: -8.5, z: 4, w: 15, d: 0.3 },
+  { x: 8.5, z: 4, w: 15, d: 0.3 },
+  { x: -16, z: 16, w: 0.3, d: 24.3 },
+  { x: 16, z: 16, w: 0.3, d: 24.3 },
+  { x: -9.25, z: 21, w: 13.5, d: 0.25 },
+  { x: 9.25, z: 21, w: 13.5, d: 0.25 },
+  { x: -2, z: 18.5, w: 0.25, d: 5.25 },
+  { x: 2, z: 18.5, w: 0.25, d: 5.25 },
+  { x: -12.75, z: 14, w: 6.5, d: 0.25 },
+  { x: -0.25, z: 14, w: 15.5, d: 0.25 },
+  { x: 13, z: 14, w: 6, d: 0.25 },
+  { x: -2, z: 9.7, w: 0.25, d: 8.6 },
+  { x: 2, z: 9.7, w: 0.25, d: 8.6 },
 ];
 
 const CANTEEN_WALLS: Seg[] = [
-  { x: 22, z: 4.5, w: 0.3, d: 5, color: '#d8cdb6' },
-  { x: 22, z: 11.5, w: 0.3, d: 5, color: '#d8cdb6' },
-  { x: 28, z: 2, w: 12.3, d: 0.3, color: '#d8cdb6' },
-  { x: 28, z: 14, w: 12.3, d: 0.3, color: '#d8cdb6' },
-  { x: 34, z: 8, w: 0.3, d: 12.3, color: '#d8cdb6' },
+  { x: 22, z: 4.5, w: 0.3, d: 5 },
+  { x: 22, z: 11.5, w: 0.3, d: 5 },
+  { x: 28, z: 2, w: 12.3, d: 0.3 },
+  { x: 28, z: 14, w: 12.3, d: 0.3 },
+  { x: 34, z: 8, w: 0.3, d: 12.3 },
 ];
 
 const STAIR_SHAFT: Seg[] = [
-  { x: -4, z: 1, w: 0.3, d: 6.3, h: 6.6, color: '#cfc6b2' },
-  { x: 4, z: 1, w: 0.3, d: 6.3, h: 6.6, color: '#cfc6b2' },
-  { x: -2.5, z: -2, w: 3.2, d: 0.3, h: 6.6, color: '#cfc6b2' },
-  { x: 2.5, z: -2, w: 3.2, d: 0.3, h: 6.6, color: '#cfc6b2' },
+  { x: -4, z: 1, w: 0.3, d: 6.3, h: 6.6 },
+  { x: 4, z: 1, w: 0.3, d: 6.3, h: 6.6 },
+  { x: -2.5, z: -2, w: 3.2, d: 0.3, h: 6.6 },
+  { x: 2.5, z: -2, w: 3.2, d: 0.3, h: 6.6 },
 ];
 
 const WAREHOUSE_WALLS: Seg[] = [
-  { x: -26, z: -32.5, w: 0.4, d: 7, h: 5.5, color: '#9aa4ae', pbr: 'corrugated' },
-  { x: -26, z: -21.5, w: 0.4, d: 7, h: 5.5, color: '#9aa4ae', pbr: 'corrugated' },
-  { x: -36, z: -36, w: 20.4, d: 0.4, h: 5.5, color: '#8f99a3', pbr: 'corrugated' },
-  { x: -36, z: -18, w: 20.4, d: 0.4, h: 5.5, color: '#8f99a3', pbr: 'corrugated' },
-  { x: -46, z: -27, w: 0.4, d: 18.4, h: 5.5, color: '#8f99a3', pbr: 'corrugated' },
-  // dark interior blocker behind the doorway (door "closed")
-  { x: -27.3, z: -27, w: 1.8, d: 3.6, h: 4.2, color: '#0b0d10', rough: 1, pbr: 'none' },
+  { x: -26, z: -32.5, w: 0.4, d: 7, h: 5.5 },
+  { x: -26, z: -21.5, w: 0.4, d: 7, h: 5.5 },
+  { x: -36, z: -36, w: 20.4, d: 0.4, h: 5.5 },
+  { x: -36, z: -18, w: 20.4, d: 0.4, h: 5.5 },
+  { x: -46, z: -27, w: 0.4, d: 18.4, h: 5.5 },
+  { x: -27.3, z: -27, w: 1.8, d: 3.6, h: 4.2 },
 ];
 
-// ---------------------------------------------------------------------------
-// Sub-scenes
-// ---------------------------------------------------------------------------
-function Ground() {
+const LIBRARY_WALLS: Seg[] = [
+  { x: 23, z: 17.5, w: 0.3, d: 3.5 },
+  { x: 23, z: 22.5, w: 0.3, d: 3.5 },
+  { x: 31, z: 16, w: 16.3, d: 0.3 },
+  { x: 31, z: 24, w: 16.3, d: 0.3 },
+  { x: 39, z: 20, w: 0.3, d: 8.3 },
+];
+
+const GEDUNG_B_FLOOR_SHELL: Seg[] = [
+  { x: 24, z: -7.8, w: 0.3, d: 11.6 },
+  { x: 44, z: -9, w: 0.3, d: 14.3 },
+  { x: 34, z: -2, w: 20.6, d: 0.3 },
+  { x: 26.5, z: -13.6, w: 5, d: 0.25 },
+  { x: 33.2, z: -13.6, w: 5.6, d: 0.25 },
+  { x: 36.3, z: -13.6, w: 0.6, d: 0.25 },
+  { x: 41, z: -13.6, w: 6, d: 0.25 },
+  { x: 36, z: -7.8, w: 0.25, d: 11.6 },
+];
+
+function gedungBShellAt(y0: number): Seg[] {
+  return GEDUNG_B_FLOOR_SHELL.map((s) => ({ ...s, y0: s.y0 ? s.y0 + y0 : y0 }));
+}
+
+function GedungBFlightColliders({ x0, z, dir, y0 }: { x0: number; z: number; dir: 1 | -1; y0: number }) {
+  const STEP_H = 0.35;
+  const STEP_RUN = 0.62;
+  const steps = [0, 1, 2, 3, 4];
   return (
-    <group>
-      <RigidBody type="fixed" colliders={false} friction={1}>
-        <CuboidCollider args={[60, 0.25, 60]} position={[0, -0.25, 8]} />
-      </RigidBody>
-      <mesh position={[0, 0, 8]} rotation={[-Math.PI / 2, 0, 0]} receiveShadow>
-        <planeGeometry args={[130, 130]} />
-        <Pbr name="grass" repeat={[26, 26]} roughness={1} envMapIntensity={0.35} />
-      </mesh>
-      {/* street + sidewalk (south edge) */}
-      <mesh position={[0, 0.012, 50.5]} rotation={[-Math.PI / 2, 0, 0]} receiveShadow>
-        <planeGeometry args={[120, 8.5]} />
-        <Pbr name="asphalt" repeat={[24, 2]} roughness={0.95} envMapIntensity={0.3} />
-      </mesh>
-      <mesh position={[0, 0.02, 45.4]} rotation={[-Math.PI / 2, 0, 0]} receiveShadow>
-        <planeGeometry args={[120, 1.6]} />
-        <Pbr name="concrete" repeat={[30, 1]} roughness={0.9} />
-      </mesh>
-      {/* zebra crossing */}
-      {[-2.4, -1.2, 0, 1.2, 2.4].map((dx, i) => (
-        <mesh key={i} position={[7 + dx, 0.02, 47.9]} rotation={[-Math.PI / 2, 0, 0]}>
-          <planeGeometry args={[0.7, 2.6]} />
-          <meshStandardMaterial color="#d8dadd" roughness={0.8} />
-        </mesh>
-      ))}
-      {/* courtyard plaza + entry path */}
-      <mesh position={[7, 0.015, 36]} rotation={[-Math.PI / 2, 0, 0]} receiveShadow>
-        <planeGeometry args={[34, 16]} />
-        <Pbr name="pavers" repeat={[10, 5]} roughness={0.92} envMapIntensity={0.35} />
-      </mesh>
-      <mesh position={[7, 0.02, 36]} rotation={[-Math.PI / 2, 0, 0]} receiveShadow>
-        <planeGeometry args={[6.5, 15.8]} />
-        <Pbr name="pavers" repeat={[2, 5]} color="#b0b2b4" roughness={0.94} />
-      </mesh>
-      {/* entrance steps landing */}
-      <mesh position={[0, 0.05, 29.4]} rotation={[-Math.PI / 2, 0, 0]} receiveShadow>
-        <planeGeometry args={[7, 2.6]} />
-        <Pbr name="concrete" repeat={[2, 1]} color="#9fa2a5" roughness={0.9} />
-      </mesh>
-      {/* parking */}
-      <mesh position={[34, 0.014, 34]} rotation={[-Math.PI / 2, 0, 0]} receiveShadow>
-        <planeGeometry args={[16, 16]} />
-        <Pbr name="asphalt" repeat={[5, 5]} roughness={0.95} envMapIntensity={0.3} />
-      </mesh>
-      {/* field */}
-      <mesh position={[-33, 0.013, 15]} rotation={[-Math.PI / 2, 0, 0]} receiveShadow>
-        <planeGeometry args={[26, 30]} />
-        <Pbr name="grass" repeat={[7, 8]} color="#cdd8c9" roughness={1} envMapIntensity={0.35} />
-      </mesh>
-      <mesh position={[-33, 0.02, 15]} rotation={[-Math.PI / 2, 0, 0]}>
-        <ringGeometry args={[8, 10.4, 48]} />
-        <Pbr name="dirt" repeat={[6, 1]} roughness={1} envMapIntensity={0.25} />
-      </mesh>
-      {/* back alley */}
-      <mesh position={[6, 0.012, -21]} rotation={[-Math.PI / 2, 0, 0]} receiveShadow>
-        <planeGeometry args={[24, 18]} />
-        <Pbr name="asphalt" repeat={[6, 5]} color="#8b929c" roughness={1} envMapIntensity={0.25} />
-      </mesh>
-      <mesh position={[6, 0.018, -20]} rotation={[-Math.PI / 2, 0, 0]}>
-        <planeGeometry args={[3.4, 1.6]} />
-        <meshStandardMaterial color="#2b2e33" roughness={0.35} metalness={0.2} envMapIntensity={0.8} />
-      </mesh>
-      {/* rear yard path */}
-      <mesh position={[0, 0.014, -2]} rotation={[-Math.PI / 2, 0, 0]} receiveShadow>
-        <planeGeometry args={[22, 11]} />
-        <Pbr name="concrete" repeat={[6, 3]} color="#b4afa6" roughness={0.95} />
-      </mesh>
-      {/* warehouse yard */}
-      <mesh position={[-36, 0.014, -26]} rotation={[-Math.PI / 2, 0, 0]} receiveShadow>
-        <planeGeometry args={[23, 21]} />
-        <Pbr name="concrete" repeat={[6, 6]} color="#a2a4a5" roughness={1} envMapIntensity={0.25} />
-      </mesh>
-      {/* v0.12.0: jalur beton "lorong menuju kantin" — halaman belakang →
-          teras kantin (sekaligus lantai staging bab 2) */}
-      <mesh position={[15.9, 0.015, 3]} rotation={[-Math.PI / 2, 0, 0]} receiveShadow>
-        <planeGeometry args={[10.4, 4.6]} />
-        <Pbr name="concrete" repeat={[5, 2]} color="#b4afa6" roughness={0.95} />
-      </mesh>
-      {/* canteen front slab */}
-      <mesh position={[20, 0.016, 8]} rotation={[-Math.PI / 2, 0, 0]} receiveShadow>
-        <planeGeometry args={[5, 9]} />
-        <Pbr name="pavers" repeat={[2, 3]} roughness={0.94} />
-      </mesh>
-      {/* v0.8.0: library plaza + approach from the main building */}
-      <mesh position={[31, 0.016, 20]} rotation={[-Math.PI / 2, 0, 0]} receiveShadow>
-        <planeGeometry args={[18, 10.5]} />
-        <Pbr name="pavers" repeat={[6, 3]} roughness={0.92} envMapIntensity={0.35} />
-      </mesh>
-      <mesh position={[19.4, 0.015, 20]} rotation={[-Math.PI / 2, 0, 0]} receiveShadow>
-        <planeGeometry args={[7.6, 4]} />
-        <Pbr name="pavers" repeat={[2, 1]} color="#b0b2b4" roughness={0.94} />
-      </mesh>
-      {/* v0.8.0: Gedung B approach path (rear yard → corridor entrance) */}
-      <mesh position={[17.5, 0.015, -14.8]} rotation={[-Math.PI / 2, 0, 0]} receiveShadow>
-        <planeGeometry args={[14, 3.6]} />
-        <Pbr name="concrete" repeat={[5, 1]} color="#b4afa6" roughness={0.95} />
-      </mesh>
-    </group>
+    <RigidBody type="fixed" colliders={false}>
+      {steps.map((i) => {
+        const x = x0 + dir * (i + 0.5) * STEP_RUN;
+        const h = (i + 1) * STEP_H;
+        return <CuboidCollider key={i} args={[STEP_RUN / 2, h / 2, 0.5]} position={[x, y0 + h / 2, z]} />;
+      })}
+    </RigidBody>
   );
 }
 
-function FenceGate() {
+function CampusPhysicsAndSigns() {
+  const classRows = [6.6, 8.8, 11];
+  const gbRows = [-5.2, -7.4, -9.6];
+  const canteenTables: [number, number][] = [
+    [25.5, 5],
+    [25.5, 9],
+    [29.5, 7],
+  ];
+
   return (
     <group>
-      {/* Fence visuals removed per user request (0.2.x fix: was blocking the
-          camera). Invisible colliders below still stop the player leaving the
-          grounds; the gate pillars + arch remain as landmarks. */}
-      {/* school fence line colliders (south, gate gap x 4..10) */}
-      <RigidBody type="fixed" colliders={false}>
+      {/* Lantai dasar & batas pagar keliling */}
+      <RigidBody type="fixed" colliders={false} friction={1}>
+        <CuboidCollider args={[60, 0.25, 60]} position={[0, -0.25, 8]} />
         <CuboidCollider args={[27, 1.2, 0.3]} position={[-23, 1.2, 46]} />
         <CuboidCollider args={[27, 1.2, 0.3]} position={[37, 1.2, 46]} />
-      </RigidBody>
-      {/* perimeter (west/north/east/south-outer) invisible blockers */}
-      <RigidBody type="fixed" colliders={false}>
         <CuboidCollider args={[48.5, 2, 0.4]} position={[0, 2, -37.8]} />
         <CuboidCollider args={[0.4, 2, 46]} position={[-47.8, 2, 8]} />
         <CuboidCollider args={[0.4, 2, 46]} position={[47.8, 2, 8]} />
         <CuboidCollider args={[48.5, 2, 0.4]} position={[0, 2, 53.8]} />
       </RigidBody>
-      {/* gate pillars + arch */}
-      {[4, 10].map((x, i) => (
-        <group key={i} position={[x, 0, 46]}>
-          <mesh position={[0, 1.6, 0]} castShadow>
-            <boxGeometry args={[0.7, 3.2, 0.7]} />
-            <Pbr name="concrete" repeat={[1, 4]} color="#b6babe" roughness={0.75} />
-          </mesh>
-          <mesh position={[0, 3.35, 0]}>
-            <boxGeometry args={[0.95, 0.25, 0.95]} />
-            <Pbr name="metal" repeat={[1, 1]} color="#9aa0a6" roughness={0.6} metalness={0.5} />
-          </mesh>
-        </group>
-      ))}
-      <mesh position={[7, 3.85, 46]} castShadow>
-        <boxGeometry args={[6.8, 0.9, 0.25]} />
-        <meshStandardMaterial color="#1f3a5c" roughness={0.55} />
-      </mesh>
-      <SchoolSign position={[7, 3.85, 46.15]} text="SMA YUSON" size={0.52} color="#ffd34d" />
-      {/* school name board near sidewalk */}
-      <group position={[-2, 0, 45]}>
-        <mesh position={[0, 1.1, 0]} castShadow>
-          <boxGeometry args={[3.4, 1.5, 0.18]} />
-          <meshStandardMaterial color="#26405e" roughness={0.6} />
-        </mesh>
-        <SchoolSign position={[0, 1.35, 0.11]} text="SMA YUSON" size={0.3} color="#e8edf4" />
-        <SchoolSign position={[0, 0.95, 0.11]} text="DISIPLIN · PRESTASI · EMPATI" size={0.14} color="#9fc2e8" />
-        {[-1.4, 1.4].map((dx, i) => (
-          <mesh key={i} position={[dx, 0.4, 0]}>
-            <boxGeometry args={[0.16, 1.1, 0.16]} />
-            <meshStandardMaterial color="#4a5058" roughness={0.7} />
-          </mesh>
-        ))}
-      </group>
-    </group>
-  );
-}
 
-function MainBuilding() {
-  const g = useRef<THREE.Group>(null);
-  return (
-    <group ref={g}>
-      <WallMeshes segs={MAIN_SHELL} color={WALL_CREAM} />
-      <WallColliders segs={MAIN_SHELL} />
-      {/* v0.8.0: classroom & teacher-room doors, swung open into the rooms */}
-      <WallMeshes segs={MAIN_LINTELS} color={WALL_CREAM} />
-      <Door x={-8.75} z={14} w={1.5} open={-1} hinge={-1} />
-      <Door x={8.75} z={14} w={2.4} open={-1} hinge={1} />
-      {/* v0.12.0: pintu dobel lorong lobi → koridor kelas (gap z=21, x -2.5..2.5)
-          — daun terbuka ke sisi lobi, passage tetap jalan penuh */}
-      <Door x={-1.45} z={21} w={1.9} open={1} hinge={-1} />
-      <Door x={1.45} z={21} w={1.9} open={1} hinge={1} />
-      {/* second floor + roof */}
-      <WallMeshes segs={UPPER_FACADE} color={WALL_CREAM} />
-      {/* blue trim band between floors */}
-      {[28.05, 3.95].map((z, i) => (
-        <mesh key={i} position={[0, 3.42, z]}>
-          <boxGeometry args={[32.5, 0.22, 0.36]} />
-          <meshStandardMaterial color={TRIM_BLUE} roughness={0.6} />
-        </mesh>
-      ))}
-      {[-16.05, 16.05].map((x, i) => (
-        <mesh key={i} position={[x, 3.42, 16]}>
-          <boxGeometry args={[0.36, 0.22, 24.5]} />
-          <meshStandardMaterial color={TRIM_BLUE} roughness={0.6} />
-        </mesh>
-      ))}
-      <mesh position={[0, 6.75, 16]} receiveShadow castShadow>
-        <boxGeometry args={[33.2, 0.35, 25.6]} />
-        <Pbr name="roof" repeat={[10, 8]} roughness={0.9} envMapIntensity={0.35} />
-      </mesh>
-      <mesh position={[0, 6.95, 16]}>
-        <boxGeometry args={[33.4, 0.12, 25.8]} />
-        <Pbr name="roof" repeat={[10, 8]} color="#9aa2ab" roughness={0.95} envMapIntensity={0.3} />
-      </mesh>
-      {/* ground-floor windows (south facade) */}
-      {[-12, -7, 7, 12].map((x, i) => (
-        <group key={i} position={[x, 1.7, 27.83]}>
-          <mesh>
-            <boxGeometry args={[1.9, 1.7, 0.12]} />
-            <meshStandardMaterial color="#9fb6c4" roughness={0.18} metalness={0.5} emissive="#274a5c" emissiveIntensity={0.12} />
-          </mesh>
-          <mesh position={[0, 0.95, 0.02]}>
-            <boxGeometry args={[2.1, 0.14, 0.16]} />
-            <meshStandardMaterial color={TRIM_BLUE} roughness={0.6} />
-          </mesh>
-        </group>
-      ))}
-      {/* second-floor window band */}
-      {[-12, -8, -4, 0, 4, 8, 12].map((x, i) => (
-        <group key={`u${i}`} position={[x, 5.05, 28.08]}>
-          <mesh>
-            <boxGeometry args={[1.7, 1.5, 0.14]} />
-            <meshStandardMaterial color="#8fadb8" roughness={0.2} metalness={0.45} emissive="#274a5c" emissiveIntensity={0.1} />
-          </mesh>
-          <mesh position={[0, 0.85, 0]}>
-            <boxGeometry args={[1.9, 0.12, 0.18]} />
-            <meshStandardMaterial color={TRIM_BLUE} roughness={0.6} />
-          </mesh>
-        </group>
-      ))}
-      {/* entrance: steps, door frame, canopy, sign */}
-      <mesh position={[0, 0.09, 28.9]} receiveShadow>
-        <boxGeometry args={[4.4, 0.18, 1.8]} />
-        <Pbr name="concrete" repeat={[2, 1]} roughness={0.85} />
-      </mesh>
-      <mesh position={[0, 0.2, 29.6]} receiveShadow>
-        <boxGeometry args={[4.4, 0.2, 0.7]} />
-        <Pbr name="concrete" repeat={[2, 1]} roughness={0.85} />
-      </mesh>
-      <group position={[0, 0, 28]}>
-        {[-1.9, 1.9].map((x, i) => (
-          <mesh key={i} position={[x, 1.55, 0.3]} castShadow>
-            <boxGeometry args={[0.22, 3.1, 0.22]} />
-            <meshStandardMaterial color="#6e747b" roughness={0.6} metalness={0.3} />
-          </mesh>
-        ))}
-        <mesh position={[0, 3.05, 0.5]} castShadow>
-          <boxGeometry args={[4.6, 0.28, 2.2]} />
-          <meshStandardMaterial color={TRIM_BLUE} roughness={0.55} />
-        </mesh>
-        {/* double door (open, swung inward) */}
-        {[-0.75, 0.75].map((x, i) => (
-          <mesh key={i} position={[x, 1.35, -0.55]} rotation={[0, i === 0 ? 0.5 : -0.5, 0]} castShadow>
-            <boxGeometry args={[1.4, 2.7, 0.08]} />
-            <meshStandardMaterial color="#2c4a68" roughness={0.5} metalness={0.25} />
-          </mesh>
-        ))}
-      </group>
-      <SchoolSign position={[0, 3.55, 28.35]} text="GEDUNG UTAMA" size={0.3} color="#dfe7f0" />
-    </group>
-  );
-}
-
-function StairShaft() {
-  const steps: { y: number; z: number }[] = [];
-  for (let i = 0; i < 8; i++) steps.push({ y: i * 0.34, z: -1.35 + i * 0.62 });
-  return (
-    <group>
-      <WallMeshes segs={STAIR_SHAFT} />
-      <WallColliders segs={STAIR_SHAFT} defaultH={6.6} />
-      <mesh position={[0, 6.75, 1]} castShadow>
-        <boxGeometry args={[8.6, 0.3, 6.9]} />
-        <Pbr name="roof" repeat={[3, 2]} roughness={0.9} envMapIntensity={0.35} />
-      </mesh>
-      {/* steps (visual + walkable) */}
-      {steps.map((s, i) => (
-        <mesh key={i} position={[0, s.y + 0.17, s.z]} castShadow receiveShadow>
-          <boxGeometry args={[6.2, 0.34, 0.62]} />
-          <Pbr name="concrete" repeat={[3, 1]} color="#d4ccbb" roughness={0.9} />
-        </mesh>
-      ))}
-      {/* landing platform below roof access door */}
-      <mesh position={[0, 3.4, 3.4]} castShadow receiveShadow>
-        <boxGeometry args={[6.2, 0.3, 1.6]} />
-        <Pbr name="concrete" repeat={[3, 1]} color="#d4ccbb" roughness={0.9} />
-      </mesh>
-      {/* rooftop access door on upper landing (decor) */}
-      <mesh position={[0, 4.7, 3.95]}>
-        <boxGeometry args={[1.6, 2.2, 0.14]} />
-        <meshStandardMaterial color="#3a5a7c" roughness={0.55} metalness={0.2} />
-      </mesh>
-      {/* door frame at ground entry */}
-      <mesh position={[0, 1.5, -2.05]}>
-        <boxGeometry args={[2.3, 3, 0.18]} />
-        <meshStandardMaterial color="#8c8474" roughness={0.8} />
-      </mesh>
-      {/* side railing visual */}
-      {[-3.85, 3.85].map((x, i) => (
-        <mesh key={i} position={[x, 1.1, 1]}>
-          <boxGeometry args={[0.06, 2.2, 6]} />
-          <meshStandardMaterial color="#54595f" roughness={0.6} metalness={0.35} />
-        </mesh>
-      ))}
-    </group>
-  );
-}
-
-function Canteen() {
-  return (
-    <group>
-      <WallMeshes segs={CANTEEN_WALLS} color="#d8cdb6" />
+      {/* Kolider Dinding Utama, Kantin, Tangga Atap, Gudang & Perpustakaan */}
+      <WallColliders segs={MAIN_SHELL} defaultH={3.3} />
       <WallColliders segs={CANTEEN_WALLS} defaultH={3.1} />
-      <mesh position={[28, 3.25, 8]} castShadow>
-        <boxGeometry args={[13, 0.3, 13]} />
-        <Pbr name="corrugated" repeat={[5, 1]} color="#c98f6d" roughness={0.85} envMapIntensity={0.3} />
-      </mesh>
-      {/* windows */}
-      {[5, 11].map((z, i) => (
-        <mesh key={i} position={[34.06, 1.8, z]}>
-          <boxGeometry args={[0.14, 1.5, 2]} />
-          <meshStandardMaterial color="#9fb6c4" roughness={0.2} metalness={0.45} />
-        </mesh>
-      ))}
-      <mesh position={[28, 1.8, 1.93]}>
-        <boxGeometry args={[7, 1.5, 0.14]} />
-        <meshStandardMaterial color="#9fb6c4" roughness={0.2} metalness={0.45} />
-      </mesh>
-      <SchoolSign position={[21.6, 2.6, 8]} text="KANTIN" size={0.42} color="#7a3b12" />
-    </group>
-  );
-}
-
-function Parking() {
-  const carColors = ['#7f1d1d', '#1e3a5f', '#3f3f46'];
-  return (
-    <group>
-      {/* stall lines */}
-      {[27.5, 30.5, 33.5, 36.5, 39.5].map((x, i) => (
-        <mesh key={i} position={[x, 0.02, 34]} rotation={[-Math.PI / 2, 0, 0]}>
-          <planeGeometry args={[0.14, 9]} />
-          <meshStandardMaterial color="#d6d8da" roughness={0.8} />
-        </mesh>
-      ))}
-      {[29, 32, 35, 38].map((x, i) => (
-        <group key={i} position={[x, 0, 31.5]} rotation={[0, i % 2 ? 0.06 : -0.05, 0]}>
-          <mesh position={[0, 0.5, 0]} castShadow>
-            <boxGeometry args={[1.7, 0.75, 3.6]} />
-            <meshStandardMaterial color={carColors[i % 3]} roughness={0.35} metalness={0.55} />
-          </mesh>
-          <mesh position={[0, 1.05, -0.25]} castShadow>
-            <boxGeometry args={[1.55, 0.5, 1.9]} />
-            <meshStandardMaterial color={carColors[i % 3]} roughness={0.3} metalness={0.55} />
-          </mesh>
-          <mesh position={[0, 1.06, -0.25]}>
-            <boxGeometry args={[1.58, 0.34, 1.6]} />
-            <meshStandardMaterial color="#20262c" roughness={0.15} metalness={0.7} />
-          </mesh>
-        </group>
-      ))}
-      {/* motorbikes */}
-      {[29.2, 30.6].map((x, i) => (
-        <group key={`m${i}`} position={[x, 0, 37.5]} rotation={[0, 0.3 * (i ? 1 : -1), 0]}>
-          <mesh position={[0, 0.62, 0]} castShadow>
-            <boxGeometry args={[0.45, 0.4, 1.5]} />
-            <meshStandardMaterial color={['#166534', '#1d4ed8'][i]} roughness={0.4} metalness={0.4} />
-          </mesh>
-          <mesh position={[0, 0.3, 0.7]} rotation={[0, 0, Math.PI / 2]}>
-            <cylinderGeometry args={[0.3, 0.3, 0.12, 12]} />
-            <meshStandardMaterial color="#14161a" roughness={0.9} />
-          </mesh>
-          <mesh position={[0, 0.3, -0.6]} rotation={[0, 0, Math.PI / 2]}>
-            <cylinderGeometry args={[0.3, 0.3, 0.12, 12]} />
-            <meshStandardMaterial color="#14161a" roughness={0.9} />
-          </mesh>
-        </group>
-      ))}
-      <LampPost x={26.5} z={28.5} h={4.6} />
-      <LampPost x={41.5} z={39.5} h={4.6} />
-    </group>
-  );
-}
-
-function FieldProps() {
-  return (
-    <group>
-      {/* goals */}
-      {[7, 23].map((z, i) => (
-        <group key={i} position={[-33, 0, z]}>
-          <mesh position={[0, 1, 0]}>
-            <boxGeometry args={[5.4, 0.09, 0.09]} />
-            <meshStandardMaterial color="#eef0f2" roughness={0.6} />
-          </mesh>
-          {[-2.6, 2.6].map((dx, j) => (
-            <mesh key={j} position={[dx, 0.5, 0]}>
-              <boxGeometry args={[0.09, 1, 0.09]} />
-              <meshStandardMaterial color="#eef0f2" roughness={0.6} />
-            </mesh>
-          ))}
-        </group>
-      ))}
-      {/* bleachers */}
-      <group position={[-43.5, 0, 15]} rotation={[0, Math.PI / 2, 0]}>
-        {[0, 1, 2].map((i) => (
-          <mesh key={i} position={[i * 0.9, 0.3 + i * 0.42, 0]} castShadow receiveShadow>
-            <boxGeometry args={[0.9, 0.18 + i * 0.42, 10]} />
-            <Pbr name="concrete" repeat={[1, 3]} color={i % 2 ? '#b9bec5' : '#ccd1d7'} roughness={0.85} />
-          </mesh>
-        ))}
-      </group>
-      <Tree x={-24} z={4} s={1.05} />
-      <Tree x={-42} z={27} s={1.1} />
-    </group>
-  );
-}
-
-function Alley() {
-  return (
-    <group>
-      {/* low side walls keep the alley identity without blocking the camera
-          (fence visuals removed per user preference; colliders stay invisible) */}
-      <WallMeshes
-        segs={[
-          { x: 18, z: -21, w: 0.25, d: 18, h: 1.1, color: '#828a91' },
-          { x: -6, z: -21, w: 0.25, d: 18, h: 1.1, color: '#828a91' },
-        ]}
-        rough={0.75}
-      />
-      <WallColliders segs={[{ x: 18, z: -21, w: 0.25, d: 18, h: 2.2 }, { x: -6, z: -21, w: 0.25, d: 18, h: 2.2 }]} defaultH={2.2} />
-      {/* dumpsters */}
-      {[[2, -27.5], [10.5, -28]].map(([x, z], i) => (
-        <group key={i} position={[x, 0, z]} rotation={[0, i * 0.3, 0]}>
-          <mesh position={[0, 0.75, 0]} castShadow>
-            <boxGeometry args={[2.2, 1.5, 1.2]} />
-            <meshStandardMaterial color="#2f5d3a" roughness={0.75} metalness={0.3} />
-          </mesh>
-          <mesh position={[0, 1.55, 0]} rotation={[0.12, 0, 0]} castShadow>
-            <boxGeometry args={[2.3, 0.12, 1.3]} />
-            <meshStandardMaterial color="#285033" roughness={0.75} metalness={0.3} />
-          </mesh>
-        </group>
-      ))}
-      {/* crates & pallets */}
-      {[[14.5, -25, 0.4], [15.2, -24.2, -0.2], [14.6, -23.4, 0.1]].map(([x, z, r], i) => (
-        <mesh key={i} position={[x, 0.55, z]} rotation={[0, r, 0]} castShadow>
-          <boxGeometry args={[1.1, 1.1, 1.1]} />
-          <Pbr name="wood" repeat={[1, 1]} color="#d9c3a3" roughness={0.95} envMapIntensity={0.25} />
-        </mesh>
-      ))}
-      <mesh position={[-3, 0.3, -14]} rotation={[0, 0.5, 0]} castShadow>
-        <boxGeometry args={[1.6, 0.5, 1.4]} />
-        <Pbr name="wood" repeat={[1, 1]} color="#e0c8a8" roughness={0.95} envMapIntensity={0.25} />
-      </mesh>
-      <LampPost x={12.5} z={-15.5} h={3.6} />
-    </group>
-  );
-}
-
-function RearYard() {
-  return (
-    <group>
-      {/* clotheslines */}
-      {[-6.5, -1.5].map((z, i) => (
-        <group key={i} position={[-9, 0, z]}>
-          <mesh position={[0, 1.3, 0]}>
-            <cylinderGeometry args={[0.05, 0.06, 2.6, 8]} />
-            <meshStandardMaterial color="#6b7076" roughness={0.7} />
-          </mesh>
-        </group>
-      ))}
-      <mesh position={[-9, 2.5, -4]} rotation={[Math.PI / 2, 0, 0]}>
-        <planeGeometry args={[0.03, 5]} />
-        <meshStandardMaterial color="#d5d8da" />
-      </mesh>
-      {[[-9.4, -5.2], [-8.6, -3.4]].map(([x, z], i) => (
-        <mesh key={i} position={[x, 1.55, z]} rotation={[0, 0.2, 0]} castShadow>
-          <planeGeometry args={[1.1, 1.5]} />
-          <meshStandardMaterial color={i ? '#e7e2d4' : '#cfd8e2'} roughness={0.9} side={THREE.DoubleSide} />
-        </mesh>
-      ))}
-      {/* bins */}
-      {[9.5, 10.8].map((x, i) => (
-        <mesh key={i} position={[x, 0.55, -3.2]} castShadow>
-          <cylinderGeometry args={[0.42, 0.36, 1.1, 12]} />
-          <meshStandardMaterial color={i ? '#3f5a68' : '#4a6b52'} roughness={0.8} />
-        </mesh>
-      ))}
-      {/* bike shed */}
-      <group position={[19.5, 0, -3]}>
-        <mesh position={[0, 1.15, -1.4]} castShadow>
-          <boxGeometry args={[4.6, 2.3, 0.15]} />
-          <Pbr name="corrugated" repeat={[3, 1]} color="#aeb6bd" roughness={0.75} metalness={0.3} />
-        </mesh>
-        <mesh position={[0, 2.4, 0]} castShadow>
-          <boxGeometry args={[5, 0.14, 3]} />
-          <Pbr name="corrugated" repeat={[3, 1]} color="#8a9299" roughness={0.8} metalness={0.3} envMapIntensity={0.35} />
-        </mesh>
-        {[-2.3, 2.3].map((x, i) => (
-          <mesh key={i} position={[x, 1.15, 0]}>
-            <boxGeometry args={[0.14, 2.3, 2.8]} />
-            <Pbr name="metal" repeat={[1, 2]} color="#9aa2a9" roughness={0.75} metalness={0.3} />
-          </mesh>
-        ))}
-        {[[-1.2], [0.4]].map(([x], i) => (
-          <mesh key={i} position={[x, 0.45, 0.2]} rotation={[0, 0.2, 0]} castShadow>
-            <boxGeometry args={[0.4, 0.8, 1.5]} />
-            <meshStandardMaterial color="#26405e" roughness={0.4} metalness={0.4} />
-          </mesh>
-        ))}
-      </group>
-    </group>
-  );
-}
-
-function WarehouseExt() {
-  return (
-    <group>
-      <WallMeshes segs={WAREHOUSE_WALLS} color="#6f7a84" rough={0.9} />
+      <WallColliders segs={STAIR_SHAFT} defaultH={6.6} />
       <WallColliders segs={WAREHOUSE_WALLS} defaultH={5.5} />
-      <mesh position={[-36, 5.65, -27]} castShadow>
-        <boxGeometry args={[21, 0.3, 19]} />
-        <Pbr name="corrugated" repeat={[8, 1]} color="#9aa2ab" roughness={0.95} envMapIntensity={0.3} />
-      </mesh>
-      {/* rust streaks */}
-      {[[-31, -18.1, 3], [-40, -18.1, 4.5], [-26.1, -33, 4]].map(([x, z, w], i) => (
-        <mesh key={i} position={[x, 2.4, z]}>
-          <planeGeometry args={[w * 0.3, 3]} />
-          <meshStandardMaterial color="#7a4a2e" roughness={1} transparent opacity={0.5} />
-        </mesh>
-      ))}
-      {/* door frame sign */}
-      <SchoolSign position={[-25.7, 3.6, -27]} text="GUDANG 3" size={0.34} color="#c9d2da" />
-      {/* containers outside */}
-      <group position={[-22.5, 0, -21]} rotation={[0, 0.5, 0]}>
-        <mesh position={[0, 1.3, 0]} castShadow>
-          <boxGeometry args={[6, 2.6, 2.4]} />
-          <Pbr name="corrugated" repeat={[4, 1]} color="#c97a5e" roughness={0.75} metalness={0.3} envMapIntensity={0.35} />
-        </mesh>
-        <mesh position={[0, 1.3, 0]}>
-          <boxGeometry args={[6.05, 2.65, 2.3]} />
-          <meshStandardMaterial color="#8a4632" roughness={0.8} wireframe />
-        </mesh>
-      </group>
-      <mesh position={[-24.5, 0.8, -33.5]} rotation={[0, -0.2, 0]} castShadow>
-        <boxGeometry args={[5.6, 1.6, 2.2]} />
-        <Pbr name="corrugated" repeat={[4, 1]} color="#8fae94" roughness={0.8} metalness={0.25} envMapIntensity={0.35} />
-      </mesh>
-      {/* tires */}
-      {[[-29, -20.5], [-30.4, -20.2], [-29.7, -21.4]].map(([x, z], i) => (
-        <mesh key={i} position={[x, 0.35, z]} rotation={[Math.PI / 2, 0, i * 0.4]}>
-          <torusGeometry args={[0.32, 0.14, 10, 18]} />
-          <meshStandardMaterial color="#17191c" roughness={0.95} />
-        </mesh>
-      ))}
-    </group>
-  );
-}
+      <WallColliders segs={LIBRARY_WALLS} defaultH={3.2} />
 
-function Greenery() {
-  return (
-    <group>
-      <Tree x={-14} z={33} s={1.1} />
-      <Tree x={-9} z={41} s={0.95} />
-      <Tree x={21} z={40} s={1.05} />
-      <Tree x={17} z={30} s={0.9} />
-      {/* v0.8.0: trees at (26,22)/(36,20) replaced by the library; (30,-8)
-          replaced by Gedung B — replanted around the new buildings */}
-      <Tree x={-20} z={40} s={1.2} />
-      <Tree x={-38} z={36} s={1.1} />
-      <Tree x={20} z={27.5} s={1.1} />
-      <Tree x={44} z={1} s={1} />
-      <Tree x={20.5} z={13} s={0.95} tint="#517a42" />
-      <Tree x={26} z={-20} s={1.05} />
-      <Tree x={41} z={-21} s={1.1} />
-      <Tree x={14} z={-10} s={1} tint="#517a42" />
-      <Tree x={-12} z={-14} s={1.15} tint="#517a42" />
-      <Tree x={-30} z={-10} s={1.1} />
-      <Planter x={0} z={33} />
-      <Planter x={14} z={33} />
-      <Planter x={2} z={41.5} w={3} />
-      <Planter x={22.8} z={27} w={2} d={1} />
-    </group>
-  );
-}
+      {/* Kolider Luar Ruangan: Parkiran, Lapangan, Gang Belakang */}
+      <Blockers
+        boxes={[
+          [29, 0.7, 37, 1.1, 0.7, 2.1],
+          [32, 0.7, 37, 1.1, 0.7, 2.1],
+          [35, 0.7, 37, 1.1, 0.7, 2.1],
+          [38, 0.7, 37, 1.1, 0.7, 2.1],
+          [34, 1.1, 28.5, 5.2, 1.1, 1.3],
+          [-20.5, 0.9, 15, 1.1, 0.9, 7],
+          [-36, 1.3, -27, 10.2, 1.3, 9.2],
+          [-23, 1.3, -22, 3.1, 1.3, 1.3],
+          [6, 0.7, -25.8, 9, 0.7, 0.5],
+          [-3.2, 0.6, -21, 0.9, 0.6, 1.8],
+          [14.5, 0.5, -18, 1.2, 0.5, 1.2],
+        ]}
+      />
 
-function StreetFurniture() {
-  return (
-    <group>
-      {/* flag pole */}
-      <group position={[7, 0, 41]}>
-        <mesh position={[0, 4, 0]} castShadow>
-          <cylinderGeometry args={[0.045, 0.06, 8, 8]} />
-          <meshStandardMaterial color="#c8ccd0" roughness={0.4} metalness={0.6} />
-        </mesh>
-        <mesh position={[0.8, 7.1, 0]} castShadow>
-          <planeGeometry args={[1.4, 0.85]} />
-          <meshStandardMaterial color="#b91c1c" side={THREE.DoubleSide} roughness={0.85} />
-        </mesh>
-        <mesh position={[0, 0.15, 0]}>
-          <cylinderGeometry args={[0.3, 0.4, 0.3, 12]} />
-          <meshStandardMaterial color="#8e9296" roughness={0.8} />
-        </mesh>
-      </group>
-      <Bench x={13.5} z={39.5} rot={-0.4} />
-      <Bench x={0.5} z={39.5} rot={0.4} />
-      <Bench x={20} z={24.5} rot={Math.PI / 2} />
-      <LampPost x={-2} z={31} />
-      <LampPost x={16} z={31} />
-      <LampPost x={-2} z={42} />
-      <LampPost x={16} z={42} />
-      <LampPost x={-2} z={49} h={5} />
-      <LampPost x={16} z={49} h={5} />
-      <LampPost x={22} z={16} h={4} />
-      <LampPost x={11.4} z={5.6} h={3.8} />
-      <LampPost x={2} z={-8} h={3.8} />
-    </group>
-  );
-}
+      {/* Kolider Interior Gedung Utama & Kantin */}
+      <RigidBody type="fixed" colliders={false}>
+        {classRows.map((z) => (
+          <CuboidCollider key={`c1x-${z}`} args={[4.6, 0.4, 0.45]} position={[-8.75, 0.4, z]} />
+        ))}
+        <CuboidCollider args={[0.5, 0.4, 0.9]} position={[-14.1, 0.4, 12.4]} />
+        <CuboidCollider args={[2.2, 0.4, 1.2]} position={[8.5, 0.4, 9]} />
+        <CuboidCollider args={[0.4, 0.9, 3.2]} position={[15.1, 0.9, 9]} />
+        <CuboidCollider args={[1, 0.55, 2.7]} position={[32.4, 0.55, 8]} />
+        {canteenTables.map(([x, z], i) => (
+          <CuboidCollider key={`cnt-${i}`} args={[1, 0.4, 1]} position={[x, 0.4, z]} />
+        ))}
+        {/* Kolider Perpustakaan */}
+        <CuboidCollider args={[3.8, 1.1, 0.35]} position={[31, 1.1, 16.55]} />
+        <CuboidCollider args={[3.8, 1.1, 0.35]} position={[31, 1.1, 23.45]} />
+        <CuboidCollider args={[0.35, 1.1, 3.2]} position={[38.45, 1.1, 20]} />
+        <CuboidCollider args={[1.6, 0.4, 0.7]} position={[29.5, 0.4, 20]} />
+        <CuboidCollider args={[1.6, 0.4, 0.7]} position={[34.2, 0.4, 20]} />
+        <CuboidCollider args={[0.7, 0.5, 1.2]} position={[25.2, 0.5, 21.8]} />
+      </RigidBody>
 
-// Small sign helper moved to props.tsx (shared with other scenes).
-
-// ---------------------------------------------------------------------------
-// v0.8.0: directional signpost in the main courtyard (user request: make the
-// new buildings findable). Pole + labelled arrow boards pointing at the
-// library, canteen, Gedung B and the field. ry maps local +X to the pointing
-// direction: ry = atan2(-pz, px).
-// ---------------------------------------------------------------------------
-const SIGNPOST_BOARDS: { text: string; ry: number; y: number; color: string }[] = [
-  { text: 'PERPUSTAKAAN', ry: Math.PI / 4, y: 2.35, color: '#ffd34d' },
-  { text: 'KANTIN', ry: Math.PI / 3, y: 1.95, color: '#dfe7f0' },
-  { text: 'GEDUNG B', ry: Math.PI / 2, y: 1.55, color: '#dfe7f0' },
-  { text: 'LAPANGAN', ry: Math.PI, y: 1.95, color: '#dfe7f0' },
-];
-
-function Signpost() {
-  return (
-    <group position={[11.5, 0, 34.5]}>
-      <mesh position={[0, 0.09, 0]} receiveShadow castShadow>
-        <boxGeometry args={[1.1, 0.18, 1.1]} />
-        <Pbr name="concrete" repeat={[1, 1]} color="#9fa2a5" roughness={0.9} />
-      </mesh>
-      <mesh position={[0, 1.45, 0]} castShadow>
-        <cylinderGeometry args={[0.055, 0.07, 2.7, 10]} />
-        <meshStandardMaterial color="#5d646b" roughness={0.5} metalness={0.5} />
-      </mesh>
-      {SIGNPOST_BOARDS.map((b) => (
-        <group key={b.text} position={[0, b.y, 0]} rotation={[0, b.ry, 0]}>
-          <mesh position={[0.9, 0, 0]} castShadow>
-            <boxGeometry args={[1.75, 0.3, 0.07]} />
-            <meshStandardMaterial color="#1f3a5c" roughness={0.6} />
-          </mesh>
-          {/* arrow head at the far end of the board */}
-          <mesh position={[1.92, 0, 0]} rotation={[0, 0, -Math.PI / 2]} castShadow>
-            <coneGeometry args={[0.15, 0.26, 4]} />
-            <meshStandardMaterial color="#1f3a5c" roughness={0.6} />
-          </mesh>
-          <SchoolSign position={[0.9, 0.01, 0.045]} text={b.text} size={0.17} color={b.color} />
-          <SchoolSign position={[0.9, 0.01, -0.045]} text={b.text} size={0.17} color={b.color} rotY={Math.PI} />
+      {/* Kolider Gedung B (3 Lantai + Tangga Switchback) */}
+      {[0, 3.5, 7].map((y0, idx) => (
+        <group key={`gb-lvl-${idx}`}>
+          <WallColliders segs={gedungBShellAt(y0)} defaultH={3.2} />
+          <RigidBody type="fixed" colliders={false}>
+            {y0 > 0 && <CuboidCollider args={[10, 0.15, 5.8]} position={[34, y0 - 0.15, -7.8]} />}
+            {y0 > 0 && <CuboidCollider args={[6, 0.15, 1.2]} position={[30, y0 - 0.15, -14.8]} />}
+            <CuboidCollider args={[6, 0.55, 0.08]} position={[30, y0 + 0.55, -15.95]} />
+            <CuboidCollider args={[4, 0.95, 0.08]} position={[40, y0 + 0.95, -15.95]} />
+            {gbRows.map((z) => (
+              <CuboidCollider key={`gbr-${z}`} args={[4.6, 0.4, 0.45]} position={[30.25, y0 + 0.4, z]} />
+            ))}
+            <CuboidCollider args={[0.5, 0.4, 0.9]} position={[26, y0 + 0.4, -3.4]} />
+            <CuboidCollider args={[1.6, 0.4, 0.6]} position={[40, y0 + 0.4, -7.5]} />
+            <CuboidCollider args={[0.4, 0.95, 2.2]} position={[43.3, y0 + 0.95, -8]} />
+            <CuboidCollider args={[1.7, 1, 0.3]} position={[40, y0 + 1, -2.45]} />
+          </RigidBody>
         </group>
       ))}
+      <GedungBFlightColliders x0={38.6} z={-15.3} dir={1} y0={0} />
+      <GedungBFlightColliders x0={41.7} z={-14.25} dir={-1} y0={1.75} />
+      <GedungBFlightColliders x0={38.6} z={-15.3} dir={1} y0={3.5} />
+      <GedungBFlightColliders x0={41.7} z={-14.25} dir={-1} y0={5.25} />
       <RigidBody type="fixed" colliders={false}>
-        <CuboidCollider args={[0.2, 1.4, 0.2]} position={[0, 1.4, 0]} />
+        {[1.75, 5.25].map((top, i) => (
+          <CuboidCollider key={`mid-${i}`} args={[1.15, 0.15, 1.2]} position={[42.85, top - 0.15, -14.8]} />
+        ))}
       </RigidBody>
+
+      {/* Plang Teks Sekolah */}
+      <SchoolSign position={[7, 3.55, 46.25]} text="SMA YUSON" size={0.42} />
+      <SchoolSign position={[0, 3.05, 28.22]} text="GEDUNG UTAMA" size={0.32} />
+      <SchoolSign position={[21.82, 2.65, 8]} text="KANTIN" size={0.28} color="#8a4b2a" rotY={-Math.PI / 2} />
+      <SchoolSign position={[0, 2.65, -2.2]} text="TANGGA ATAP" size={0.22} color="#5d6a76" rotY={Math.PI} />
+      <SchoolSign position={[-25.75, 3.2, -27]} text="GUDANG TUA" size={0.26} color="#6b4a3a" rotY={Math.PI / 2} />
+      <SchoolSign position={[33.6, 2.2, 8]} text="ROTI · TEH · MI" size={0.2} color="#d8e4f0" rotY={-Math.PI / 2} />
+      <SchoolSign position={[22.82, 2.7, 20]} text="PERPUSTAKAAN" size={0.24} color="#31547a" rotY={-Math.PI / 2} />
+      <SchoolSign position={[24, 3.05, -15.8]} text="GEDUNG B" size={0.28} rotY={Math.PI} />
     </group>
   );
 }
 
 export function CampusWorld() {
-  const bldg = useRef<THREE.Group>(null);
-  const canteen = useRef<THREE.Group>(null);
-  const wh = useRef<THREE.Group>(null);
+  const meshGroupRef = useRef<THREE.Group>(null);
+  const { scene } = useGLTF(CAMPUS_GLB_PATH);
+
+  const clonedCampus = useMemo(() => {
+    const c = scene.clone(true);
+    c.traverse((obj) => {
+      if ((obj as THREE.Mesh).isMesh) {
+        const m = obj as THREE.Mesh;
+        m.castShadow = true;
+        m.receiveShadow = true;
+      }
+    });
+    return c;
+  }, [scene]);
 
   useEffect(() => {
     const t = setTimeout(() => {
-      const objs = [bldg.current, canteen.current, wh.current].filter(Boolean) as THREE.Object3D[];
-      if (objs.length) registerOccluders(objs);
-    }, 900);
+      if (meshGroupRef.current) {
+        registerOccluders([meshGroupRef.current]);
+      }
+    }, 600);
     return () => clearTimeout(t);
   }, []);
 
   return (
     <group>
-      <Ground />
-      <FenceGate />
-      <group ref={bldg}>
-        {/* v0.9.0: shell culled when fully behind the camera (sphere r25 keeps
-            any camera→player blocking wall inside the frustum → visible) */}
-        <Cull center={[0, 3.4, 16]} radius={25}>
-          <MainBuilding />
-          <StairShaft />
-        </Cull>
+      <group ref={meshGroupRef}>
+        <primitive object={clonedCampus} />
       </group>
-      <group ref={canteen}>
-        <Cull center={[28, 1.8, 8]} radius={12}>
-          <Canteen />
-        </Cull>
-      </group>
-      <group ref={wh}>
-        <Cull center={[-36, 3, -27]} radius={15}>
-          <WarehouseExt />
-        </Cull>
-      </group>
-      <Cull center={[34, 0.5, 34]} radius={12}><Parking /></Cull>
-      <Cull center={[-33, 0.5, 15]} radius={18}><FieldProps /></Cull>
-      <Cull center={[6, 0.5, -21]} radius={14}><Alley /></Cull>
-      <Cull center={[0, 0.5, -3]} radius={11}><RearYard /></Cull>
-      {/* greenery spans most of the grounds — big sphere, but still hides
-          everything while looking away from the west side */}
-      <Cull center={[3, 2, 10]} radius={49}><Greenery /></Cull>
-      <Cull center={[11.5, 1.4, 34.5]} radius={3}><Signpost /></Cull>
-      <Cull center={[3, 2, 40]} radius={16}><StreetFurniture /></Cull>
-      <CampusInterior />
-      <GedungB />
-      <Library />
+      <CampusPhysicsAndSigns />
     </group>
   );
 }
+
+useGLTF.preload(CAMPUS_GLB_PATH);
