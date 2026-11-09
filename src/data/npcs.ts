@@ -119,17 +119,21 @@ export const NPC_BY_ID: Record<string, NpcDef> = Object.fromEntries(NPCS.map((n)
 
 // Ambient students: [x, z] patrol waypoints per period are simplified to a
 // home point + wander radius to keep per-frame cost near zero.
-export const AMBIENT_STUDENTS: { pos: [number, number]; wander: number; color: string }[] = [
-  { pos: [12, 38], wander: 3, color: '#64748b' },
-  { pos: [18, 32], wander: 3.5, color: '#7c6f64' },
-  { pos: [-4, 33], wander: 3, color: '#5b6b7a' },
-  { pos: [-6, 17.5], wander: 2.5, color: '#6b7280' },   // corridor
-  { pos: [4, 24.5], wander: 2.5, color: '#94a3b8' },    // hall
-  { pos: [27, 9], wander: 2, color: '#64748b' },        // canteen interior
-  { pos: [-28, 10], wander: 6, color: '#64748b' },      // field
-  { pos: [33, 32], wander: 3, color: '#57534e' },       // parking
-  { pos: [9, 49], wander: 2.5, color: '#6b7280' },      // street
-  { pos: [4, -18], wander: 3, color: '#7c6f64' },       // alley mouth
-  { pos: [29.3, 20.2], wander: 1.2, color: '#64748b' }, // v0.8.0: library reading area
-  { pos: [30, -14.8], wander: 1.5, color: '#7c6f64' },  // v0.8.0: Gedung B corridor
+// v0.18.1: each entry carries a stable `id` — the ambient character variant
+// is derived from it (hash → registry), so visual identity survives re-renders
+// and quality presets (the low-spec crowd filter re-indexes the array, but ids
+// never change).
+export const AMBIENT_STUDENTS: { id: string; pos: [number, number]; wander: number; color: string }[] = [
+  { id: 'amb_01', pos: [12, 38], wander: 3, color: '#64748b' },
+  { id: 'amb_02', pos: [18, 32], wander: 3.5, color: '#7c6f64' },
+  { id: 'amb_03', pos: [-4, 33], wander: 3, color: '#5b6b7a' },
+  { id: 'amb_04', pos: [-6, 17.5], wander: 2.5, color: '#6b7280' },   // corridor
+  { id: 'amb_05', pos: [4, 24.5], wander: 2.5, color: '#94a3b8' },    // hall
+  { id: 'amb_06', pos: [27, 9], wander: 2, color: '#64748b' },        // canteen interior
+  { id: 'amb_07', pos: [-28, 10], wander: 6, color: '#64748b' },      // field
+  { id: 'amb_08', pos: [33, 32], wander: 3, color: '#57534e' },       // parking
+  { id: 'amb_09', pos: [9, 49], wander: 2.5, color: '#6b7280' },      // street
+  { id: 'amb_10', pos: [4, -18], wander: 3, color: '#7c6f64' },       // alley mouth
+  { id: 'amb_11', pos: [29.3, 20.2], wander: 1.2, color: '#64748b' }, // v0.8.0: library reading area
+  { id: 'amb_12', pos: [30, -14.8], wander: 1.5, color: '#7c6f64' },  // v0.8.0: Gedung B corridor
 ];

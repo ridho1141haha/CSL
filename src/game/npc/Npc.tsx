@@ -8,6 +8,7 @@ import { playerPos, npcPositions, crowdPositions, actorPositions } from '../runt
 import { mobile } from '../mobile';
 import { lowSpecProfile, qualityConfig } from '../quality';
 import { Figure, makeAnim, BOOT_LOW } from './Character';
+import { ambientVariantFor } from './characters';
 import { NPCS, AMBIENT_STUDENTS, NPC_BY_ID } from '../../data/npcs';
 import { periodFor } from '../systems/time';
 import type { HoldKind } from '../../types';
@@ -25,12 +26,17 @@ function figureHideR(): number {
 // v0.16.0: no longer "non-collidable" — each student registers its live
 // position into crowdPositions (consumed by the player collision system)
 // and steps AROUND the player instead of walking through them.
-function Student({ home, wander, color, seed }: { home: [number, number]; wander: number; color: string; seed: number }) {
+function Student({
+  home, wander, color, seed, variantId,
+}: { home: [number, number]; wander: number; color: string; seed: number; variantId: string }) {
   const group = useRef<THREE.Group>(null);
   const anim = useRef(makeAnim());
   const t = useRef(seed * 7.3);
   const target = useRef({ x: home[0], z: home[1] });
-  const key = `s${seed}`;
+  const key = `s${variantId}`;
+  // v0.18.1: visual identity is a pure function of the stable entry id —
+  // deterministic across re-renders, quality presets and scene switches.
+  const variant = ambientVariantFor(variantId);
 
   // stale-position guard (same contract as ScheduledNpc/StoryActor)
   useEffect(() => () => { delete crowdPositions[key]; }, [key]);
@@ -83,8 +89,17 @@ function Student({ home, wander, color, seed }: { home: [number, number]; wander
   return (
     <group ref={group} position={[home[0], 0.03, home[1]]} scale={0.96}>
       {/* v0.14.4: trim — ambient wanderers never get a close-up; on weak boot
-          profiles drop their micro-detail meshes (buttons/catchlights/hem) */}
-      <Figure anim={anim} color={color} accent="#e5e7eb" trim={BOOT_LOW} />
+          profiles drop their micro-detail meshes (buttons/catchlights/hem).
+          v0.18.1: model + uniform palette come from the registry variant —
+          deterministic per NPC id, no longer everyone-resolves-to-Ren. */}
+      <Figure
+        anim={anim}
+        color={color}
+        accent="#e5e7eb"
+        trim={BOOT_LOW}
+        modelId={variant.model}
+        tint={variant.tint}
+      />
     </group>
   );
 }
@@ -126,7 +141,10 @@ export function Npcs({ hideMain = false }: { hideMain?: boolean }) {
         <ScheduledNpc key={def.id} id={def.id} />
       ))}
       {ambient.map((s, i) => (
-        <Student key={i} home={s.pos} wander={s.wander} color={s.color} seed={i + 1} />
+        // key = stable entry id (was array index): identity + collision-registry
+        // entry survive the low-spec crowd filter; seed stays index-based and
+        // only drives wander timing, never visual identity.
+        <Student key={s.id} home={s.pos} wander={s.wander} color={s.color} seed={i + 1} variantId={s.id} />
       ))}
     </>
   );

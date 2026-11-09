@@ -32,15 +32,12 @@ export const makeAnim = (): FigureAnim => ({
   crouch: false,
 });
 
-export type CharModelId = 'ren' | 'aris' | 'siti' | 'bimo' | 'budi';
+// v0.18.1: CharModelId + CHAR_GLB_PATHS live in the centralized registry
+// (./characters). Re-exported here so existing importers keep working.
+import { CHAR_GLB_PATHS, TINT_SLOT_MATERIALS, type CharModelId, type TintSlot } from './characters';
 
-export const CHAR_GLB_PATHS: Record<CharModelId, string> = {
-  ren: '/models/csl_char_ren.glb',
-  aris: '/models/csl_char_aris.glb',
-  siti: '/models/csl_char_siti.glb',
-  bimo: '/models/csl_char_bimo.glb',
-  budi: '/models/csl_char_budi.glb',
-};
+export { CHAR_GLB_PATHS };
+export type { CharModelId, TintSlot };
 
 type Props = {
   anim: MutableRefObject<FigureAnim>;
@@ -57,6 +54,10 @@ type Props = {
   hair?: { color: string; style: 'short' | 'wave' | 'ponytail' | 'buzz' };
   trim?: boolean;
   modelId?: CharModelId;
+  // v0.18.1: per-instance material overrides from the character registry
+  // (ambient variants). Undefined → baked GLB look, zero extra work — the
+  // main cast never passes this, so their render path is unchanged.
+  tint?: Partial<Record<TintSlot, string>>;
 };
 
 function resolveCharModelId(p: Props): CharModelId {
@@ -235,7 +236,7 @@ function HoldProp({ kind, cylSeg }: { kind: HoldKind; cylSeg: number }) {
 }
 
 export function Figure(props: Props) {
-  const { anim, scale = 1, nameTag, tag, actId, hold } = props;
+  const { anim, scale = 1, nameTag, tag, actId, hold, tint } = props;
   const root = useRef<THREE.Group>(null);
   const armRMount = useRef<THREE.Group>(null);
   const phase = useRef(0);
@@ -245,15 +246,48 @@ export function Figure(props: Props) {
   const charId = resolveCharModelId(props);
   const { scene } = useGLTF(CHAR_GLB_PATHS[charId]);
   const SH = !mobile.lowSpec;
+  // Canonical form of the tint map for memo matching — registry objects are
+  // module constants, but an inline object from a caller must not retrigger
+  // material cloning on every render.
+  const tintKey = tint
+    ? Object.keys(TINT_SLOT_MATERIALS)
+        .filter((s) => tint[s as TintSlot])
+        .map((s) => `${s}=${tint[s as TintSlot]}`)
+        .join(';')
+    : '';
 
   const { cloned, joints } = useMemo(() => {
+    // scene.clone(true): these GLBs contain plain meshes (no skins, no
+    // animation clips — joints are posed in useFrame below), so cloning the
+    // hierarchy is safe. Geometries and untouched materials stay shared
+    // between instances; tinted slots are cloned per instance below so
+    // variants never share tinted material state.
     const clone = scene.clone(true);
+    const tintedClones = new Map<THREE.Material, THREE.MeshStandardMaterial>();
+    const tintMaterial = (mat: THREE.Material): THREE.Material => {
+      const slot = (Object.keys(TINT_SLOT_MATERIALS) as TintSlot[]).find(
+        (s) => TINT_SLOT_MATERIALS[s] === mat.name,
+      );
+      if (!slot || !tint?.[slot]) return mat;
+      let c = tintedClones.get(mat);
+      if (!c) {
+        c = mat.clone() as THREE.MeshStandardMaterial;
+        c.color.set(tint[slot]!);
+        tintedClones.set(mat, c);
+      }
+      return c;
+    };
     clone.traverse((obj) => {
       if ((obj as THREE.Mesh).isMesh) {
         const m = obj as THREE.Mesh;
         m.castShadow = SH;
         m.receiveShadow = true;
-        const mat = m.material as THREE.MeshStandardMaterial;
+        if (Array.isArray(m.material)) {
+          m.material = m.material.map(tintMaterial);
+        } else {
+          m.material = tintMaterial(m.material);
+        }
+        const mat = (Array.isArray(m.material) ? m.material[0] : m.material) as THREE.MeshStandardMaterial;
         if (mat && mat.map) {
           mat.map.colorSpace = THREE.SRGBColorSpace;
           mat.needsUpdate = true;
@@ -272,7 +306,7 @@ export function Figure(props: Props) {
         legR: clone.getObjectByName('LegR') ?? null,
       },
     };
-  }, [scene, SH]);
+  }, [scene, SH, tintKey]);
 
   // Sambungkan grup HoldProp ke sendi tangan kanan GLB
   useEffect(() => {
