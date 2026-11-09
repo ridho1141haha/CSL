@@ -78,9 +78,10 @@ export function FullMenu({ title, onClose, children, eyebrow = 'DOSSIER // YUSON
 export function StatusPanel() {
   // v0.17.0 (audit L1): field selectors — the whole-store subscriptions here
   // re-rendered on EVERY playerStore write (incl. throttled position updates).
-  const hp = usePlayer((s) => s.hp);
+  // ⚡ Bolt optimization: Math.round() prevents 60fps re-renders during fractional regen
+  const hp = usePlayer((s) => Math.round(s.hp));
   const maxHp = usePlayer((s) => s.maxHp);
-  const focus = usePlayer((s) => s.focus);
+  const focus = usePlayer((s) => Math.round(s.focus));
   const academic = useStats((s) => s.academic);
   const violence = useStats((s) => s.violence);
   const diplomacy = useStats((s) => s.diplomacy);
