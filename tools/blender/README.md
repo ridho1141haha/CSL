@@ -44,5 +44,6 @@ Rest pose: standing, arms hanging 9° out. Left = +X in Blender. Feet at z=0. Fa
 ## Known limitations of this first pass
 - Flat-colour PBR materials (7-13 per character), no texture atlas yet -> ~13 draw calls. Atlas bake is the next optimisation.
 - Face/hands/hair are lofted shapes, not sculpted. Silhouettes and proportions are right; fine detail (fingers, ears, hair strands, shirt wrinkles) is not.
-- No animation clips; the plan is bone-driven procedural animation in GlbFigure (see CSL_CHARACTER_PACK_PLAN.md).
-- `csl_blender.py` / `contact_sheet.py` / export were written against the Blender 4.5 API but NOT executed by the author (no Blender in the authoring sandbox). Expect to fix small API errors on first run.
+- 31 animation clips are DEFINED in `csl_anim.py` (30 in `CLIPS` + `Get_Up` reversed) and baked by `csl_blender.add_animations()` — but the export itself has NOT been verified: no Blender run has ever happened (see below). Do not treat the clips as working until a validated GLB lands in `public/models/`.
+- `csl_blender.py` / `contact_sheet.py` / export were written against the Blender 4.5 API but NOT executed by the author (no Blender in the authoring sandbox) and NOT executed during the runtime integration either (no Blender in that environment). Expect to fix small API errors on first run.
+- Runtime fallback: while no rigged GLB exists in `public/models/`, every character auto-routes to the legacy procedural renderer (`LegacyFigure`) — the game runs unchanged. The skeletal path (`GlbFigure` + `CharacterAnimationController`) activates automatically per-GLB once clips are present; routing logic is tested headless (see `src/test/characterAnim.test.ts`).

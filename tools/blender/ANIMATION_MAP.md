@@ -1,4 +1,9 @@
-# CSL animation clips (30 fps, exported as named glTF animations in every character GLB)
+# CSL animation clips (30 fps; clip set defined in `csl_anim.py`, baked as named glTF animations by `csl_blender.add_animations()`)
+
+> Export status: NOT YET VERIFIED — no Blender run has produced these GLBs so
+> far (no Blender available in the authoring or integration sandboxes). Until
+> a validated export lands in `public/models/`, the runtime renders the legacy
+> joint-rig GLBs through the procedural path.
 
 | Game state (src) | Clip |
 |---|---|
@@ -24,10 +29,12 @@
 One-shots (not looping): Jump, Sit_Down, Stand_Up, Pick_Up, Gesture_*, Attack_Punch, Hurt, Knocked_Down, Get_Up.
 Everything else loops. Clips animate root-less (in place): the game moves the body. Hips carry the vertical offset, feet are ground-locked at bake time.
 
-## Adapter notes (GlbFigure, not written yet)
-- Use `AnimationMixer`; crossfade 0.15–0.25 s between clips; one-shots `LoopOnce` + `clampWhenFinished`.
-- Gaze (`acting.gazeX/Z`) stays procedural: add yaw to `Head`/`Neck` bones after the mixer updates (as Figure does now).
-- Mouth: `morphTargetInfluences[mesh.morphTargetDictionary.mouthOpen]` from `talkPhase`; blink on a timer via `blink`.
+## Runtime adapter (implemented — `src/game/character/`)
+- `GlbFigure.tsx` renders rigged GLBs (`SkeletonUtils.clone`, per-instance skeleton); `Figure` routes per-GLB and falls back to the legacy procedural `LegacyFigure` for joint-rig models. Clip names here must match `ANIM_CLIPS` in `animCatalog.ts` (tested).
+- `CharacterAnimationController.ts`: one `AnimationMixer` per instance; crossfade 0.18 s between loop states; one-shots `LoopOnce` + `clampWhenFinished`, resumed loop state stored separately.
+- One-shot arbitration: refused only when STRICTLY lower priority; equal-priority different-name requests TAKE OVER (newest gameplay intent wins) and the previous one-shot is explicitly `stop()`-ed — exactly one controlling one-shot, no bone conflicts. `cancelOneShot(name)` kills a specific one-shot and its `then` chain (used for stale posture chains).
+- three.js gotcha (cost us a bug): once a fade-out completes, `_updateWeight` AUTO-DISABLES the action ("faded out, disable") and `setEffectiveWeight` then yields effective 0 forever — resumes must `reset()` before `play()`.
+- Gaze (`acting.gazeX/Z`) stays procedural: yaw applied to the `Head` bone after the mixer update. Mouth: `morphTargetInfluences[mouthOpen]` from `talkPhase`; blink on a deterministic timer.
 - Props (`HoldProp`) parent to bone `Hand_R`.
 
 ## Known limitations

@@ -1,10 +1,15 @@
 // CSL animation clip catalog — runtime mirror of the Blender pipeline clips.
 //
 // Source of truth: tools/blender/csl_anim.py (CLIPS + REVERSED) and
-// tools/blender/ANIMATION_MAP.md. Clip names here MUST match the glTF
-// animation names the pipeline bakes (one NLA track per clip, named exactly
-// like the clip). Durations are from the Python table — used by tests and
-// sanity checks, not by the mixer itself.
+// tools/blender/ANIMATION_MAP.md. 31 clips = 30 entries in the Python CLIPS
+// table + Get_Up (REVERSED: Knocked_Down played backwards). Clip names here
+// MUST match the glTF animation names the pipeline bakes (one NLA track per
+// clip, named exactly like the clip). Durations are from the Python table —
+// used by tests and sanity checks, not by the mixer itself.
+//
+// Export status: the pipeline has never been executed (no Blender available),
+// so no rigged GLB ships these clips yet. Until one lands in public/models/,
+// isSkeletalRig() routes every character to the legacy procedural renderer.
 
 export const ANIM_CLIPS = [
   // locomotion
