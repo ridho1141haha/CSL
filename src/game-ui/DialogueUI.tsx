@@ -29,7 +29,8 @@ export function DialogueUI({ cinematic }: { cinematic: boolean }) {
   const advance = useDialogue((s) => s.advance);
   const choose = useDialogue((s) => s.choose);
   const zone = useGame((s) => s.currentZone);
-  const hp = usePlayer((s) => s.hp);
+  // ⚡ Bolt optimization: Math.round() prevents 60fps re-renders during fractional regen
+  const hp = usePlayer((s) => Math.round(s.hp));
   const maxHp = usePlayer((s) => s.maxHp);
   const node = nodeId ? getDialogue(nodeId) : undefined;
   const [shown, setShown] = useState(0);
