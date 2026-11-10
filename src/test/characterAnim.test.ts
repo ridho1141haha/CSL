@@ -198,14 +198,29 @@ describe('CharacterAnimationController', () => {
     ctrl.dispose();
   });
 
-  it('refuses lower/equal priority one-shots while one is active; restart-safe', () => {
+  it('arbitration: equal-priority different-name takes over, strictly lower refused, restart-safe', () => {
+    // Hardening pass: the rule changed from `priority <=` to `priority <` —
+    // the newest gameplay intent wins at equal tier and the interrupted
+    // one-shot is explicitly stopped (was: silently left running).
     const rig = makeRig();
     const ctrl = new CharacterAnimationController(rig, CLIPS());
+    const entries = (ctrl as unknown as { entries: Map<string, { action: THREE.AnimationAction }> }).entries;
     ctrl.setLoopState('Idle');
     expect(ctrl.playOneShot('Attack_Punch', TIER_PRIORITY.combat)).toBe(true);
-    expect(ctrl.playOneShot('Hurt', TIER_PRIORITY.combat)).toBe(false); // equal → refused
-    expect(ctrl.playOneShot('Sit_Down', TIER_PRIORITY.posture + 1)).toBe(false); // lower → refused
-    expect(ctrl.currentName).toBe('Attack_Punch');
+    // equal priority, different name → takeover; previous action terminated
+    expect(ctrl.playOneShot('Hurt', TIER_PRIORITY.combat)).toBe(true);
+    expect(entries.get('Attack_Punch')!.action.isRunning()).toBe(false);
+    expect(entries.get('Attack_Punch')!.action.time).toBe(0);
+    expect(ctrl.currentName).toBe('Hurt');
+    // strictly lower → refused (unchanged)
+    expect(ctrl.playOneShot('Sit_Down', TIER_PRIORITY.posture + 1)).toBe(false);
+    expect(ctrl.currentName).toBe('Hurt');
+    // same name → idempotent true, never restarts
+    ctrl.update(0.2);
+    const hurt = entries.get('Hurt')!.action;
+    const t = hurt.time;
+    expect(ctrl.playOneShot('Hurt', TIER_PRIORITY.combat)).toBe(true);
+    expect(hurt.time).toBe(t); // no reset
     ctrl.dispose();
   });
 
@@ -291,6 +306,290 @@ describe('CharacterAnimationController', () => {
     expect(ctrl.setLoopState('Idle')).toBe(false);
     const idleAction = (ctrl as unknown as { entries: Map<string, { action: THREE.AnimationAction }> }).entries.get('Idle')!.action;
     expect(idleAction.isRunning()).toBe(false);
+  });
+});
+
+// ── hardening #1: one-shot interruption ─────────────────────────────────────
+
+describe('one-shot interruption (hardening #1)', () => {
+  const CLIPS = () => [
+    clip('Idle', ['Spine.quaternion']),
+    clip('Walk', ['Spine.quaternion', 'UpperLeg_L.quaternion', 'UpperLeg_R.quaternion']),
+    clip('Sit_Idle', ['Spine.quaternion']),
+    clip('Sit_Down', ['Spine.quaternion']),
+    clip('Stand_Up', ['Spine.quaternion']),
+    clip('Gesture_Palm', ['UpperArm_L.quaternion']),
+    clip('Attack_Punch', ['UpperArm_R.quaternion']),
+    clip('Hurt', ['Spine.quaternion']),
+    clip('Knocked_Down', ['Hips.quaternion', 'Spine.quaternion']),
+    clip('Get_Up', ['Hips.quaternion', 'Spine.quaternion']),
+  ];
+  const entries = (ctrl: CharacterAnimationController) =>
+    (ctrl as unknown as { entries: Map<string, { action: THREE.AnimationAction }> }).entries;
+
+  it('gesture is interrupted by attack: exactly one owner, old action terminated', () => {
+    const rig = makeRig();
+    const ctrl = new CharacterAnimationController(rig, CLIPS());
+    ctrl.setLoopState('Idle');
+    expect(ctrl.playOneShot('Gesture_Palm', TIER_PRIORITY.dialogue)).toBe(true);
+    ctrl.update(0.3); // gesture mid-run
+    expect(entries(ctrl).get('Gesture_Palm')!.action.isRunning()).toBe(true);
+    expect(ctrl.playOneShot('Attack_Punch', TIER_PRIORITY.combat)).toBe(true); // higher → interrupt
+    expect(ctrl.currentName).toBe('Attack_Punch');
+    expect(entries(ctrl).get('Gesture_Palm')!.action.isRunning()).toBe(false); // terminated, NOT left running
+    expect(entries(ctrl).get('Gesture_Palm')!.action.time).toBe(0);
+    // attack (0.8 s) finishes first and hands control back to the loop state
+    ctrl.update(1.0);
+    expect(ctrl.currentName).toBe('Idle');
+    ctrl.dispose();
+  });
+
+  it('attack is interrupted by a higher-priority one-shot (gameplay tier)', () => {
+    const rig = makeRig();
+    const ctrl = new CharacterAnimationController(rig, CLIPS());
+    ctrl.setLoopState('Idle');
+    expect(ctrl.playOneShot('Attack_Punch', TIER_PRIORITY.combat)).toBe(true);
+    ctrl.update(0.2);
+    expect(ctrl.playOneShot('Knocked_Down', TIER_PRIORITY.gameplay)).toBe(true);
+    expect(ctrl.currentName).toBe('Knocked_Down');
+    expect(entries(ctrl).get('Attack_Punch')!.action.isRunning()).toBe(false);
+    ctrl.dispose();
+  });
+
+  it('loop state survives an interruption chain and resumes after the last one-shot', () => {
+    const rig = makeRig();
+    const ctrl = new CharacterAnimationController(rig, CLIPS());
+    ctrl.setLoopState('Walk', 1);
+    expect(ctrl.playOneShot('Gesture_Palm', TIER_PRIORITY.dialogue)).toBe(true);
+    expect(ctrl.pendingLoop).toBe('Walk');
+    expect(ctrl.playOneShot('Attack_Punch', TIER_PRIORITY.combat)).toBe(true); // interrupt
+    expect(ctrl.pendingLoop).toBe('Walk'); // preserved through the chain
+    ctrl.update(1.0); // attack finishes
+    expect(ctrl.currentName).toBe('Walk');
+    expect(entries(ctrl).get('Walk')!.action.isRunning()).toBe(true);
+    ctrl.dispose();
+  });
+
+  it('stale finished events from an interrupted one-shot cannot hijack resume', () => {
+    const rig = makeRig();
+    const ctrl = new CharacterAnimationController(rig, CLIPS());
+    ctrl.setLoopState('Idle');
+    expect(ctrl.playOneShot('Gesture_Palm', TIER_PRIORITY.dialogue)).toBe(true);
+    ctrl.update(0.2);
+    expect(ctrl.playOneShot('Knocked_Down', TIER_PRIORITY.combat)).toBe(true); // interrupted → stopped → no finished
+    ctrl.update(1.4); // Knocked_Down (1.2 s) finishes → idle resumes
+    expect(ctrl.currentName).toBe('Idle');
+    ctrl.update(0.6); // past where the gesture WOULD have finished — nothing changes
+    expect(ctrl.currentName).toBe('Idle');
+    ctrl.dispose();
+  });
+
+  it('resume to the SAME loop name restores its faded-out weight (no weight-0 zombie)', () => {
+    const rig = makeRig();
+    const ctrl = new CharacterAnimationController(rig, CLIPS());
+    ctrl.setLoopState('Idle');
+    ctrl.playOneShot('Knocked_Down', TIER_PRIORITY.combat); // crossfades Idle out
+    ctrl.update(1.4); // finish → resume Idle (same name)
+    expect(ctrl.currentName).toBe('Idle');
+    expect(entries(ctrl).get('Idle')!.action.getEffectiveWeight()).toBeCloseTo(1, 2);
+    ctrl.dispose();
+  });
+});
+
+// ── hardening #2: posture transition cancellation ───────────────────────────
+
+describe('posture transition cancellation (hardening #2)', () => {
+  const CLIPS = () => [
+    clip('Idle', ['Spine.quaternion']),
+    clip('Sit_Idle', ['Spine.quaternion']),
+    clip('Sit_Down', ['Spine.quaternion']),
+    clip('Stand_Up', ['Spine.quaternion']),
+    clip('Attack_Punch', ['UpperArm_R.quaternion']),
+  ];
+  const entries = (ctrl: CharacterAnimationController) =>
+    (ctrl as unknown as { entries: Map<string, { action: THREE.AnimationAction }> }).entries;
+
+  it('1. Sit_Down completes normally → Sit_Idle', () => {
+    const rig = makeRig();
+    const ctrl = new CharacterAnimationController(rig, CLIPS());
+    const dir = new CharacterAnimDirector(ctrl);
+    ctrl.setLoopState('Idle');
+    dir.apply(snap({ sit: true }));
+    ctrl.update(1.4);
+    expect(ctrl.currentName).toBe('Sit_Idle');
+    ctrl.dispose();
+  });
+
+  it('2. Sit_Down cancelled mid-chain → Stand_Up; chained Sit_Idle never wins', () => {
+    const rig = makeRig();
+    const ctrl = new CharacterAnimationController(rig, CLIPS());
+    const dir = new CharacterAnimDirector(ctrl);
+    ctrl.setLoopState('Idle');
+    dir.apply(snap({ sit: true }));
+    ctrl.update(0.3); // sit-down halfway
+    dir.apply(snap({})); // gameplay state changed: stand
+    expect(ctrl.currentName).toBe('Stand_Up'); // immediate takeover, chain dead
+    ctrl.update(1.4);
+    expect(ctrl.currentName).toBe('Idle'); // newest snapshot wins — NOT Sit_Idle
+    ctrl.dispose();
+  });
+
+  it('3. Sit_Idle → Stand_Up', () => {
+    const rig = makeRig();
+    const ctrl = new CharacterAnimationController(rig, CLIPS());
+    const dir = new CharacterAnimDirector(ctrl);
+    ctrl.setLoopState('Idle');
+    dir.apply(snap({ sit: true }));
+    ctrl.update(1.4);
+    expect(ctrl.currentName).toBe('Sit_Idle');
+    dir.apply(snap({})); // stand
+    expect(ctrl.currentName).toBe('Stand_Up');
+    ctrl.update(1.4);
+    expect(ctrl.currentName).toBe('Idle');
+    ctrl.dispose();
+  });
+
+  it('4. rapid sit toggling never restarts the same clip nor wedges the director', () => {
+    const rig = makeRig();
+    const ctrl = new CharacterAnimationController(rig, CLIPS());
+    const dir = new CharacterAnimDirector(ctrl);
+    ctrl.setLoopState('Idle');
+    for (const sit of [true, false, true, false]) {
+      dir.apply(snap({ sit }));
+      expect(['Sit_Down', 'Stand_Up']).toContain(ctrl.currentName); // exactly one posture one-shot in control
+      ctrl.update(0.15);
+    }
+    dir.apply(snap({}));
+    ctrl.update(1.6);
+    expect(ctrl.currentName).toBe('Idle');
+    expect(dir.edges.sit).toBe(false);
+    ctrl.dispose();
+  });
+
+  it('5. newest gameplay snapshot beats an already-scheduled chain (cancelOneShot API)', () => {
+    const rig = makeRig();
+    const ctrl = new CharacterAnimationController(rig, CLIPS());
+    ctrl.setLoopState('Idle');
+    expect(ctrl.playOneShot('Sit_Down', TIER_PRIORITY.posture + 1, 'Sit_Idle')).toBe(true);
+    expect(ctrl.cancelOneShot('Sit_Down')).toBe(true);
+    expect(ctrl.currentName).toBe('Idle');
+    ctrl.update(1.4); // past Sit_Down length: the Sit_Idle chain never fires
+    expect(ctrl.currentName).toBe('Idle');
+    expect(ctrl.cancelOneShot('Sit_Down')).toBe(false); // idempotent no-op
+    ctrl.dispose();
+  });
+
+  it('stale sit chain dies even when a combat one-shot refuses Stand_Up', () => {
+    const rig = makeRig();
+    const ctrl = new CharacterAnimationController(rig, CLIPS());
+    const dir = new CharacterAnimDirector(ctrl);
+    ctrl.setLoopState('Idle');
+    dir.apply(snap({ sit: true }));
+    ctrl.update(0.3); // Sit_Down active
+    dir.apply(snap({ attackT: 0.1 })); // combat rises while still seated
+    expect(ctrl.currentName).toBe('Attack_Punch'); // combat takes over the body
+    dir.apply(snap({ attackT: 0.2 })); // hmm — director returns early while attacking; sit flag dropped by gameplay
+    ctrl.update(1.0); // attack finishes → newest snapshot (standing) resumes — not Sit_Idle
+    expect(ctrl.currentName).toBe('Idle');
+    ctrl.dispose();
+  });
+});
+
+// ── hardening #3: priority ladder verification ──────────────────────────────
+
+describe('priority ladder (hardening #3)', () => {
+  const CLIPS = () => [
+    clip('Idle', ['Spine.quaternion']),
+    clip('Walk', ['Spine.quaternion', 'UpperLeg_L.quaternion', 'UpperLeg_R.quaternion']),
+    clip('Run', ['Spine.quaternion', 'UpperLeg_L.quaternion']),
+    clip('Talk', ['Spine.quaternion']),
+    clip('Sit_Down', ['Spine.quaternion']),
+    clip('Gesture_Palm', ['UpperArm_L.quaternion']),
+    clip('Attack_Punch', ['UpperArm_R.quaternion']),
+    clip('Hurt', ['Spine.quaternion']),
+    clip('Knocked_Down', ['Hips.quaternion', 'Spine.quaternion']),
+    clip('Get_Up', ['Hips.quaternion', 'Spine.quaternion']),
+  ];
+  const entries = (ctrl: CharacterAnimationController) =>
+    (ctrl as unknown as { entries: Map<string, { action: THREE.AnimationAction }> }).entries;
+
+  it('down beats combat: an active attack is taken over by Knocked_Down', () => {
+    const rig = makeRig();
+    const ctrl = new CharacterAnimationController(rig, CLIPS());
+    const dir = new CharacterAnimDirector(ctrl);
+    ctrl.setLoopState('Idle');
+    dir.apply(snap({ attackT: 0.1 }));
+    expect(ctrl.currentName).toBe('Attack_Punch');
+    dir.apply(snap({ attackT: 0.3, down: true })); // downed mid-swing
+    expect(ctrl.currentName).toBe('Knocked_Down');
+    expect(entries(ctrl).get('Attack_Punch')!.action.isRunning()).toBe(false);
+    ctrl.dispose();
+  });
+
+  it('down beats movement: walk is deferred while downed and resumes after Get_Up', () => {
+    const rig = makeRig();
+    const ctrl = new CharacterAnimationController(rig, CLIPS());
+    const dir = new CharacterAnimDirector(ctrl);
+    ctrl.setLoopState('Idle');
+    dir.apply(snap({ speed: 1.0 }));
+    expect(ctrl.currentName).toBe('Walk');
+    dir.apply(snap({ down: true, speed: 1.0 }));
+    expect(ctrl.currentName).toBe('Knocked_Down');
+    expect(ctrl.pendingLoop).toBe('Walk');
+    dir.apply(snap({ speed: 1.0 })); // released mid-clip
+    expect(ctrl.currentName).toBe('Get_Up');
+    ctrl.update(1.4);
+    expect(ctrl.currentName).toBe('Walk'); // movement is the resumed loop
+    ctrl.dispose();
+  });
+
+  it('down beats dialogue: Talk loop is replaced while downed', () => {
+    const rig = makeRig();
+    const ctrl = new CharacterAnimationController(rig, CLIPS());
+    const dir = new CharacterAnimDirector(ctrl);
+    ctrl.setLoopState('Idle');
+    dir.apply(snap({ act: { talking: true, gesture: -1, nodT: -1 } }));
+    expect(ctrl.currentName).toBe('Talk');
+    dir.apply(snap({ down: true, act: { talking: true, gesture: -1, nodT: -1 } }));
+    expect(ctrl.currentName).toBe('Knocked_Down');
+    ctrl.dispose();
+  });
+
+  it('combat interrupts dialogue one-shots; dialogue cannot interrupt combat', () => {
+    const rig = makeRig();
+    const ctrl = new CharacterAnimationController(rig, CLIPS());
+    ctrl.setLoopState('Idle');
+    expect(ctrl.playOneShot('Gesture_Palm', TIER_PRIORITY.dialogue)).toBe(true);
+    expect(ctrl.playOneShot('Attack_Punch', TIER_PRIORITY.combat)).toBe(true); // interrupt
+    expect(ctrl.currentName).toBe('Attack_Punch');
+    expect(ctrl.playOneShot('Gesture_Palm', TIER_PRIORITY.dialogue)).toBe(false); // refused
+    expect(ctrl.currentName).toBe('Attack_Punch');
+    ctrl.dispose();
+  });
+
+  it('posture does not interrupt higher tiers', () => {
+    const rig = makeRig();
+    const ctrl = new CharacterAnimationController(rig, CLIPS());
+    ctrl.setLoopState('Idle');
+    ctrl.playOneShot('Attack_Punch', TIER_PRIORITY.combat);
+    expect(ctrl.playOneShot('Sit_Down', TIER_PRIORITY.posture + 1)).toBe(false);
+    expect(ctrl.currentName).toBe('Attack_Punch');
+    ctrl.dispose();
+  });
+
+  it('movement is the loop resumed after a one-shot finishes (Run variant)', () => {
+    const rig = makeRig();
+    const ctrl = new CharacterAnimationController(rig, CLIPS());
+    const dir = new CharacterAnimDirector(ctrl);
+    ctrl.setLoopState('Idle');
+    dir.apply(snap({ speed: 4.2, run: true }));
+    expect(ctrl.currentName).toBe('Run');
+    dir.apply(snap({ speed: 4.2, run: true, attackT: 0.1 })); // attack while running
+    expect(ctrl.currentName).toBe('Attack_Punch');
+    expect(ctrl.pendingLoop).toBe('Run');
+    ctrl.update(1.0);
+    expect(ctrl.currentName).toBe('Run');
+    ctrl.dispose();
   });
 });
 
