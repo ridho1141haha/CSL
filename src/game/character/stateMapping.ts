@@ -101,7 +101,23 @@ export class CharacterAnimDirector {
     const hurt = s.hurtT >= 0;
     if (hurt && !this.lastHurt) ctrl.playOneShot('Hurt', TIER_PRIORITY.combat);
     this.lastHurt = hurt;
-    if (hurt || attacking) return; // loop state resumes automatically after the one-shot
+    if (hurt || attacking) {
+      // Combat owns the body (its one-shot already took the Sit_Down slot by
+      // priority). If gameplay also dropped the sit flag, clear the posture
+      // bookkeeping here — otherwise the late falling edge would fire a
+      // spurious Stand_Up long after the sit chain died.
+      if (!s.sit && this.lastSit) {
+        this.lastSit = false;
+        ctrl.cancelOneShot('Sit_Down');
+      }
+      // Keep the pending loop state honest with the newest snapshot: it is
+      // what runs when the combat one-shot ends, so a stale Sit_Idle must
+      // never survive a gameplay state that moved on (down → null keeps the
+      // previous loop, one-shot clamp territory).
+      const pending = resolveLoopClip(s);
+      if (pending) ctrl.setLoopState(pending.clip, pending.timeScale);
+      return;
+    }
 
     // 3) movement (walk/run) — also clears pending gesture bookkeeping.
     if (s.speed > 0.15) {
@@ -117,6 +133,12 @@ export class CharacterAnimDirector {
       this.lastSit = true;
     } else if (this.lastSit) {
       this.lastSit = false;
+      // Gameplay no longer wants the sit chain: kill a still-running
+      // Sit_Down (its Sit_Idle then-chain dies with it) so the chained
+      // animation can never beat the newest gameplay snapshot, then take
+      // over with Stand_Up. cancelOneShot runs FIRST so the stale chain is
+      // dead even when a higher-priority one-shot refuses Stand_Up here.
+      ctrl.cancelOneShot('Sit_Down');
       ctrl.playOneShot('Stand_Up', TIER_PRIORITY.posture + 1);
     }
     const loop = resolveLoopClip(s)!; // sit/crouch branch of the pure resolver

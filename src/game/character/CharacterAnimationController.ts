@@ -6,10 +6,17 @@ import { DEFAULT_FADE, isOneShotClip } from './animCatalog';
 // Design (per tools/blender/ANIMATION_MAP.md adapter notes):
 //  - one mixer per character instance, created ONCE (never per frame);
 //  - loop states crossfade into each other (0.15-0.25 s);
-//  - one-shots (LoopOnce + clampWhenFinished) run to completion, interruptible
-//    only by a higher-priority one-shot, then the controller returns to the
-//    last requested loop state (or the one-shot's `then` clip);
-//  - lower-priority one-shots are refused while one is running;
+//  - one-shots (LoopOnce + clampWhenFinished) run to completion, then the
+//    controller returns to the last requested loop state (or the one-shot's
+//    `then` clip);
+//  - one-shot arbitration (hardening pass): a one-shot is refused only when
+//    its priority is STRICTLY lower than the active one. Equal-priority
+//    different-name requests take over — the newest gameplay intent wins —
+//    and the previous one-shot action is explicitly STOPPED, so exactly one
+//    action ever drives the body and two one-shots never fight over the
+//    same bones. Same-name requests are idempotent (no restart spam);
+//  - stale `then` chains die with their one-shot: stop() cancels the action
+//    (no finished event) and cancelOneShot() clears the chain explicitly;
 //  - clips whose target nodes don't exist on this rig are filtered out by
 //    the caller (bindableClips) so the mixer never warns per frame;
 //  - dispose() is idempotent and releases mixer resources — the underlying
@@ -91,8 +98,16 @@ export class CharacterAnimationController {
   private applyLoop(name: string, timeScale: number, fade = DEFAULT_FADE) {
     const entry = this.entries.get(name)!;
     if (name === this.currentLoop) {
-      // Same clip — do not restart, just refresh playback rate.
-      entry.action.setEffectiveTimeScale(timeScale);
+      // Same clip — do not restart the CYCLE unless the action is actually
+      // gone. three.js AUTO-DISABLES an action once its fade-out completes
+      // (_updateWeight: "faded out, disable") and setEffectiveWeight then
+      // computes effective 0 forever (`enabled ? weight : 0`) — so a resume
+      // after a one-shot MUST reset() (re-enable) before playing.
+      const action = entry.action;
+      if (!action.isRunning() || action.getEffectiveWeight() < 0.99) {
+        action.reset().setEffectiveWeight(1).play();
+      }
+      action.setEffectiveTimeScale(timeScale);
       return;
     }
     const prev = this.currentLoop ? this.entries.get(this.currentLoop)?.action : null;
@@ -103,21 +118,38 @@ export class CharacterAnimationController {
   }
 
   /**
-   * Play a one-shot. Returns false (no-op) when the clip is missing, when a
-   * same-or-higher-priority one-shot is already running, or when this exact
-   * one-shot is already playing (no restart spam from repeated gameplay flags).
+   * Play a one-shot. Returns false (no-op) only when the clip is missing or
+   * a STRICTLY higher-priority one-shot is already running. Arbitration:
+   *  - same name already playing → true, idempotent (no restart spam);
+   *  - strictly lower priority → false (refused);
+   *  - equal or higher priority, different name → takeover: the previous
+   *    one-shot action is explicitly stopped (exactly one controlling
+   *    one-shot, no bone conflicts) and the new one starts at full weight —
+   *    there is no meaningful crossfade source because the loop underneath
+   *    is already faded out.
    */
   playOneShot(name: string, priority: number, then?: string): boolean {
     const entry = this.entries.get(name);
     if (!entry || this.disposed) return false;
+    let takeover = false;
     if (this.activeOneShot) {
       if (this.activeOneShot.name === name) return true; // already playing
-      if (priority <= this.activeOneShot.priority) return false; // refused
+      if (priority < this.activeOneShot.priority) return false; // refused
+      // Interrupt: terminate the previous one-shot NOW. stop() resets its
+      // weight/time and deactivates it — it cannot fire `finished` and its
+      // `then` chain dies with it (activeOneShot is replaced below).
+      const prevEntry = this.entries.get(this.activeOneShot.name);
+      if (prevEntry && prevEntry.action !== entry.action) prevEntry.action.stop();
+      takeover = true;
     }
     const prev = this.currentLoop ? this.entries.get(this.currentLoop)?.action : null;
     const next = entry.action;
     next.reset().setEffectiveTimeScale(1).setEffectiveWeight(1).play();
-    if (prev && prev !== next) prev.crossFadeTo(next, Math.min(DEFAULT_FADE, 0.12), false);
+    // Crossfade only from a loop action that still carries visual weight;
+    // after an interruption or a cancelled chain the loop sits at weight 0,
+    // so blending from it would just ramp through the bind pose.
+    const prevMeaningful = !!prev && prev !== next && prev.isRunning() && prev.getEffectiveWeight() > 0.01;
+    if (prevMeaningful && !takeover) prev!.crossFadeTo(next, Math.min(DEFAULT_FADE, 0.12), false);
     this.activeOneShot = { name, priority, then: then && this.entries.has(then) ? then : undefined };
     return true;
   }
@@ -137,7 +169,22 @@ export class CharacterAnimationController {
     }
   };
 
-  /** Explicit stop of a one-shot (interrupt from below is never automatic). */
+  /**
+   * Cancel a specific one-shot (e.g. a stale Sit_Down whose gameplay state
+   * already changed): stops its action immediately and kills its `then`
+   * chain. The last loop state is NOT applied automatically — the caller
+   * decides what runs next (usually a follow-up playOneShot or the newest
+   * setLoopState). Returns false when that clip is not the active one-shot.
+   */
+  cancelOneShot(name: string): boolean {
+    if (this.disposed || !this.activeOneShot || this.activeOneShot.name !== name) return false;
+    const entry = this.entries.get(name);
+    if (entry) entry.action.stop();
+    this.activeOneShot = null;
+    return true;
+  }
+
+  /** Explicit stop of the active one-shot, optionally resuming the loop state. */
   stopOneShot(fadeToLoop = true): void {
     if (!this.activeOneShot) return;
     const entry = this.entries.get(this.activeOneShot.name);
