@@ -327,16 +327,19 @@ const MAP_FOOTPRINTS: MapFootprint[] = [
 export function MapPanel() {
   // zustand v5: object-literal selectors create a new snapshot every poll and
   // crash React with "Maximum update depth exceeded" — select primitives.
-  // ⚡ Bolt: Replace reactive hooks with transient subscription to avoid unnecessary re-renders
-  // Player position updates frequently causing MapPanel to re-render constantly.
-  // Using usePlayer.subscribe allows us to selectively update local state only when changes are substantial,
-  // bypassing the reactive hook trap.
+  // ⚡ Bolt: Replace unthrottled usePlayer.subscribe with interval polling
+  // Player position updates at 60fps causing map calculations to consume CPU unnecessarily.
+  // Using a throttled setInterval for spatial checks prevents main thread flooding while
+  // still providing a responsive map display.
   const [pos, setPos] = useState(() => {
     const s = usePlayer.getState();
     return { px: Math.round(s.x), pz: Math.round(s.z), facing: s.facing };
   });
   useEffect(() => {
-    return usePlayer.subscribe((state) => {
+    let alive = true;
+    const tick = () => {
+      if (!alive) return;
+      const state = usePlayer.getState();
       setPos(prev => {
         const rx = Math.round(state.x);
         const rz = Math.round(state.z);
@@ -344,7 +347,13 @@ export function MapPanel() {
         if (prev.px === rx && prev.pz === rz && prev.facing === state.facing) return prev;
         return { px: rx, pz: rz, facing: state.facing };
       });
-    });
+    };
+    tick();
+    const id = window.setInterval(tick, 400); // 400ms polling matches useObjective HUD
+    return () => {
+      alive = false;
+      window.clearInterval(id);
+    };
   }, []);
   const { px, pz, facing } = pos;
   const sceneId = useGame((s) => s.scene);
