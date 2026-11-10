@@ -102,12 +102,67 @@ def build_scene(res):
     return arm, objs
 
 
-def export_glb(path):
+def export_glb(path, animations=False):
     bpy.ops.object.select_all(action='SELECT')
     kw = dict(filepath=path, export_format='GLB', use_selection=False, export_apply=False,
-              export_skins=True, export_morph=True, export_animations=False,
+              export_skins=True, export_morph=True, export_animations=animations,
               export_yup=True, export_cameras=False, export_lights=False)
+    if animations:
+        kw['export_animation_mode'] = 'NLA_TRACKS'
+        kw['export_force_sampling'] = True
     try:
         bpy.ops.export_scene.gltf(**kw, export_image_format='AUTO', export_materials='EXPORT')
     except TypeError:
+        kw.pop('export_animation_mode', None)
         bpy.ops.export_scene.gltf(**kw)
+
+
+# ------------------------------------------------------------ animation ----
+def add_animations(arm_obj, spec, clip_names=None):
+    """Bake csl_anim clips into Blender actions + NLA tracks (one track per clip, named
+    exactly like the clip) so export_scene.gltf emits them as named animations."""
+    import csl_anim as A
+    from mathutils import Matrix, Vector
+    x = A.Ctx(spec)
+    res = G.build(spec)
+    pts = []
+    for m in res['meshes']:
+        for i in range(0, len(m.verts), 5):
+            pts.append((m.verts[i], m.weights[i]))
+    bpy.context.view_layer.objects.active = arm_obj
+    bpy.ops.object.mode_set(mode='POSE')
+    ad = arm_obj.animation_data_create()
+    Q = {b.name: b.matrix_local.to_3x3() for b in arm_obj.data.bones}
+    for pb in arm_obj.pose.bones:
+        pb.rotation_mode = 'QUATERNION'
+    info = {}
+    for name in (clip_names or A.all_clip_names()):
+        frames = A.sample_clip(x, name, pts)
+        act = bpy.data.actions.new(name)
+        ad.action = act
+        prev = {}
+        for fi, fr in enumerate(frames):
+            f = fi + 1
+            for pb in arm_obj.pose.bones:
+                R = fr['R'].get(pb.name)
+                q = Matrix(R) if R else Matrix.Identity(3)
+                basis = (Q[pb.name].inverted() @ q @ Q[pb.name]).to_quaternion()
+                if pb.name in prev and prev[pb.name].dot(basis) < 0:
+                    basis.negate()
+                prev[pb.name] = basis.copy()
+                pb.rotation_quaternion = basis
+                pb.keyframe_insert('rotation_quaternion', frame=f)
+                if pb.name == 'Hips':
+                    pb.location = Q['Hips'].inverted() @ Vector(fr['hips_t'])
+                    pb.keyframe_insert('location', frame=f)
+        track = ad.nla_tracks.new()
+        track.name = name
+        strip = track.strips.new(name, 1, act)
+        strip.name = name
+        ad.action = None
+        info[name] = dict(A.clip_info(name), frames=len(frames), fps=A.FPS)
+    for pb in arm_obj.pose.bones:   # leave the rig in rest pose
+        pb.rotation_quaternion = (1, 0, 0, 0)
+        pb.location = (0, 0, 0)
+    bpy.ops.object.mode_set(mode='OBJECT')
+    return info

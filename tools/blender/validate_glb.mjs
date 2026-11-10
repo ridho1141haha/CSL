@@ -29,9 +29,13 @@ for (const f of walk(process.argv[2] || 'assets/characters')) {
   if ((g.buffers||[]).some(x => x.uri)) issues.push('external buffer');
   if ((g.images||[]).some(x => x.uri && !x.uri.startsWith('data:'))) issues.push('external image');
   const morphs = new Set(); for (const m of g.meshes||[]) (m.extras?.targetNames||[]).forEach(n=>morphs.add(n));
+  const REQ_CLIPS = ['Idle','Walk','Run','Sit_Idle','Talk','Gesture_Palm','Look_Around'];
+  const clips = (g.animations||[]).map(a => a.name);
+  if (g.animations) { const miss = REQ_CLIPS.filter(c => !clips.includes(c)); if (miss.length) issues.push('missing clips: ' + miss.join(',')); }
+  else issues.push('no animations');
   const amb = f.includes('ambient'); const [lo, hi] = amb ? BUDGET.ambient : BUDGET.main;
   if (tris > hi) issues.push(`tris ${tris} > ${hi}`);
-  rows.push({ file: path.basename(f), tris, prims: (g.meshes||[]).reduce((s,m)=>s+m.primitives.length,0), mats: (g.materials||[]).length, height: (maxY-minY).toFixed(3), KB: (bytes/1024).toFixed(1), morphs: [...morphs].join('/'), issues: issues.join('; ') || 'OK' });
+  rows.push({ file: path.basename(f), tris, prims: (g.meshes||[]).reduce((s,m)=>s+m.primitives.length,0), mats: (g.materials||[]).length, height: (maxY-minY).toFixed(3), KB: (bytes/1024).toFixed(1), morphs: [...morphs].join('/'), clips: clips.length, issues: issues.join('; ') || 'OK' });
   if (issues.length) bad++;
 }
 console.table(rows); process.exit(bad ? 1 : 0);

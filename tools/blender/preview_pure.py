@@ -7,9 +7,9 @@ from csl_specs import SPECS
 
 def hexrgb(h): return tuple(int(h[i:i+2], 16) for i in (1, 3, 5))
 
-def render(res, view, scale=300, pad=30, Hmax=1.85):
+def render(res, view, scale=300, pad=30, Hmax=1.85, Wm=0.9):
     mats = res['materials']
-    W_, H_ = int(0.9 * scale) + pad * 2, int(Hmax * scale) + pad * 2
+    W_, H_ = int(Wm * scale) + pad * 2, int(Hmax * scale) + pad * 2
     img = Image.new('RGB', (W_, H_), (58, 62, 70)); dr = ImageDraw.Draw(img)
     polys = []
     for m in res['meshes']:

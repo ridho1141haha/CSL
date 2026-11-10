@@ -326,7 +326,7 @@ def build(spec):
 
     def w_skirt(p):
         z, x = p[2], p[0]
-        wl = 0.45 * smooth(0.5 * H, 0.3 * H, z)
+        wl = 0.65 * smooth(0.52 * H, 0.32 * H, z)
         sl = clamp(0.5 + x / (0.08 * s), 0.0, 1.0)
         return W({'Hips': 1 - wl, 'UpperLeg_L': wl * sl, 'UpperLeg_R': wl * (1 - sl)})
 
