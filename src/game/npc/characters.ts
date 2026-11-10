@@ -42,6 +42,24 @@ export const TINT_SLOT_MATERIALS: Record<TintSlot, string> = {
   bag: 'mat_bag',
 };
 
+// Material-name aliases per rig generation: the legacy joint-rig GLBs name
+// materials `mat_<slot>`; the Blender pipeline (tools/blender/csl_blender.py,
+// make_materials) names them `CSL_<slot>`. The skeletal adapter (GlbFigure)
+// tints through this table so ambient variants keep working on rigged models.
+// Pipeline names from the README mesh spec: CSL_shirt / CSL_accent /
+// CSL_trousers / CSL_skirt / CSL_belt / CSL_sock / CSL_shoe / CSL_sole /
+// CSL_skin — slots without a pipeline counterpart (bag, shirt2) list only the
+// legacy name and simply no-op on rigged models.
+export const TINT_SLOT_ALIASES: Record<TintSlot, string[]> = {
+  shirt: ['mat_shirt', 'CSL_shirt'],
+  shirt2: ['mat_shirt2'],
+  tie: ['mat_tie', 'CSL_accent'],
+  pants: ['mat_pants', 'CSL_trousers'],
+  skirt: ['mat_skirt', 'CSL_skirt'],
+  acc: ['mat_acc', 'CSL_accent'],
+  bag: ['mat_bag'],
+};
+
 export type CharacterVariant = {
   /** Stable identity — never derived from render order or array index. */
   id: string;
