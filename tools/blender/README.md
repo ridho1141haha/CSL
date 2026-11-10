@@ -2,6 +2,20 @@
 
 Geometry is generated in pure Python (`csl_geometry.py`, testable without Blender); `csl_blender.py` builds the rigged scene and exports GLB.
 
+## Asset location contract (runtime ⇆ pipeline)
+
+The game loads character GLBs from `public/models/<file>` (Vite `public/`, referenced as `/models/...` — see `src/game/character/assetManifest.ts` and `src/game/npc/characters.ts`). This pipeline writes `<spec.file>.glb` (`ren`, `aris`, `siti`, `bimo`, `pak_budi`) into `--out`. To ship a build into the game:
+
+```bash
+cp assets/characters/ren.glb      public/models/csl_char_ren.glb
+cp assets/characters/aris.glb     public/models/csl_char_aris.glb
+cp assets/characters/siti.glb     public/models/csl_char_siti.glb
+cp assets/characters/bimo.glb     public/models/csl_char_bimo.glb
+cp assets/characters/pak_budi.glb public/models/csl_char_budi.glb
+```
+
+The runtime auto-detects the rig: a GLB with `SkinnedMesh` + animation clips is rendered through the skeletal adapter (`src/game/character/GlbFigure.tsx`, clip names from `ANIMATION_MAP.md`); the legacy joint-rig GLBs keep the procedural path. New pipeline materials are named `CSL_<slot>` — the ambient tint registry (`TINT_SLOT_ALIASES`) accepts both `mat_<slot>` (legacy) and `CSL_<slot>` (pipeline).
+
 ## Run
 ```bash
 # 0. optional, no Blender needed: front/side preview + tri stats
