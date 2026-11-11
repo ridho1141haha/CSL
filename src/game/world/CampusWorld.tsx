@@ -6,7 +6,7 @@ import { RigidBody, CuboidCollider } from '@react-three/rapier';
 import { registerOccluders } from '../runtime';
 import { useGame } from '../../stores/gameStore';
 import { useSettings } from '../../stores/settingsStore';
-import { resolveQuality } from '../quality';
+import { resolveQuality, qualityConfig } from '../quality';
 import { mobile } from '../mobile';
 import { skyStateFor } from '../daynight';
 import { WallColliders, Blockers, SchoolSign, type Seg } from './props';
@@ -168,6 +168,10 @@ export function SkyAtmosphere() {
   const moonGroupRef = useRef<THREE.Group>(null);
   const quality = useSettings((s) => s.quality);
   const isHigh = resolveQuality(quality, mobile.tier) === 'high';
+  // drei <Sky> (World.tsx) already paints its own sun disc at the sun direction; a second
+  // solid sun sphere on top of it shows up as a duplicate sun. Only draw the mesh sun when
+  // the Sky shader is off (low quality).
+  const skyShaderOn = qualityConfig(quality, mobile.tier).sky;
 
   const cloudUniforms = useMemo(
     () => ({
@@ -210,12 +214,26 @@ export function SkyAtmosphere() {
     moonHaloUniforms.uOpacity.value = nightMix * 0.65;
 
     if (sunGroupRef.current) {
-      sunGroupRef.current.position.set(st.sun[0] * 1.4, Math.max(8, st.sun[1] * 1.4), st.sun[2] * 1.4);
+      // camera-relative: the sky is at infinity, so the sun must not parallax against the
+      // <Sky> dome when the player walks away from the world origin (was: double sun).
+      sunGroupRef.current.position.set(
+        camera.position.x + st.sun[0] * 1.4,
+        camera.position.y + Math.max(8, st.sun[1] * 1.4),
+        camera.position.z + st.sun[2] * 1.4,
+      );
       sunGroupRef.current.lookAt(camera.position);
       sunGroupRef.current.visible = nightMix < 0.98;
     }
     if (moonGroupRef.current) {
-      moonGroupRef.current.position.set(-st.sun[0] * 1.3, Math.max(24, Math.abs(st.sun[1]) * 1.25), -st.sun[2] * 1.3);
+      // at night st.sun IS the moon-light direction and <Sky> draws its disc there: converge
+      // the moon onto it (w -> 1) instead of the mirrored dusk position (was: double moon).
+      const w = THREE.MathUtils.smoothstep(nightMix, 0.3, 0.8);
+      const my = Math.max(24, Math.abs(st.sun[1]) * 1.25);
+      moonGroupRef.current.position.set(
+        camera.position.x + THREE.MathUtils.lerp(-st.sun[0] * 1.3, st.sun[0] * 1.3, w),
+        camera.position.y + THREE.MathUtils.lerp(my, Math.max(24, st.sun[1] * 1.25), w),
+        camera.position.z + THREE.MathUtils.lerp(-st.sun[2] * 1.3, st.sun[2] * 1.3, w),
+      );
       moonGroupRef.current.lookAt(camera.position);
       moonGroupRef.current.visible = nightMix > 0.05;
     }
@@ -230,9 +248,9 @@ export function SkyAtmosphere() {
     <group name="SkyAtmosphere_Root">
       {/* MATAHARI REALISTIS DENGAN CORONA GLOW */}
       <group ref={sunGroupRef} name="Sky_Sun_Dynamic" position={[65, 50, 45]}>
-        <mesh>
+        <mesh visible={!skyShaderOn}>
           <sphereGeometry args={[3.4, 24, 24]} />
-          <meshBasicMaterial color="#fffbeb" />
+          <meshBasicMaterial color="#fffbeb" fog={false} />
         </mesh>
         <mesh position={[0, 0, -0.5]}>
           <planeGeometry args={[26, 26]} />
@@ -256,6 +274,7 @@ export function SkyAtmosphere() {
             emissive="#93c5fd"
             emissiveIntensity={0.65}
             roughness={0.85}
+            fog={false}
           />
         </mesh>
         <mesh position={[0, 0, -0.4]}>
