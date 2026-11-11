@@ -3,28 +3,10 @@ import { useFrame, useThree } from '@react-three/fiber';
 import * as THREE from 'three';
 import { cullRegistry, cullDecision, perfState } from './runtime';
 import { useSettings } from '../stores/settingsStore';
-import { qualityConfig, adaptiveDpr } from './quality';
+import { qualityConfig, resolveQuality, adaptiveDpr } from './quality';
 import { mobile } from './mobile';
 
-// ============================================================================
-// perf.tsx — v0.9.0 render optimizations (user request: "menurunkan grafik,
-// yang ga keliatan ga dirender, loading screen").
-//
-// GraphicsManager — applies the selected quality preset to the live renderer:
-//   dpr cap, shadowMap on/off. Mounted once inside <Canvas>.
-//
-// CullingManager — throttled sweep over the cull registry (registered by
-// <Cull> wrappers in the world). A bundle is hidden when it is fully outside
-// the camera frustum (beyond the preset safety margin) or, for 'interior'
-// bundles, when it sits beyond `interiorRange` meters (walls hide it anyway,
-// fog covers the swap). Sweeps run ~8×/second — cheap vs. the draw-call and
-// shadow-pass savings of hiding hundreds of meshes at once.
-//
-// WorldReadyProbe — flips perfState.worldReady after the first rendered
-// frames; the boot loading gate waits for it so "MEMUAT" reflects reality.
-// ============================================================================
-
-const SWEEP_INTERVAL = 0.12; // seconds between culling sweeps
+const SWEEP_INTERVAL = 0.12;
 
 const _frustum = new THREE.Frustum();
 const _projScreen = new THREE.Matrix4();
@@ -35,10 +17,6 @@ export function GraphicsManager() {
   const setDpr = useThree((s) => s.setDpr);
   const gl = useThree((s) => s.gl);
 
-  // v0.14.3 adaptive dpr — safety net for weak GPUs (user laptop still
-  // stuttered at RENDAH). ~1 FPS sample per window; sustained <42 fps steps
-  // dpr down 15% (floor 0.55), sustained >56 fps climbs back toward the
-  // preset dpr. Pure logic lives in quality.adaptiveDpr (unit-tested).
   const base = useRef(qualityConfig(quality, mobile.tier).dpr);
   const cur = useRef(base.current);
   const acc = useRef(0);
@@ -46,21 +24,27 @@ export function GraphicsManager() {
 
   useEffect(() => {
     const cfg = qualityConfig(quality, mobile.tier);
+    const resolved = resolveQuality(quality, mobile.tier);
     base.current = cfg.dpr;
-    cur.current = cfg.dpr; // preset changes reset the adaptive state
+    cur.current = cfg.dpr;
     setDpr(cfg.dpr);
-    if (gl.shadowMap.enabled !== cfg.shadows) {
+
+    // High graphics: use PCFSoftShadowMap + slightly richer ACES Filmic exposure
+    const targetShadowType = resolved === 'high' ? THREE.PCFSoftShadowMap : THREE.PCFShadowMap;
+    gl.toneMappingExposure = resolved === 'high' ? 1.08 : 1.0;
+
+    if (gl.shadowMap.enabled !== cfg.shadows || gl.shadowMap.type !== targetShadowType) {
       gl.shadowMap.enabled = cfg.shadows;
-      // stale shadow buffers must go before the next render picks the new size
+      gl.shadowMap.type = targetShadowType;
       gl.shadowMap.needsUpdate = true;
     }
   }, [quality, setDpr, gl]);
 
   useFrame((_, deltaRaw) => {
-    if (!perfState.worldReady) return; // ignore boot/compile spikes
+    if (!perfState.worldReady) return;
     acc.current += deltaRaw;
     frames.current++;
-    if (acc.current < 1.2) return; // 1.2s window = stable sample + hysteresis
+    if (acc.current < 1.2) return;
     const fps = frames.current / acc.current;
     acc.current = 0;
     frames.current = 0;
@@ -79,7 +63,6 @@ export function CullingManager() {
   const quality = useSettings((s) => s.quality);
   const acc = useRef(0);
 
-  // restore everything we hid before unmounting (scene swaps mid-sweep)
   useEffect(() => {
     return () => {
       for (const e of cullRegistry.entries) {
@@ -108,7 +91,7 @@ export function CullingManager() {
         interiorRange: cfg.interiorRange,
         margin: cfg.cullMargin,
         inFrustum,
-        farRange: cfg.fogFar, // v0.14.3: bundles fully past the fog are invisible
+        farRange: cfg.fogFar,
       });
       o.visible = !shouldHide;
       if (shouldHide) hidden++;
@@ -125,7 +108,6 @@ export function WorldReadyProbe() {
   useFrame(() => {
     if (perfState.worldReady) return;
     frames.current++;
-    // two rendered frames = shaders compiled & first world draw actually done
     if (frames.current >= 2) perfState.worldReady = true;
   });
   return null;

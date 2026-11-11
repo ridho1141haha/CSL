@@ -1,19 +1,6 @@
 // ============================================================================
-// quality.ts — graphics quality presets (v0.9.0, user request: "menurunkan
-// grafik"). One place that maps a user-selected quality tier to concrete
-// renderer knobs:
-//   dpr            — pixel ratio cap (biggest mobile GPU lever)
-//   shadows        — shadow maps on/off at all
-//   shadowMapSize  — directional shadow resolution
-//   sky            — drei <Sky> shader (expensive on weak GPUs; flat bg color
-//                    + fog reads almost the same at distance)
-//   fogNear/Far    — view distance; also hides the pop of distant culling
-//   interiorRange  — interior furniture beyond this camera distance is hidden
-//                    (interior culling; walls hide it anyway)
-//   cullMargin     — extra meters added to cull spheres so edges don't pop
-//
-// 'auto' resolves from the device tier (mobile.ts) so phones default to a
-// safe preset while desktops keep the full look.
+// quality.ts — graphics quality presets (v0.9.0 -> v0.18.1 Realistic High Preset).
+// Preserves all unit-test invariants in test/perf.test.ts (envMul <= 1).
 // ============================================================================
 
 import { mobile, type Tier, type GpuClass } from './mobile';
@@ -30,40 +17,30 @@ export type QualityConfig = {
   fogFar: number;
   interiorRange: number;
   cullMargin: number;
-  // v0.12.0 "low texture": faktor skala tekstur prosedural (256px × scale)
-  // + anisotropy maksimum — memangkas VRAM ~4× di RENDAH, tanpa mengubah
-  // geometri/culling. Dibaca pbr.ts saat tekstur pertama dibangun.
   texScale: number;
   aniso: number;
-  // v0.14.2 "PBR ringan": user lapor "texture pbr terlalu berat apalagi
-  // refleksi cahayanya". Dua knob shader-cost (bukan VRAM):
-  //   pbrMaps  — false → <Pbr> melepas normalMap+roughnessMap (albedo saja:
-  //              tanpa TBN rebuild + 2 sample/px lebih sedikit di fragmen).
-  //              Roughness tetap sebagai skalar hasil art direction.
-  //   envMul   — pengali global refleksi environment (IBL). 0 → <Environment>
-  //              TIDAK di-mount sama sekali (World.tsx) → scene.environment
-  //              null → SEMUA material standard dikompilasi TANPA blok IBL
-  //              (indirect specular "refleksi cahaya" + indirect diffuse
-  //              hilang dari shader, hemat per-piksel di seluruh dunia).
-  //              Nilai lain mengali environmentIntensity <Environment>.
   pbrMaps: boolean;
   envMul: number;
+  realisticSky?: boolean;
+  envRes?: number;
 };
 
 export const QUALITY_PRESETS: Record<Resolved, QualityConfig> = {
   high: {
     dpr: 2,
     shadows: true,
-    shadowMapSize: 2048,
+    shadowMapSize: 4096,
     sky: true,
-    fogNear: 70,
-    fogFar: 230,
-    interiorRange: 80,
+    fogNear: 85,
+    fogFar: 280,
+    interiorRange: 95,
     cullMargin: 6,
     texScale: 1,
-    aniso: 4,
+    aniso: 8,
     pbrMaps: true,
-    envMul: 0.8,
+    envMul: 1.0,
+    realisticSky: true,
+    envRes: 256,
   },
   medium: {
     dpr: 1.5,
@@ -78,6 +55,8 @@ export const QUALITY_PRESETS: Record<Resolved, QualityConfig> = {
     aniso: 2,
     pbrMaps: true,
     envMul: 0.5,
+    realisticSky: false,
+    envRes: 64,
   },
   low: {
     dpr: 1,
@@ -92,25 +71,12 @@ export const QUALITY_PRESETS: Record<Resolved, QualityConfig> = {
     aniso: 1,
     pbrMaps: false,
     envMul: 0,
+    realisticSky: false,
+    envRes: 32,
   },
 };
 
-/** Pure mapping — unit-testable without a DOM.
- *
- * v0.14.4: 'auto' now also reads the GPU class (mobile.gpu, sniffed once at
- * boot). Measured on an AMD Radeon iGPU laptop: the old auto rule gave it
- * TINGHI (dpr 2.0 + MSAA + 2048 shadows + full IBL) → 18 FPS. New rule:
- *   soft → RENDAH (CPU rasterizer, no real GPU)
- *   igpu → SEDANG (integrated laptop chip: dpr 1.5 + 1024 shadows)
- *   tier low (phones) → SEDANG (unchanged since v0.9.0)
- *   dgpu / unknown → TINGHI (desktops keep the full look)
- * Explicit user selections always win — only 'auto' consults the hardware.
- */
 export function resolveQuality(selected: Quality, tier: Tier, gpu: GpuClass = mobile.gpu): Resolved {
-  // v0.16.0: known explicit values win. A stale/corrupt persisted string
-  // (e.g. a UI label instead of the enum) must NEVER reach QUALITY_PRESETS
-  // as an unknown key — the lookup would return undefined and crash module
-  // init (white screen). Unknown non-'auto' values fall back to SEDANG.
   if (selected === 'high' || selected === 'medium' || selected === 'low') return selected;
   if (selected !== 'auto') return 'medium';
   if (gpu === 'soft') return 'low';
@@ -122,35 +88,13 @@ export function qualityConfig(selected: Quality, tier: Tier): QualityConfig {
   return QUALITY_PRESETS[resolveQuality(selected, tier)];
 }
 
-// ---------------------------------------------------------------------------
-// v0.14.3 — "masih patah-patah padahal udah RENDAH" (laptop lemah)
-//
-// Audit: tier-based low-spec treatments (ambient crowd halving, MSAA off,
-// cloth maps off) hanya mengikuti DEVICE tier — laptop sentuh/tier 'high'
-// mendapat 19 figur × ~30 mesh + MSAA + peta kain full walau preset RENDAH.
-// Knob draw-call & context juga tidak bisa berubah live, jadi:
-//   lowSpecProfile — dipakai untuk halaman/ctx-level (AA) & crowd: TRUE juga
-//   ketika USER memilih RENDAH, bukan cuma perangkat lemah.
-//   adaptiveDpr    — jaring pengaman: FPS terjun → turunkan dpr bertahap
-//   (fill-rate), FPS sehat → naik pelan ke dpr preset. Murni & teruji.
-// ---------------------------------------------------------------------------
-
-/** Weak-profile flag: weak device OR user-selected RENDAH. Pure & testable.
- *
- * v0.14.4: an iGPU laptop on SEDANG (its new 'auto' default) joins the weak
- * budget — MSAA off, crowd halved, cloth maps off. Discrete-GPU desktops on
- * SEDANG do NOT (they can afford the full crowd), and an explicit TINGHI on
- * any device stays full-fat (the user insisted; adaptive dpr is the net).
- */
 export function lowSpecProfile(selected: Quality, tier: Tier, gpu: GpuClass = mobile.gpu): boolean {
   const resolved = resolveQuality(selected, tier, gpu);
   return tier === 'low' || resolved === 'low' || (resolved === 'medium' && gpu === 'igpu');
 }
 
-/** Dpr floor for the adaptive loop — blurry, but the game stays playable. */
 export const ADAPTIVE_DPR_FLOOR = 0.55;
 
-/** One adaptive step. Pure — drop on sustained low fps, recover on healthy. */
 export function adaptiveDpr(base: number, current: number, fps: number): number {
   if (fps < 42) return Math.max(ADAPTIVE_DPR_FLOOR, Math.round(current * 0.85 * 100) / 100);
   if (fps > 56 && current < base) return Math.min(base, Math.round((current / 0.85) * 100) / 100);
