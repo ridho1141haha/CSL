@@ -222,7 +222,7 @@ export function SkyAtmosphere() {
         camera.position.z + st.sun[2] * 1.4,
       );
       sunGroupRef.current.lookAt(camera.position);
-      sunGroupRef.current.visible = nightMix < 0.98;
+      sunGroupRef.current.visible = !skyShaderOn && nightMix < 0.98;
     }
     if (moonGroupRef.current) {
       // at night st.sun IS the moon-light direction and <Sky> draws its disc there: converge
@@ -235,7 +235,7 @@ export function SkyAtmosphere() {
         camera.position.z + THREE.MathUtils.lerp(-st.sun[2] * 1.3, st.sun[2] * 1.3, w),
       );
       moonGroupRef.current.lookAt(camera.position);
-      moonGroupRef.current.visible = nightMix > 0.05;
+      moonGroupRef.current.visible = !skyShaderOn && nightMix > 0.05;
     }
     if (cloudsRef.current) {
       cloudsRef.current.position.x = ((cloudsRef.current.position.x + dt * 0.48 + 75) % 150) - 75;
