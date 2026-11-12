@@ -185,13 +185,13 @@ def c_idle(t, x):
 
 
 def c_walk(t, x):
-    T = 1.0
+    T = 26 / 30.0
     P = Pose()
     for side, off in (('L', 0.0), ('R', math.pi)):
         ph = 2 * math.pi * t / T + off
         sw = math.sin(ph)
-        th = 26 * sw
-        bend = 5 + 44 * max(0.0, math.cos(ph)) ** 1.4
+        th = 31 * sw
+        bend = 5 + 46 * max(0.0, math.cos(ph)) ** 1.4
         P.leg(side, th, bend, foot=-16 * max(0.0, -math.sin(ph + 0.35)))
         # opposite arm swing
         P.arm(side, -18 * sw, 4, 12 + 14 * max(0.0, -sw))
@@ -205,13 +205,13 @@ def c_walk(t, x):
 
 
 def c_run(t, x):
-    T = 0.64
+    T = 16 / 30.0
     P = Pose()
     for side, off in (('L', 0.0), ('R', math.pi)):
         ph = 2 * math.pi * t / T + off
         sw = math.sin(ph)
-        th = 46 * sw
-        bend = 10 + 85 * max(0.0, math.cos(ph)) ** 1.2
+        th = 54 * sw
+        bend = 10 + 90 * max(0.0, math.cos(ph)) ** 1.2
         P.leg(side, th, bend, foot=-22 * max(0.0, -math.sin(ph + 0.3)))
         P.arm(side, -42 * sw, 8, 88 + 6 * max(0.0, -sw))
     ph = 2 * math.pi * t / T
@@ -503,8 +503,8 @@ def c_jump(t, x):
 CLIPS = {
     # locomotion
     'Idle': (c_idle, 4.0, True, 'feet'),
-    'Walk': (c_walk, 1.0, True, 'feet'),
-    'Run': (c_run, 0.64, True, 'feet'),
+    'Walk': (c_walk, 26 / 30.0, True, 'feet'),
+    'Run': (c_run, 16 / 30.0, True, 'feet'),
     'Jump': (c_jump, 0.9, False, 'feet'),
     # postures
     'Sit_Idle': (c_sit_idle, 4.0, True, 'feet'),
@@ -606,6 +606,32 @@ def sample_clip(x, name, sample_pts=None):
     if rev:
         out = out[::-1]
     return out
+
+
+def stance_speed(x, frames):
+    """Ground speed (m/s) the clip is authored for: mean backward velocity of the planted foot.
+    Use  timeScale = actualSpeed / clip.speed  in the adapter so feet do not slide."""
+    vs = []
+    zs_all = []
+    for f in frames:
+        D, J = fk(x.bones, f['pose'], f['hips_t'])
+        row = {}
+        for side in ('L', 'R'):
+            b = 'Foot_' + side
+            low = min(G.add(J[b], mv(D[b], G.sub(p, x.bones[b][0])))[2]
+                      for bb, p in foot_points(x) if bb == b)
+            row[side] = (J[b][1], low)
+        zs_all.append(row)
+    dt = 1.0 / FPS
+    for i in range(1, len(zs_all)):
+        for side in ('L', 'R'):
+            y0, z0 = zs_all[i - 1][side]
+            y1, z1 = zs_all[i][side]
+            v = (y1 - y0) / dt
+            if z0 < 0.012 and z1 < 0.012 and v > 0.2:   # planted AND moving backward
+                vs.append(v)
+    vs.sort()
+    return round(vs[len(vs) // 2], 2) if vs else 0.0
 
 
 def all_clip_names():

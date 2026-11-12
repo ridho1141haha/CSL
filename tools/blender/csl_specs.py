@@ -36,5 +36,5 @@ SPECS = {
         head=dict(width=1.02, jaw=0.26, height=1.02),
         colors=dict(skin='#e6b283', hair='#3a3a3a', shirt='#dfe9f2', accent='#0ea5e9', trousers='#1f2937'),
         hair=dict(style='buzz', tune=dict()),
-        bottom='trousers', sleeve='long'),
+        bottom='trousers', sleeve='long', badge=False),
 }

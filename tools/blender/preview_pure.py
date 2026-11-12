@@ -47,3 +47,32 @@ if __name__ == '__main__':
     for k, v in allstats.items():
         print(k, 'tris', v['_total_tris'], 'height %.3f' % v['_height'], 'minz %.4f' % v['_min_z'],
               {n: (v[n]['tris'], len(v[n]['materials'])) for n in v if not n.startswith('_')})
+
+
+def render_view(res, view, cx, cz, span, size=640, tex=None):
+    """Zoomed ortho render. view: front|side|back. (cx, cz) = world centre, span = metres shown."""
+    mats = res['materials']
+    img = Image.new('RGB', (size, size), (58, 62, 70)); dr = ImageDraw.Draw(img)
+    polys = []
+    cam = {'front': (0, -1, 0), 'side': (1, 0, 0), 'back': (0, 1, 0)}[view]
+    for m in res['meshes']:
+        for vs, uv, mat in m.faces:
+            P = [m.verts[i] for i in vs]
+            n = G.norm(G.cross(G.sub(P[1], P[0]), G.sub(P[2], P[0])))
+            f = G.dot(n, cam)
+            if f < 0: continue
+            if view == 'front': pts = [(p[0], p[2]) for p in P]; key = -sum(p[1] for p in P)
+            elif view == 'back': pts = [(-p[0], p[2]) for p in P]; key = sum(p[1] for p in P)
+            else: pts = [(p[1], p[2]) for p in P]; key = sum(p[0] for p in P)
+            if tex is not None and mat == 'atlas':
+                u = sum(c[0] for c in uv) / len(uv); v = sum(c[1] for c in uv) / len(uv)
+                h, w, _ = tex.shape; c = tuple(int(x) for x in tex[min(h - 1, int((1 - v) * h)), min(w - 1, int(u * w))])
+            else:
+                c = hexrgb(mats[mat][0])
+            col = tuple(int(min(255, x * (0.35 + 0.65 * f))) for x in c)
+            polys.append((key, pts, col))
+    polys.sort(key=lambda t: t[0])
+    k = size / span; cxp = cx if view != 'back' else -cx
+    for _, pts, col in polys:
+        dr.polygon([((x - cxp) * k + size / 2, size / 2 - (z - cz) * k) for x, z in pts], fill=col)
+    return img

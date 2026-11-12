@@ -17,6 +17,29 @@ def reset_scene():
     bpy.ops.wm.read_factory_settings(use_empty=True)
 
 
+def make_atlas_material(res):
+    import os
+    import csl_atlas as AT
+    name = res['spec']['name']
+    path = os.path.join(bpy.app.tempdir, name + '_atlas.png')
+    AT.write_png(path, res['atlas_arr'])
+    img = bpy.data.images.load(path)
+    img.name = name + '_atlas'
+    img.colorspace_settings.name = 'sRGB'
+    img.pack()
+    m = bpy.data.materials.new('CSL_' + name + '_Atlas')
+    m.use_nodes = True
+    nt = m.node_tree
+    bsdf = nt.nodes.get('Principled BSDF')
+    tex = nt.nodes.new('ShaderNodeTexImage')
+    tex.image = img
+    tex.interpolation = 'Linear'
+    nt.links.new(tex.outputs['Color'], bsdf.inputs['Base Color'])
+    bsdf.inputs['Roughness'].default_value = 0.6
+    bsdf.inputs['Metallic'].default_value = 0.0
+    return {'atlas': m}
+
+
 def make_materials(table):
     mats = {}
     for name, (hexc, rough) in table.items():
@@ -96,7 +119,7 @@ def make_mesh_object(m, arm_obj, mats):
 
 def build_scene(res):
     reset_scene()
-    mats = make_materials(res['materials'])
+    mats = make_atlas_material(res) if 'atlas_arr' in res else make_materials(res['materials'])
     arm = make_armature(res['bones'])
     objs = [make_mesh_object(m, arm, mats) for m in res['meshes']]
     return arm, objs
@@ -127,7 +150,7 @@ def add_animations(arm_obj, spec, clip_names=None):
     res = G.build(spec)
     pts = []
     for m in res['meshes']:
-        for i in range(0, len(m.verts), 5):
+        for i in range(0, len(m.verts), 2):
             pts.append((m.verts[i], m.weights[i]))
     bpy.context.view_layer.objects.active = arm_obj
     bpy.ops.object.mode_set(mode='POSE')
@@ -161,6 +184,8 @@ def add_animations(arm_obj, spec, clip_names=None):
         strip.name = name
         ad.action = None
         info[name] = dict(A.clip_info(name), frames=len(frames), fps=A.FPS)
+        if name == 'Walk':   # Run is not measured: ground-lock also pins the swing foot
+            info[name]['speed'] = A.stance_speed(x, frames)
     for pb in arm_obj.pose.bones:   # leave the rig in rest pose
         pb.rotation_quaternion = (1, 0, 0, 0)
         pb.location = (0, 0, 0)

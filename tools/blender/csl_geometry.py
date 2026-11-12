@@ -108,7 +108,7 @@ def ring(c, ux, uy, rx, ry, n):
                        mul(uy, ry * math.sin(2 * math.pi * j / n)))) for j in range(n)]
 
 
-def loft(mesh, rings, wf, mat, cap_start=None, cap_end=None):
+def loft(mesh, rings, wf, mat, cap_start=None, cap_end=None, ushift=0):
     """Skin a list of equal-length rings. wf(point)->{bone: w}.
     mat: material name or fn(segment_index, face_centroid)->name.
     cap_start/cap_end: None | 'auto' | point (pole). Returns (first, last+1) vert idx.
@@ -131,8 +131,10 @@ def loft(mesh, rings, wf, mat, cap_start=None, cap_end=None):
             score += dot(n, sub(p0, cents[i]))
     flip = score < 0
     for i, j, q in quads:
-        uv = ((j / N, i / max(1, R - 1)), ((j + 1) / N, i / max(1, R - 1)),
-              ((j + 1) / N, (i + 1) / max(1, R - 1)), (j / N, (i + 1) / max(1, R - 1)))
+        u0 = ((j + ushift) % N) / N
+        u1 = u0 + 1.0 / N
+        v0, v1 = i / max(1, R - 1), (i + 1) / max(1, R - 1)
+        uv = ((u0, v0), (u1, v0), (u1, v1), (u0, v1))
         cen = centroid([mesh.verts[v] for v in q])
         m = matfn(i, cen)
         if flip:
@@ -162,9 +164,10 @@ def loft(mesh, rings, wf, mat, cap_start=None, cap_end=None):
     return first, len(mesh.verts)
 
 
-def ellipsoid(mesh, c, radii, wf, mat, nA=10, nP=6, roll=0.0):
+def ellipsoid(mesh, c, radii, wf, mat, nA=10, nP=6, roll=0.0, yaw=0.0):
     rx, ry, rz = radii
     cr, sr = math.cos(roll), math.sin(roll)
+    cy, sy = math.cos(yaw), math.sin(yaw)
     rings = []
     for i in range(1, nP):
         phi = math.pi * i / nP
@@ -172,11 +175,24 @@ def ellipsoid(mesh, c, radii, wf, mat, nA=10, nP=6, roll=0.0):
         for j in range(nA):
             lam = 2 * math.pi * j / nA
             x, y, z = rx * math.sin(phi) * math.sin(lam), -ry * math.sin(phi) * math.cos(lam), rz * math.cos(phi)
-            rg.append(add(c, (x * cr + z * sr, y, -x * sr + z * cr)))
+            px, pz = x * cr + z * sr, -x * sr + z * cr
+            rg.append(add(c, (px * cy - y * sy, px * sy + y * cy, pz)))
         rings.append(rg)
-    top = add(c, (rz * sr, 0, rz * cr))
-    bot = add(c, (-rz * sr, 0, -rz * cr))
+    top = add(c, (rz * sr * cy, rz * sr * sy, rz * cr))
+    bot = add(c, (-rz * sr * cy, -rz * sr * sy, -rz * cr))
     return loft(mesh, rings, wf, mat, cap_start=top, cap_end=bot)
+
+
+def tube(mesh, pts, radii, wf, mat, n=6, cap_end=True, cap_start=False):
+    """Round tube along a polyline (fingers, hair clumps)."""
+    rings = []
+    for i, p in enumerate(pts):
+        tg = norm(sub(pts[min(i + 1, len(pts) - 1)], pts[max(i - 1, 0)]))
+        ref = (0.0, 1.0, 0.0) if abs(tg[1]) < 0.9 else (1.0, 0.0, 0.0)
+        ux = norm(cross(tg, ref))
+        uy = norm(cross(tg, ux))
+        rings.append(ring(p, ux, uy, radii[i], radii[i], n))
+    return loft(mesh, rings, wf, mat, cap_start='auto' if cap_start else None, cap_end='auto' if cap_end else None)
 
 
 def seq_weights(s, bones, bounds, widths):
@@ -202,10 +218,21 @@ def finish_weights(w, maxinf=4):
 
 
 # ------------------------------------------------------------- materials ----
+def mix_hex(a, b, w):
+    ca = [int(a[i:i + 2], 16) for i in (1, 3, 5)]
+    cb = [int(b[i:i + 2], 16) for i in (1, 3, 5)]
+    return '#%02x%02x%02x' % tuple(int(round(x + (y - x) * w)) for x, y in zip(ca, cb))
+
+
 def material_table(spec):
     c = spec['colors']
     return {
         'skin': (c['skin'], 0.5),
+        'face': (c['skin'], 0.5),
+        'lip': (mix_hex(c['skin'], '#a8504a', 0.45), 0.45),
+        'pupil': ('#08080a', 0.2),
+        'button': ('#d9dde3', 0.4),
+        'metal': ('#b8bcc4', 0.3),
         'shirt': (c['shirt'], 0.7),
         'accent': (c['accent'], 0.6),
         'trousers': (c['trousers'], 0.75),
@@ -236,7 +263,7 @@ def rig(spec):
     b = spec['build']
     sx = 0.133 * s * b['shoulder']
     lx = 0.084 * s * b['hip']
-    zS = 0.805 * H
+    zS = 0.797 * H
     d = (math.sin(ARM_ANGLE), 0.0, -math.cos(ARM_ANGLE))
     up, lo, hd = 0.186 * H, 0.146 * H, 0.108 * H
     bones = {
@@ -326,8 +353,10 @@ def build(spec):
 
     def w_skirt(p):
         z, x = p[2], p[0]
-        wl = 0.65 * smooth(0.52 * H, 0.32 * H, z)
-        sl = clamp(0.5 + x / (0.08 * s), 0.0, 1.0)
+        # front of the skirt rides up with the thighs (sit / run), the back stays with the hips
+        fr = smooth(0.04 * s, -0.06 * s, p[1])
+        wl = 0.5 * smooth(0.52 * H, 0.32 * H, z) * (0.2 + 0.8 * fr)
+        sl = smooth(-0.30 * s, 0.30 * s, x)      # wide L/R ramp: no slit where the legs part
         return W({'Hips': 1 - wl, 'UpperLeg_L': wl * sl, 'UpperLeg_R': wl * (1 - sl)})
 
     # ---- torso (shirt) -----------------------------------------------------
@@ -335,8 +364,8 @@ def build(spec):
     rows = [  # zf, rx, ry, kind
         (0.585, 0.126, 0.086, 'waist'), (0.640, 0.130, 0.088, 'waist'),
         (0.700, 0.142, 0.094, 'chest'), (0.745, 0.150, 0.100, 'chest'),
-        (0.790, 0.153, 0.092, 'chest'), (0.815, 0.140, 0.082, 'shoulder'),
-        (0.830, 0.098, 0.068, 'shoulder'), (0.842, 0.062, 0.057, 'neck')]
+        (0.790, 0.153, 0.092, 'chest'), (0.815, 0.152, 0.088, 'shoulder'),
+        (0.830, 0.118, 0.072, 'shoulder'), (0.842, 0.062, 0.057, 'neck')]
     mx = {'waist': b['waist'], 'chest': b['chest'], 'shoulder': b['shoulder'], 'neck': b['neck'], 'hip': b['hip']}
     rings = []
     for zf, rx, ry, k in rows:
@@ -346,8 +375,31 @@ def build(spec):
     # collar trim (accent)
     nk = b['neck']
     rings = [ring((0, 0, zf * H), (1, 0, 0), (0, 1, 0), rx * s * nk, ry * s * nk, NT)
-             for zf, rx, ry in ((0.834, 0.066, 0.061), (0.846, 0.062, 0.058), (0.858, 0.058, 0.055))]
+             for zf, rx, ry in ((0.834, 0.066, 0.061), (0.841, 0.063, 0.059), (0.849, 0.060, 0.056))]
     loft(body, rings, w_torso, 'accent')
+
+    # ---- shirt details: placket, buttons, chest pocket + school badge, collar flaps ----
+    def front_y(z):
+        return pw([(zf_ * H, ry_ * s * b['depth']) for zf_, rx_, ry_, k_ in rows], z)
+
+    def half_x(z):
+        return pw([(zf_ * H, rx_ * s * mx[k_]) for zf_, rx_, ry_, k_ in rows], z)
+
+    zp = 0.715 * H
+    ellipsoid(body, (0, -front_y(zp) - 0.0006 * s, zp), (0.0095 * s, 0.0036 * s, 0.118 * s), w_torso, 'shirt', 8, 8)
+    for zf_ in (0.775, 0.715, 0.655):
+        z_ = zf_ * H
+        ellipsoid(body, (0, -front_y(z_) - 0.0030 * s, z_), (0.0042 * s, 0.0022 * s, 0.0042 * s), w_torso, 'button', 8, 5)
+    pcx, pcz = 0.072 * s * b['chest'], 0.748 * H
+    th = math.asin(clamp(pcx / half_x(pcz), 0.0, 0.95))
+    pcy = -front_y(pcz) * math.cos(th)
+    ellipsoid(body, (pcx, pcy - 0.0012 * s, pcz), (0.031 * s, 0.0028 * s, 0.025 * s), w_torso, 'shirt', 12, 8, yaw=th)
+    if spec.get('badge', True):
+        ellipsoid(body, (pcx + math.sin(th) * 0.0034 * s, pcy - math.cos(th) * 0.0034 * s, pcz + 0.002 * s),
+                  (0.0095 * s, 0.0015 * s, 0.0105 * s), w_torso, 'accent', 10, 6, yaw=th)
+    for sg_ in (1, -1):
+        ellipsoid(body, (sg_ * 0.028 * s * nk, -0.057 * s * nk, 0.842 * H), (0.030 * s, 0.0035 * s, 0.016 * s),
+                  w_torso, 'shirt', 10, 6, roll=-sg_ * 0.65, yaw=sg_ * 0.6)
 
     # neck (skin)
     rings = [ring((0, 0.004 * s, zf * H), (1, 0, 0), (0, 1, 0), r * s * nk, r * s * nk * 0.95, 14)
@@ -358,7 +410,8 @@ def build(spec):
     prow = [(0.600, 0.120, 0.082, 'waist'), (0.585, 0.130, 0.090, 'waist'), (0.555, 0.152, 0.104, 'hip'),
             (0.525, 0.165, 0.110, 'hip'), (0.495, 0.150, 0.105, 'hip'), (0.472, 0.105, 0.085, 'hip'),
             (0.458, 0.045, 0.05, 'hip'), (0.452, 0.010, 0.010, 'hip')]
-    rings = [ring((0, 0, zf * H), (1, 0, 0), (0, 1, 0), rx * s * mx[k], ry * s * b['depth'], NT) for zf, rx, ry, k in prow]
+    pk = 0.9 if skirt else 1.0   # skirt: keep the skin pelvis inside the skirt cloth
+    rings = [ring((0, 0, zf * H), (1, 0, 0), (0, 1, 0), rx * s * mx[k] * pk, ry * s * b['depth'] * pk, NT) for zf, rx, ry, k in prow]
     loft(body, rings, w_pelvis, 'skin' if skirt else 'trousers')
 
     if skirt:
@@ -378,6 +431,7 @@ def build(spec):
         rings = [ring((0, 0, zf * H), (1, 0, 0), (0, 1, 0), rx * s * mx['waist'], ry * s * b['depth'], NT)
                  for zf, rx, ry in ((0.603, 0.134, 0.093), (0.583, 0.136, 0.095))]
         loft(body, rings, w_torso, 'belt')
+        ellipsoid(body, (0, -0.095 * s * b['depth'] - 0.0035 * s, 0.593 * H), (0.016 * s, 0.0035 * s, 0.0115 * s), w_torso, 'metal', 10, 6)
 
     # ---- legs, socks, shoes -------------------------------------------------
     lrow = [  # zf, cx, rx, ry
@@ -449,11 +503,22 @@ def build(spec):
         # long sleeve cuff sits at the wrist: hand starts right after
         loft(body, rings, w_arm(side), lambda i, c, mats=mats: mats[min(i + 1, len(mats) - 1)],
              cap_start='auto')
-        # hand — thin along ax-x (palm faces thigh), wide along Y
-        hrow = [(0.000, wr, wr), (0.030, 0.019, 0.036), (0.070, 0.018, 0.040),
-                (0.110, 0.016, 0.038), (0.145, 0.012, 0.030), (0.170, 0.006, 0.016)]
-        rings = [ring(add(Wr, mul(ax, t * s)), ux, uy, hx * s * lk, hy * s * lk, 12) for t, hx, hy in hrow]
+        # hand: palm + 4 fingers + thumb (relaxed, slight curl toward the palm)
+        hrow = [(0.000, wr, wr), (0.030, 0.019, 0.036), (0.065, 0.018, 0.040), (0.090, 0.016, 0.037)]
+        rings = [ring(add(Wr, mul(ax, t_ * s)), ux, uy, hx * s * lk, hy * s * lk, 12) for t_, hx, hy in hrow]
         loft(body, rings, w_arm(side), 'skin', cap_end='auto')
+        palmn = mul(ux, -sg)
+        for yo, L, r0 in ((-0.027, 0.066, 0.0078), (-0.009, 0.074, 0.0080), (0.009, 0.069, 0.0076), (0.026, 0.054, 0.0068)):
+            base = add(add(Wr, mul(ax, 0.086 * s)), add((0, yo * s * lk, 0), mul(palmn, 0.001 * s)))
+            pts, rad = [], []
+            for u in (0.0, 0.34, 0.68, 1.0):
+                pts.append(add(add(base, mul(ax, L * u * s)), add(mul(palmn, 0.30 * L * u * u * s), (0, yo * 0.25 * u * s * lk, 0))))
+                rad.append(r0 * s * lk * (1.0 - 0.28 * u))
+            tube(body, pts, rad, w_arm(side), 'skin', 6)
+        tb = add(add(Wr, mul(ax, 0.040 * s)), add((0, -0.030 * s * lk, 0), mul(palmn, 0.004 * s)))
+        td = norm(add(add(mul(ax, 0.75), (0, -0.45, 0)), mul(palmn, 0.15)))
+        pts = [add(add(tb, mul(td, 0.052 * u * s)), mul(palmn, 0.012 * u * u * s)) for u in (0.0, 0.5, 1.0)]
+        tube(body, pts, [0.0092 * s * lk * (1.0 - 0.25 * u) for u in (0.0, 0.5, 1.0)], w_arm(side), 'skin', 6)
 
     hs = spec['hair']
     style = hs['style']
@@ -495,8 +560,8 @@ def build(spec):
     for i in range(1, NP):
         phi = math.pi * i / NP
         rings.append([add(C, hoff(*hdir(phi, 2 * math.pi * j / NA))) for j in range(NA)])
-    h0, h1 = loft(headm, rings, w_head, 'skin',
-                  cap_start=add(C, hoff(0, 0, 1)), cap_end=add(C, hoff(0, 0, -1)))
+    h0, h1 = loft(headm, rings, w_head, 'face',
+                  cap_start=add(C, hoff(0, 0, 1)), cap_end=add(C, hoff(0, 0, -1)), ushift=NA // 2)
     # jaw morph: lower-face verts drop
     for vi in range(h0, h1):
         p = headm.verts[vi]
@@ -505,31 +570,45 @@ def build(spec):
         if a > 0:
             headm.set_delta('mouthOpen', vi, (0.0, 0.003 * s * a, -0.013 * s * a))
 
-    # ears
+    # ears (lobe + helix rim)
     for sg in (1, -1):
-        ellipsoid(headm, (sg * rx * 1.0, C[1] + 0.006 * s, C[2] + 0.004 * s), (0.006 * s, 0.012 * s, 0.019 * s), w_head, 'skin', 10, 6)
-    # nose
-    c, n = surf(-0.22, 0.0, 0.004 * s)
-    ellipsoid(headm, c, (0.0105 * s, 0.012 * s, 0.016 * s), w_head, 'skin', 10, 6)
-    # eyes
+        ec = (sg * rx * 1.0, C[1] + 0.006 * s, C[2] + 0.004 * s)
+        ellipsoid(headm, ec, (0.006 * s, 0.012 * s, 0.019 * s), w_head, 'skin', 10, 6)
+        ellipsoid(headm, add(ec, (sg * 0.0025 * s, -0.001 * s, 0.003 * s)), (0.0035 * s, 0.0095 * s, 0.015 * s), w_head, 'skin', 8, 5)
+    # nose: bridge + tip + wings; chin
+    c, n = surf(0.02, 0.0, 0.003 * s)
+    ellipsoid(headm, c, (0.0058 * s, 0.007 * s, 0.016 * s), w_head, 'skin', 8, 6)
+    c, n = surf(-0.20, 0.0, 0.0065 * s)
+    ellipsoid(headm, c, (0.0078 * s, 0.0085 * s, 0.0075 * s), w_head, 'skin', 10, 6)
+    for sg in (1, -1):
+        c, n = surf(-0.19, sg * 0.12, 0.003 * s)
+        ellipsoid(headm, c, (0.0050 * s, 0.0060 * s, 0.0055 * s), w_head, 'skin', 8, 5)
+    c, n = surf(-0.83, 0.0, 0.001 * s)
+    ellipsoid(headm, c, (0.017 * s, 0.012 * s, 0.011 * s), w_head, 'skin', 10, 6)
+    # eyes: white, iris, pupil, catch-light, upper eyelid (blink = lid drops)
     eye_dz = 0.05 + spec['head'].get('eye_dz', 0.0)
     for sg in (1, -1):
-        c, n = surf(eye_dz, sg * 0.40, -0.0035 * s)
-        a0, a1 = ellipsoid(headm, c, (0.0125 * s, 0.009 * s, 0.0098 * s), w_head, 'eye_white', 12, 7)
-        ic = add(c, (0, -0.0055 * s, 0))
-        b0, b1 = ellipsoid(headm, ic, (0.0068 * s, 0.0046 * s, 0.0068 * s), w_head, 'iris', 10, 6)
-        for vi in list(range(a0, a1)) + list(range(b0, b1)):  # blink: sink eyes under the lids
-            headm.set_delta('blink', vi, (0.0, 0.0105 * s, 0.0))
-        # brows
+        c, n = surf(eye_dz, sg * 0.40, -0.0065 * s)
+        ellipsoid(headm, c, (0.0125 * s, 0.009 * s, 0.0098 * s), w_head, 'eye_white', 12, 7)
+        ellipsoid(headm, add(c, (0, -0.0055 * s, 0)), (0.0068 * s, 0.0046 * s, 0.0068 * s), w_head, 'iris', 10, 6)
+        ellipsoid(headm, add(c, (0, -0.0083 * s, 0)), (0.0030 * s, 0.0012 * s, 0.0030 * s), w_head, 'pupil', 8, 5)
+        ellipsoid(headm, add(c, (sg * 0.0025 * s, -0.0090 * s, 0.0028 * s)), (0.0014 * s, 0.0008 * s, 0.0014 * s), w_head, 'eye_white', 6, 4)
+        l0, l1 = ellipsoid(headm, add(c, (0, -0.0010 * s, 0.0098 * s)), (0.0138 * s, 0.0098 * s, 0.0042 * s), w_head, 'skin', 10, 6)
+        for vi in range(l0, l1):
+            headm.set_delta('blink', vi, (0.0, 0.0, -0.0150 * s))
         bc, bn = surf(0.30 + spec['head'].get('brow_dz', 0.0), sg * 0.40, 0.0012 * s)
-        ellipsoid(headm, bc, (0.0145 * s, 0.0040 * s, 0.0034 * s), w_head, 'hair', 10, 5, roll=sg * 0.14)
-    # mouth (+ morph)
-    mc, mn = surf(-0.52, 0.0, 0.0012 * s)
-    m0, m1 = ellipsoid(headm, mc, (0.0175 * s, 0.0042 * s, 0.0042 * s), w_head, 'mouth', 12, 6)
+        ellipsoid(headm, add(bc, (-sg * 0.0055 * s, 0, -0.0006 * s)), (0.0085 * s, 0.0040 * s, 0.0036 * s), w_head, 'hair', 8, 5, roll=sg * 0.05)
+        ellipsoid(headm, add(bc, (sg * 0.0085 * s, 0.0004 * s, 0.0014 * s)), (0.0075 * s, 0.0038 * s, 0.0026 * s), w_head, 'hair', 8, 5, roll=sg * 0.30)
+    # mouth: dark interior + upper/lower lip (mouthOpen morph)
+    mc, mn = surf(-0.52, 0.0, 0.0010 * s)
+    m0, m1 = ellipsoid(headm, mc, (0.0150 * s, 0.0030 * s, 0.0034 * s), w_head, 'mouth', 12, 6)
     for vi in range(m0, m1):
-        p = headm.verts[vi]
-        dz = p[2] - mc[2]
+        dz = headm.verts[vi][2] - mc[2]
         headm.set_delta('mouthOpen', vi, (0.0, 0.0, dz * 2.8 - 0.0085 * s))
+    ellipsoid(headm, add(mc, (0, -0.0008 * s, 0.0036 * s)), (0.0162 * s, 0.0042 * s, 0.0030 * s), w_head, 'lip', 12, 5)
+    k0, k1 = ellipsoid(headm, add(mc, (0, -0.0006 * s, -0.0038 * s)), (0.0145 * s, 0.0046 * s, 0.0034 * s), w_head, 'lip', 12, 5)
+    for vi in range(k0, k1):
+        headm.set_delta('mouthOpen', vi, (0.0, 0.002 * s, -0.0105 * s))
 
     # ---- hair ------------------------------------------------------------------------
     m_ = (P['f'] + P['k']) / 2
@@ -547,14 +626,36 @@ def build(spec):
         d = hdir(phi, lam)
         base = add(C, hoff(*d))
         n = norm((d[0] / rx, d[1] / ry, d[2] / rz))
-        t = (P['t'] + P['vol'] * (1 - frac) ** 1.5 + P['fr'] * math.exp(-(wrap(lam) / 0.7) ** 2) * frac) * s
+        t = (P['t'] + P['vol'] * max(0.0, 1 - frac) ** 1.5 + P['fr'] * math.exp(-(wrap(lam) / 0.7) ** 2) * frac) * s
         t += P['wave'] * s * math.sin(6 * lam + 5 * frac) * frac + tmod
         return add(base, mul(n, t))
 
     rings = [[hpt(i / NR, 2 * math.pi * j / NH) for j in range(NH)] for i in range(1, NR + 1)]
     rings.append([hpt(1.0, 2 * math.pi * j / NH, -0.004 * s) for j in range(NH)])
     top = add(add(C, hoff(0, 0, 1)), (0, 0, (P['t'] + P['vol']) * s))
-    loft(hairm, rings, w_head, 'hair', cap_start=top)
+    loft(hairm, rings, w_head, 'hair', cap_start=top, ushift=NH // 2)
+
+    def clump(lam, f0, f1, r0, r1, lift, wig=0.0, n=6):
+        pts, rad = [], []
+        for k in range(n):
+            u = k / (n - 1)
+            pts.append(hpt(lerp(f0, f1, u), lam + wig * math.sin(u * 3.1), lift * (0.6 + 0.4 * math.sin(u * math.pi)) * s))
+            rad.append(lerp(r0, r1, u) * s)
+        tube(hairm, pts, rad, w_head, 'hair', 6)
+
+    if style == 'short':
+        for lam in (-0.95, -0.6, -0.25, 0.1, 0.45, 0.8):
+            clump(lam, 0.45, 1.0, 0.009, 0.0045, 0.004)
+        for sg in (1, -1):
+            clump(sg * 1.5, 0.7, 1.05, 0.009, 0.005, 0.003)
+    elif style == 'wave':
+        for k in range(10):
+            clump(-1.35 + 0.3 * k, 0.35, 1.0, 0.013, 0.006, 0.006, wig=0.18)
+        for lam in (2.2, 2.7, 3.14, -2.7, -2.2):
+            clump(lam, 0.5, 1.05, 0.014, 0.007, 0.005)
+    elif style == 'ponytail':
+        for lam in (-0.6, -0.2, 0.2, 0.6):
+            clump(lam, 0.5, 1.0, 0.007, 0.004, 0.003)
     if style == 'ponytail':
         z0 = C[2] + 0.03 * s
         y0 = C[1] + ry * 0.92
@@ -565,6 +666,9 @@ def build(spec):
             r = lerp(0.034, 0.010, u ** 0.9) * s
             rr.append(ring(c, (1, 0, 0), (0, 1, 0), r, r, 10))
         loft(hairm, rr, w_head, 'hair', cap_start='auto', cap_end='auto')
+        for off in (-0.016, 0.016):
+            pts = [(off * s * (1 - 0.4 * (k / 8.0)), y0 + 0.058 * s * (k / 8.0), z0 - 0.27 * s * ((k / 8.0) ** 1.15)) for k in range(9)]
+            tube(hairm, pts, [lerp(0.013, 0.005, (k / 8.0)) * s for k in range(9)], w_head, 'hair', 6)
 
     meshes = [body, headm, hairm]
     return {'meshes': meshes, 'bones': bones, 'materials': material_table(spec), 'spec': spec}

@@ -7,7 +7,7 @@ import csl_geometry as G, csl_anim as A
 from csl_specs import SPECS
 from preview_pure import render
 
-def vpts(res, step=5):
+def vpts(res, step=2):
     pts = []
     for m in res['meshes']:
         for i in range(0, len(m.verts), step): pts.append((m.verts[i], m.weights[i]))

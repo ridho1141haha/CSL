@@ -28,7 +28,7 @@ Rest pose: standing, arms hanging 9° out. Left = +X in Blender. Feet at z=0. Fa
 `<Name>_Body` (shirt/accent/trousers|skirt/belt/sock/shoe/sole/skin), `<Name>_Head` (skin, eyes, brows, mouth; morph targets `mouthOpen`, `blink`), `<Name>_Hair`.
 
 ## Known limitations of this first pass
-- Flat-colour PBR materials (7-13 per character), no texture atlas yet -> ~13 draw calls. Atlas bake is the next optimisation.
-- Face/hands/hair are lofted shapes, not sculpted. Silhouettes and proportions are right; fine detail (fingers, ears, hair strands, shirt wrinkles) is not.
+- Textures: one procedural 1024x512 sRGB atlas per character (`csl_atlas.py`: skin, face, shirt weave, trousers twill, hair strands, shoe, accent + a swatch palette), embedded in the GLB -> ONE material, 3 meshes = 3 draw calls (Body, Head, Hair). `--flat` in build_characters.py gives the old 13 flat materials. Atlas UVs replace the per-part unwrap (re-unwrap in Blender if you want hand-painted textures).
+- Face/hands/hair are procedural shapes, not sculpted: eyelids/brows/nose/two-part lips, 5-finger hands with a relaxed curl (no finger bones), hair clumps per style, shirt placket/buttons/pocket+badge/collar, belt buckle. ~8-9k tris per named character. Still reads as stylised game-low-poly, not film quality; a hand-sculpt pass or a licensed base mesh would be the next quality step.
 - No animation clips; the plan is bone-driven procedural animation in GlbFigure (see CSL_CHARACTER_PACK_PLAN.md).
 - `csl_blender.py` / `contact_sheet.py` / export were written against the Blender 4.5 API but NOT executed by the author (no Blender in the authoring sandbox). Expect to fix small API errors on first run.
