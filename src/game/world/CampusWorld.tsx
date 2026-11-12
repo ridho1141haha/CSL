@@ -94,53 +94,8 @@ function GedungBFlightColliders({ x0, z, dir, y0 }: { x0: number; z: number; dir
 }
 
 // ============================================================================
-// Custom GLSL Shaders for 3D Clouds, Sun Corona Halo & Moon Surface
+// Custom GLSL Shaders for Sun Corona Halo & Moon Surface
 // ============================================================================
-const CLOUD_PUFF_VERT = /* glsl */ `
-varying vec3 vNormal;
-varying vec3 vWorldPos;
-void main() {
-  vNormal = normalize(normalMatrix * normal);
-  vec4 wp = modelMatrix * vec4(position, 1.0);
-  vWorldPos = wp.xyz;
-  gl_Position = projectionMatrix * viewMatrix * wp;
-}
-`;
-
-const CLOUD_PUFF_FRAG = /* glsl */ `
-uniform vec3 uSunDir;
-uniform vec3 uSunColor;
-uniform vec3 uBaseColor;
-uniform vec3 uShadowColor;
-uniform float uNightMix;
-
-varying vec3 vNormal;
-varying vec3 vWorldPos;
-
-void main() {
-  vec3 N = normalize(vNormal);
-  vec3 L = normalize(uSunDir);
-  vec3 V = normalize(cameraPosition - vWorldPos);
-
-  // Half-Lambert wrap diffuse for soft cumulus scattering
-  float NdotL = dot(N, L) * 0.5 + 0.5;
-  float wrap = smoothstep(0.15, 0.95, NdotL);
-
-  // Subsurface scattering / silver-lining rim when backlit by sun
-  float backLight = pow(max(0.0, dot(-V, L)), 4.0) * (1.0 - max(0.0, dot(N, V)));
-  float topLight = clamp(N.y * 0.5 + 0.5, 0.0, 1.0);
-
-  vec3 litCol = mix(uShadowColor, uBaseColor, wrap * 0.75 + topLight * 0.25);
-  litCol += uSunColor * backLight * 0.65 * (1.0 - uNightMix * 0.7);
-
-  if (uNightMix > 0.01) {
-    vec3 nightLit = mix(vec3(0.08, 0.12, 0.20), vec3(0.32, 0.40, 0.55), wrap);
-    litCol = mix(litCol, nightLit, uNightMix);
-  }
-
-  gl_FragColor = vec4(litCol, 0.94);
-}
-`;
 
 const HALO_VERT = /* glsl */ `
 varying vec2 vUv;
@@ -163,7 +118,6 @@ void main() {
 `;
 
 export function SkyAtmosphere() {
-  const cloudsRef = useRef<THREE.Group>(null);
   const sunGroupRef = useRef<THREE.Group>(null);
   const moonGroupRef = useRef<THREE.Group>(null);
   const quality = useSettings((s) => s.quality);
@@ -172,17 +126,6 @@ export function SkyAtmosphere() {
   // solid sun sphere on top of it shows up as a duplicate sun. Only draw the mesh sun when
   // the Sky shader is off (low quality).
   const skyShaderOn = qualityConfig(quality, mobile.tier).sky;
-
-  const cloudUniforms = useMemo(
-    () => ({
-      uSunDir: { value: new THREE.Vector3(58, 36, 48) },
-      uSunColor: { value: new THREE.Color('#fff5e0') },
-      uBaseColor: { value: new THREE.Color('#ffffff') },
-      uShadowColor: { value: new THREE.Color('#94a8be') },
-      uNightMix: { value: 0 },
-    }),
-    [],
-  );
 
   const sunHaloUniforms = useMemo(
     () => ({
@@ -200,14 +143,10 @@ export function SkyAtmosphere() {
     [],
   );
 
-  useFrame(({ camera }, dt) => {
+  useFrame(({ camera }) => {
     const mins = useGame.getState().clock.minutes;
     const st = skyStateFor(mins);
     const nightMix = mins >= 1110 ? Math.min(1, (mins - 1110) / 120) : mins < 360 ? 1 - Math.max(0, (mins - 300) / 60) : 0;
-
-    cloudUniforms.uSunDir.value.set(st.sun[0], st.sun[1], st.sun[2]);
-    cloudUniforms.uSunColor.value.setHex(st.sunColor);
-    cloudUniforms.uNightMix.value = nightMix;
 
     sunHaloUniforms.uColor.value.setHex(st.sunColor);
     sunHaloUniforms.uOpacity.value = (1 - nightMix) * 0.85;
@@ -237,12 +176,7 @@ export function SkyAtmosphere() {
       moonGroupRef.current.lookAt(camera.position);
       moonGroupRef.current.visible = !skyShaderOn && nightMix > 0.05;
     }
-    if (cloudsRef.current) {
-      cloudsRef.current.position.x = ((cloudsRef.current.position.x + dt * 0.48 + 75) % 150) - 75;
-    }
   });
-
-  const segs = isHigh ? 24 : 12;
 
   return (
     <group name="SkyAtmosphere_Root">
@@ -290,38 +224,6 @@ export function SkyAtmosphere() {
         </mesh>
       </group>
 
-      {/* AWAN 3D MODULAR DENGAN SHADER SUBSURFACE SCATTERING */}
-      <group ref={cloudsRef} name="Sky_Clouds_Dynamic" position={[0, 42, 0]}>
-        {[
-          { id: 'Cloud_A', x: -34, y: 2, z: 20, s: 1.35 },
-          { id: 'Cloud_B', x: 16, y: -1, z: 30, s: 1.15 },
-          { id: 'Cloud_C', x: 42, y: 3, z: -10, s: 1.5 },
-          { id: 'Cloud_D', x: -24, y: 0, z: -26, s: 1.25 },
-          { id: 'Cloud_E', x: 24, y: 1.5, z: -36, s: 1.1 },
-          { id: 'Cloud_F', x: -4, y: 4, z: -8, s: 1.4 },
-        ].map((c) => (
-          <group key={c.id} name={c.id} position={[c.x, c.y, c.z]} scale={c.s}>
-            {[
-              [0, 0, 0, 2.8],
-              [2.1, -0.35, 0.35, 2.15],
-              [-2.0, -0.4, -0.3, 2.0],
-              [0.6, 0.85, -0.35, 1.9],
-              [-0.8, 0.6, 0.65, 1.75],
-              [1.2, 0.4, -0.8, 1.65],
-            ].map(([px, py, pz, r], idx) => (
-              <mesh key={idx} castShadow={isHigh} receiveShadow position={[px, py, pz]}>
-                <sphereGeometry args={[r, segs, segs]} />
-                <shaderMaterial
-                  vertexShader={CLOUD_PUFF_VERT}
-                  fragmentShader={CLOUD_PUFF_FRAG}
-                  uniforms={cloudUniforms}
-                  transparent
-                />
-              </mesh>
-            ))}
-          </group>
-        ))}
-      </group>
     </group>
   );
 }
