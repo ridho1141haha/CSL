@@ -11,6 +11,10 @@ export const ITEMS: ItemDef[] = [
   { id: 'rekaman', name: 'Rekaman Bukti', category: 'quest', desc: 'Rekaman aktivitas geng Bimo. Disimpan Siti.' },
   { id: 'sarung_tangan', name: 'Sarung Tinju Tua', category: 'misc', desc: 'Ditinggal di lapangan saat senja. Pelukisnya dalam, tapi masih layak.' },
   { id: 'coretan_atap', name: 'Coretan dari Atap', category: 'quest', desc: 'Potongan kayu dengan tanda geng. Ditulis dengan cepat, ditinggalkan dengan sengaja.' },
+  // Hadiah 3 Side Quest terbaru (dokumen Final project)
+  { id: 'buku_ptn', name: 'Buku Latihan PTN', category: 'misc', desc: 'Kumpulan soal ujian PTN tahun lalu dari Pak Budi. Memberikan Academic Boost.' },
+  { id: 'perban_roti', name: 'Perban & Roti Kantin', category: 'consumable', desc: 'Roti lebih dan plester cadangan pemberian Dion kelas 10.', use: { hp: 25 } },
+  { id: 'peta_gang', name: 'Peta Intelijen Gang Belakang', category: 'key', desc: 'Catatan jadwal nongkrong anak-anak Bimo dan jalur penyergapan dari balkon kantin.' },
 ];
 
 export const ITEM_BY_ID: Record<string, ItemDef> = Object.fromEntries(ITEMS.map((i) => [i.id, i]));

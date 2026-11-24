@@ -3,28 +3,16 @@ import type { DialogueNode } from '../../types';
 const N = (n: DialogueNode) => n;
 
 // ============================================================================
-// BAB 2 — "Kesalahan Kecil Aris" (jalur tangga belakang → kantin, CHOICE 1)
-// Aris tersandung, air tumpah, CHOICE 1: bantu (ACTION) / diam (NEUTRAL).
-// Dipindah apa adanya dari data/dialogue.ts (v0.14.0 modularisasi cerita) —
-// isi node TIDAK diubah. Graph integrity dijaga test/dialogue.test.ts +
-// test/storyStructure.test.ts.
+// BAB 2 — "Kesalahan Kecil Aris" (doc CHAPTER 5, CHOICE 1 & FIGHT 1 — versi terbaru)
 // ============================================================================
 
 export const CHAPTER2_NODES: DialogueNode[] = [
-    // ============================================================
-    // BAB 2 — "KESALAHAN KECIL ARIS" (GARIS MERAH)
-    // Trigger StoryDirector: zone back_stairs saat istirahat setelah
-    // eksplorasi. Node inilah GARIS CABANG pertama (CHOICE 1):
-    //   [A] Mengabaikan Aris  → route 'neutral' → montage "Dinding Dingin"
-    //                          → Netral Ending "Lulus Tanpa Nama"
-    //   [B] Menolong Aris     → FIGHT 1 → Bimo terkesan → rute aksi
-    // ============================================================
-    N({ id: 'ch2_intro_1', speaker: 'NARATOR', portrait: 'narrator', text: 'Lorong tangga menuju kantin belakang, jam istirahat. Dua anak geng inti Bimo merokok tipis di undakan — santai, seperti yang punya tempat.', next: 'ch2_intro_2' }),
-    N({ id: 'ch2_intro_2', speaker: 'NARATOR', portrait: 'narrator', text: 'Dari arah berlawanan, Aris berjalan terburu-buru sambil membawa tumpukan buku catatan tebal dan sebotol minuman.', next: 'ch2_intro_3' }),
-    N({ id: 'ch2_intro_3', speaker: 'NARATOR', portrait: 'narrator', text: 'Langkahnya yang panik membuat kakinya tersandung undakan. Botol minumnya terlepas — air menumpah tepat ke sepatu salah satu anak geng. Buku-buku Aris berserakan di tanah.', next: 'ch2_intro_4' }),
-    N({ id: 'ch2_intro_4', speaker: 'ORANG GENG', portrait: 'gang', emotion: 'tense', text: 'Woy! Mata lo ditaruh mana, hah?! (Menendang tumpukan buku Aris sampai kotor)', next: 'ch2_intro_5' }),
-    N({ id: 'ch2_intro_5', speaker: 'ARIS', portrait: 'aris', emotion: 'worried', text: '(Pucat pasi, berlutut gemetar) M-maaf... maaf banget! Aku enggak sengaja, beneran!', next: 'ch2_intro_6' }),
-    N({ id: 'ch2_intro_6', speaker: 'ORANG GENG', portrait: 'gang', emotion: 'tense', text: '(Mencengkeram kerah baju Aris sampai terangkat) Sepatu ini mahal. Lo pikir kata "maaf" cukup buat ganti rugi? Seret dia ke belakang kantin!', next: 'ch2_choice' }),
+    N({ id: 'ch2_intro_1', speaker: 'NARATOR', portrait: 'narrator', text: 'Lorong tangga menuju kantin belakang, siang hari saat jam istirahat. Dari arah berlawanan, dua anak geng kepercayaan Bimo berjalan santai.', next: 'ch2_intro_2' }),
+    N({ id: 'ch2_intro_2', speaker: 'NARATOR', portrait: 'narrator', text: 'Aris berjalan terburu-buru membawa tumpukan buku dan botol minuman.', next: 'ch2_intro_3' }),
+    N({ id: 'ch2_intro_3', speaker: 'NARATOR', portrait: 'narrator', text: 'Aris tersandung, botol minumnya terlepas dan menumpahkan air tepat ke sepatu salah satu anak geng Bimo. Buku-buku catatan Aris berserakan di tangga yang basah.', next: 'ch2_intro_4' }),
+    N({ id: 'ch2_intro_4', speaker: 'ANAK GENG A', portrait: 'gang', emotion: 'tense', text: 'Woy! Jalan pake mata dong, buta lo?! (Menendang tumpukan buku Aris sampai kotor)', next: 'ch2_intro_5' }),
+    N({ id: 'ch2_intro_5', speaker: 'ARIS', portrait: 'aris', emotion: 'worried', text: '(Pucat pasi, berlutut gemetaran) M-maaf… sumpah aku gak sengaja!', next: 'ch2_intro_6' }),
+    N({ id: 'ch2_intro_6', speaker: 'ANAK GENG B', portrait: 'gang', emotion: 'tense', text: '(Mencengkeram kerah baju Aris hingga terangkat) Sepatu baru nih! Lo kira minta maaf doang bikin kering?! Tarik ke belakang kantin sekarang!', next: 'ch2_choice' }),
     N({
       id: 'ch2_choice',
       speaker: 'REN',
@@ -57,7 +45,7 @@ export const CHAPTER2_NODES: DialogueNode[] = [
         },
       ],
     }),
-    // ---- [A] mengabaikan → RUTE NETRAL ----
+    // ---- [A] mengabaikan → RUTE NEUTRAL ----
     N({ id: 'ch2_away_1', speaker: 'NARATOR', portrait: 'narrator', text: 'Ren berbalik arah secara perlahan, lalu mempercepat langkahnya menuju ruang kelas tanpa pernah menoleh ke belakang. Dari kejauhan, suara tumpukan buku yang ditendang perlahan memudar.', next: 'ch2_away_2' }),
     N({
       id: 'ch2_away_2',
@@ -73,16 +61,16 @@ export const CHAPTER2_NODES: DialogueNode[] = [
       ],
       end: true,
     }),
-    // ---- [B] menolong → FIGHT 1 (tangga belakang) → alur aksi ----
-    N({ id: 'ch2_fight_1', speaker: 'REN', portrait: 'ren', emotion: 'tense', text: 'Ren melangkah keluar dari balik pilar, wajah datar. Janji "jangan ikut campur" runtuh saat catatan Aris diinjak. "Lepasin dia."', next: 'ch2_fight_1b' }),
-    N({ id: 'ch2_fight_1b', speaker: 'ORANG GENG', portrait: 'gang', emotion: 'tense', text: 'Siapa lagi nih? Anak baru sok pahlawan?', next: 'ch2_fight_1c' }),
-    N({ id: 'ch2_fight_1c', speaker: 'REN', portrait: 'ren', emotion: 'tense', text: 'Sepatu lo cuma basah kena air. Gak ada alasan buat seret orang ke belakang kantin.', next: 'ch2_fight_2' }),
-    N({ id: 'ch2_fight_2', speaker: 'ORANG GENG', portrait: 'gang', emotion: 'tense', text: 'Belagu lo!', next: '__combat__' }),
-    N({ id: 'ch2_win', speaker: 'NARATOR', portrait: 'narrator', text: 'Ren tidak panik. Dengan gerakan efisien, ia menepis pukulan mentah itu, menangkap pergelangan tangan si anak geng, memutarnya pelan hingga meringis — lalu menghempaskannya ke dinding.', next: 'ch2_win_2' }),
-    N({ id: 'ch2_win_2', speaker: 'ORANG GENG', portrait: 'gang', emotion: 'tense', text: '(Mundur ketakutan, melepaskan kerah baju Aris) Awas lo ya... kita laporin Bimo! (Kedua anak geng itu ngacir pergi)', next: 'ch2_win_3' }),
-    N({ id: 'ch2_win_3', speaker: 'ARIS', portrait: 'aris', emotion: 'worried', text: '(Gemetaran sambil memungut catatannya) R-Ren... kamu... kenapa kamu nolongin aku? Mereka itu orang-orangnya Bimo...', next: 'ch2_win_4' }),
-    N({ id: 'ch2_win_4', speaker: 'REN', portrait: 'ren', emotion: 'neutral', text: '(Membantu merapikan buku Aris) Catatanmu berguna buat gue. Gue enggak mau catatan gue rusak. Ayo balik ke kelas.', next: 'ch2_win_5' }),
+    // ---- [B] menolong → FIGHT 1 (tangga samping) → RUTE AKSI ----
+    N({ id: 'ch2_fight_1', speaker: 'REN', portrait: 'ren', emotion: 'tense', text: 'Ren menghela napas panjang. Janji dirinya untuk "tidak ikut campur" runtuh saat melihat catatan Aris diinjak. Ren melangkah keluar dari balik pilar dengan raut wajah datar. "Lepasin kerahnya."', next: 'ch2_fight_1b' }),
+    N({ id: 'ch2_fight_1b', speaker: 'ANAK GENG B', portrait: 'gang', emotion: 'tense', text: '(Menoleh kaget, lalu tertawa mengejek) Lah, siapa nih? Anak baru mau sok jadi pahlawan?', next: 'ch2_fight_1c' }),
+    N({ id: 'ch2_fight_1c', speaker: 'REN', portrait: 'ren', emotion: 'tense', text: 'Cuma kecipratan air doang. Gak usah lebay pake nyeret orang segala.', next: 'ch2_fight_2' }),
+    N({ id: 'ch2_fight_2', speaker: 'ANAK GENG A', portrait: 'gang', emotion: 'tense', text: 'Banyak bacot lo! (Melayangkan pukulan mentah ke arah wajah Ren)', next: '__combat__' }),
+    N({ id: 'ch2_win', speaker: 'NARATOR', portrait: 'narrator', text: 'Ren tidak panik. Insting bertarung dari sekolah lamanya kembali bekerja. Dengan gerakan efisien, Ren menepis pukulan, menangkap pergelangan tangan Anak Geng A, memutarnya pelan hingga meringis, lalu menghempaskannya ke dinding.', next: 'ch2_win_2' }),
+    N({ id: 'ch2_win_2', speaker: 'ANAK GENG B', portrait: 'gang', emotion: 'tense', text: '(Mundur ketakutan, melepaskan kerah baju Aris) Tunggu pembalasan kita! Gue aduin ke Bimo habis lo! (Kedua anak geng ngacir pergi)', next: 'ch2_win_3' }),
+    N({ id: 'ch2_win_3', speaker: 'ARIS', portrait: 'aris', emotion: 'worried', text: '(Gemetaran sambil memungut catatannya) R-Ren… kok kamu nekat banget nolongin aku? Mereka itu anak buahnya Bimo…', next: 'ch2_win_4' }),
+    N({ id: 'ch2_win_4', speaker: 'REN', portrait: 'ren', emotion: 'neutral', text: '(Membantu merapikan buku Aris) Kalau lo kenapa-kenapa, siapa yang minjemin gue catatan Fisika? Udah, beresin bukunya. Balik ke kelas.', next: 'ch2_win_5' }),
     N({ id: 'ch2_win_5', speaker: 'NARATOR', portrait: 'narrator', text: 'Tapi ada satu pasang mata yang tidak pura-pura sibuk. Dari ujung lorong, Bimo melipat tangannya — mencatat setiap gerakan Ren tadi.', next: 'ch2_win_6' }),
     N({ id: 'ch2_win_6', speaker: 'BIMO', portrait: 'bimo', emotion: 'dark', text: '...Tidak buruk.', effects: [{ k: 'flag', id: 'bimo_impressed' }], next: 'ch2_close' }),
-    N({ id: 'ch2_close', speaker: 'REN', portrait: 'ren', emotion: 'tense', text: 'Gue gak nyari ini. Masalah yang nyari gue. Sejak kapan gue bisa kayak gini...?', effects: [{ k: 'stat', stat: 'violence', delta: 3 }, { k: 'stat', stat: 'reputation', delta: 6 }, { k: 'chapter', id: 3 }, { k: 'beat', id: 'ch3_osis' }, { k: 'time', minutes: 245 }, { k: 'notify', text: 'Kabar menyebar cepat. (Reputasi meningkat)' }, { k: 'save' }], end: true }),
+    N({ id: 'ch2_close', speaker: 'REN', portrait: 'ren', emotion: 'tense', text: 'Gue gak nyari ini. Masalah yang nyari gue. Sejak kapan insting lama gue balik lagi...?', effects: [{ k: 'stat', stat: 'violence', delta: 3 }, { k: 'stat', stat: 'reputation', delta: 6 }, { k: 'chapter', id: 3 }, { k: 'beat', id: 'ch3_osis' }, { k: 'time', minutes: 245 }, { k: 'notify', text: 'Kabar menyebar cepat. (Reputasi meningkat)' }, { k: 'save' }], end: true }),
 ];

@@ -3,31 +3,22 @@ import type { DialogueNode } from '../../types';
 const N = (n: DialogueNode) => n;
 
 // ============================================================================
-// BAB 3 — montase OSIS, sergapan parkiran [FIGHT 2], penawaran rooftop (CHOICE 2)
-// ch3_osis (Siti koridor), ch3_f2 (parkiran), ch3_intro (rooftop).
-// Dipindah apa adanya dari data/dialogue.ts (v0.14.0 modularisasi cerita) —
-// isi node TIDAK diubah. Graph integrity dijaga test/dialogue.test.ts +
-// test/storyStructure.test.ts.
+// BAB 3 — doc Chapter 6 (Pendekatan OSIS), Chapter 7 (Parkiran FIGHT 2),
+// Chapter 8 (Ultimatum Bimo di Rooftop + FLAVOR CHOICE 4 + CHOICE 2)
 // ============================================================================
 
 export const CHAPTER3_NODES: DialogueNode[] = [
-    // ============================================================
-    // BAB 3 (GARIS MERAH) — Scene 1: PENDEKATAN OSIS & TEROR FISIK
-    // [FIGHT 2 parkiran], lalu Scene 2: panggilan ke rooftop.
-    // Montase OSIS dibuka StoryDirector pada beat ch3_osis; sergapan
-    // parkiran terpicu saat pemain memasuki zona parking (beat ch3_parking).
-    // ============================================================
-    // ---- Pendekatan OSIS (Siti) ----
-    N({ id: 'ch3_osis_1', speaker: 'NARATOR', portrait: 'narrator', text: 'Esoknya, koridor utama. Siti menghadang Ren dekat papan pengumuman OSIS — langkah mantap, tanpa basa-basi.', next: 'ch3_osis_2' }),
-    N({ id: 'ch3_osis_2', speaker: 'SITI', portrait: 'siti', emotion: 'firm', text: 'Lu beneran nahan anak buahnya Bimo kemarin?', next: 'ch3_osis_3' }),
-    N({ id: 'ch3_osis_3', speaker: 'REN', portrait: 'ren', emotion: 'neutral', text: 'Gue cuma refleks belain catatan gue.', next: 'ch3_osis_4' }),
-    N({ id: 'ch3_osis_4', speaker: 'SITI', portrait: 'siti', emotion: 'firm', text: 'Tindakan lu bikin anak-anak geng mulai panas. Tapi jujur... baru lu yang berani pasang badan di sekolah ini.', next: 'ch3_osis_5' }),
-    N({ id: 'ch3_osis_5', speaker: 'SITI', portrait: 'siti', emotion: 'firm', text: 'OSIS punya catatan pelanggaran geng Bimo. Kalau lu butuh bantuan data buat melapor, kabari gue.', next: 'ch3_osis_6' }),
+    // ---- Chapter 6 (Aksi): Pendekatan OSIS (Siti) ----
+    N({ id: 'ch3_osis_1', speaker: 'NARATOR', portrait: 'narrator', text: 'Perpustakaan sekolah. Siti menghampiri Ren di dekat rak buku — langkah mantap, tanpa basa-basi.', next: 'ch3_osis_2' }),
+    N({ id: 'ch3_osis_2', speaker: 'SITI', portrait: 'siti', emotion: 'firm', text: 'Denger-denger lu beneran ngehajar anak buahnya Bimo di tangga kemarin?', next: 'ch3_osis_3' }),
+    N({ id: 'ch3_osis_3', speaker: 'REN', portrait: 'ren', emotion: 'neutral', text: 'Mereka duluan yang nyari ribut. Gue cuma belain buku catatan gue.', next: 'ch3_osis_4' }),
+    N({ id: 'ch3_osis_4', speaker: 'SITI', portrait: 'siti', emotion: 'firm', text: 'Nekat juga lu. Satu tongkrongan Bimo udah mulai panas gara-gara itu. Tapi jujur… baru kali ini ada yang berani pasang badan di Yuson.', next: 'ch3_osis_5' }),
+    N({ id: 'ch3_osis_5', speaker: 'SITI', portrait: 'siti', emotion: 'firm', text: 'OSIS sebenernya udah lama ngumpulin bukti kasus mereka. Kalau suatu saat lu butuh back-up data, bilang ke gue.', next: 'ch3_osis_6' }),
     N({
       id: 'ch3_osis_6',
       speaker: 'NARATOR',
       portrait: 'narrator',
-      text: 'Siti berlalu. Di ujung koridor, dua anak geng yang mendengar semuanya saling panduk — lalu salah satunya mengetik pesan sambil menatap Ren.',
+      text: 'Anak geng Bimo mulai menteror aktivitas belajar Ren dan Aris — meja dicoret-coret, buku tugas disembunyikan, dan murid lain dilarang satu kelompok dengan mereka.',
       effects: [
         { k: 'quest', id: 'gang_ambush', state: 'active' },
         { k: 'beat', id: 'ch3_parking' },
@@ -36,18 +27,18 @@ export const CHAPTER3_NODES: DialogueNode[] = [
       ],
       end: true,
     }),
-    // ---- Teror fisik di parkiran [FIGHT 2] ----
-    N({ id: 'ch3_f2_1', speaker: 'NARATOR', portrait: 'narrator', text: 'Area parkir. Dua letnan geng berdiri santai di samping motor, menghadang jalur keluar. Yang di depan melangkah duluan.', next: 'ch3_f2_2' }),
-    N({ id: 'ch3_f2_2', speaker: 'LETNAN GENG', portrait: 'gang', emotion: 'tense', text: 'Ini anak baru yang sok jagoan itu? Hajar!', next: 'ch3_f2_3' }),
-    N({ id: 'ch3_f2_3', speaker: 'NARATOR', portrait: 'narrator', text: 'Tangan Ren sudah bergerak sebelum pikirannya selesai.', next: '__combat__' }),
-    N({ id: 'ch3_f2_win', speaker: 'NARATOR', portrait: 'narrator', text: 'Kedua letnan itu tumbang kurang dari semenit. Yang ketiga — pengawal paling belakang — cuma mematung, lalu memilih kabur.', next: 'ch3_f2_win_2' }),
-    N({ id: 'ch3_f2_win_2', speaker: 'LETNAN GENG', portrait: 'gang', emotion: 'tense', text: '(Sambil meraih keseimbangan) Gaya tarung lo... pantes Bimo penasaran sama lo.', next: 'ch3_f2_win_3' }),
+    // ---- Chapter 7 (Aksi): Cegatan Parkiran Motor Tua [FIGHT 2] ----
+    N({ id: 'ch3_f2_1', speaker: 'NARATOR', portrait: 'narrator', text: 'Parkiran motor tua belakang sekolah, sore hari pas jam pulang. Letnan Geng Bimo bersama dua anak buahnya menghadang Ren dan Aris.', next: 'ch3_f2_2' }),
+    N({ id: 'ch3_f2_2', speaker: 'LETNAN GENG', portrait: 'gang', emotion: 'tense', text: 'Oh, jadi ini anak baru yang belagu kemarin? Sikat, lah!', next: 'ch3_f2_3' }),
+    N({ id: 'ch3_f2_3', speaker: 'NARATOR', portrait: 'narrator', text: 'Ren menyuruh Aris mundur ke balik tembok, lalu bersiap menghadapi mereka di ruang parkiran yang sempit.', next: '__combat__' }),
+    N({ id: 'ch3_f2_win', speaker: 'NARATOR', portrait: 'narrator', text: 'Ren memanfaatkan ruang parkiran yang sempit untuk menjatuhkan mereka satu per satu secara tenang.', next: 'ch3_f2_win_2' }),
+    N({ id: 'ch3_f2_win_2', speaker: 'LETNAN GENG', portrait: 'gang', emotion: 'tense', text: '(Tersungkur meringis) Gila, cara berantemnya… pantesan Bimo ngelirik lo terus.', next: 'ch3_f2_win_3' }),
     N({
       id: 'ch3_f2_win_3',
       speaker: 'REN',
       portrait: 'ren',
       emotion: 'tense',
-      text: '(Dua kali. Kata itu nempel di kepala gue. Bimo penasaran — dan penasaran Bimo gak pernah berakhir baik-baik aja.)',
+      text: '(Dua kali. Kata itu nempel di kepala gue. Bimo ngelirik terus — dan kalau dia udah turun tangan sendiri, urusannya gak bakal sepele.)',
       effects: [
         { k: 'quest', id: 'gang_ambush', state: 'completed' },
         { k: 'quest', id: 'rooftop_meeting', state: 'active' },
@@ -56,17 +47,13 @@ export const CHAPTER3_NODES: DialogueNode[] = [
       ],
       end: true,
     }),
-    // ============================================================
-    // BAB 3 — Scene 2: PENAWARAN DI ROOFTOP (GARIS MERAH)
-    // Trigger StoryDirector: quest rooftop_meeting + zone back_stairs
-    // → scene rooftop → beat ch3_rooftop → CHOICE 2.
-    // ============================================================
-    N({ id: 'ch3_intro_1', speaker: 'NARATOR', portrait: 'narrator', text: 'Sepulang sekolah, seorang anak menghampiri tanpa banyak bicara: "Bimo nunggu di atas."', next: 'ch3_intro_2' }),
-    N({ id: 'ch3_intro_2', speaker: 'NARATOR', portrait: 'narrator', text: 'Rooftop. Angin menggantung antara dua gedung. Bimo berdiri menghadap kota, tidak menoleh.', next: 'ch3_intro_3' }),
-    N({ id: 'ch3_intro_3', speaker: 'BIMO', portrait: 'bimo', emotion: 'dark', text: 'Dua kali anak buah gue lo tumbangin. Lo bertarung tanpa panik, dan itu langka di Yuson. Jadi gue kasih dua penawaran.', cam: 'medium_speaker', next: 'ch3_intro_4' }),
-    N({ id: 'ch3_intro_4', speaker: 'BIMO', portrait: 'bimo', emotion: 'dark', text: 'Pertama, masuk ke kelompok gue. Jadi tangan kanan gue, bantu gue pegang sekolah ini, dan nilai lo gue jamin aman seratus persen.', cam: 'close_speaker', next: 'ch3_intro_5' }),
-    N({ id: 'ch3_intro_5', speaker: 'BIMO', portrait: 'bimo', emotion: 'dark', text: 'Kedua... lo terus sok pahlawan, dan hidup lo di sini bakal gue bikin kayak neraka.', cam: 'close_speaker', next: 'ch3_fc4' }),
-    // v0.15.0 — FLAVOR CHOICE 4 (doc: "Respons Atas Ultimatum Bimo", rute aksi)
+    // ---- Chapter 8 (Aksi): Ultimatum Bimo di Rooftop (CHOICE 2) ----
+    N({ id: 'ch3_intro_1', speaker: 'NARATOR', portrait: 'narrator', text: 'Sepulang sekolah, Bimo memanggil Ren ke atap gedung.', next: 'ch3_intro_2' }),
+    N({ id: 'ch3_intro_2', speaker: 'NARATOR', portrait: 'narrator', text: 'Atap sekolah (Rooftop), sore hari berangin. Bimo berdiri bersandar di pagar pembatas atap, menatap Ren dengan santai.', next: 'ch3_intro_3' }),
+    N({ id: 'ch3_intro_3', speaker: 'BIMO', portrait: 'bimo', emotion: 'dark', text: 'Udah dua kali anak buah gue lo bikin keok. Gue juga udah denger cerita lo di sekolah lama. Cara lo berantem tenang... gak asal ngamuk kayak preman pasar. Gue kasih lo dua pilihan.', cam: 'medium_speaker', next: 'ch3_intro_4' }),
+    N({ id: 'ch3_intro_4', speaker: 'BIMO', portrait: 'bimo', emotion: 'dark', text: 'Pertama: gabung sama gue, pegang kendali bareng gue di Yuson, dan gue jamin gak ada yang bakal berani ngusik fokus belajar lo sampe lulus.', cam: 'close_speaker', next: 'ch3_intro_5' }),
+    N({ id: 'ch3_intro_5', speaker: 'BIMO', portrait: 'bimo', emotion: 'dark', text: 'Kedua... lo tetep keras kepala pasang badan buat si kacamata itu, dan gue pastiin lo gak bakal pernah bisa napas tenang di sekolah ini.', cam: 'close_speaker', next: 'ch3_fc4' }),
+    // FLAVOR CHOICE 4: Respons Atas Ultimatum Bimo
     N({
       id: 'ch3_fc4',
       speaker: 'REN',
@@ -88,10 +75,10 @@ export const CHAPTER3_NODES: DialogueNode[] = [
         },
       ],
     }),
-    N({ id: 'ch3_fc4a', speaker: 'REN', portrait: 'ren', emotion: 'tense', text: 'Ternyata penguasa Yuson cuma bisa ngancam anak baru.', cam: 'ren_ots', next: 'ch3_fc4a2' }),
-    N({ id: 'ch3_fc4a2', speaker: 'BIMO', portrait: 'bimo', emotion: 'dark', text: '(Tertawa sinis) Bukan ngancam, Ren. Gue cuma ngasih tahu realita sekolah ini. Dan pilihan lo bakal nentuin nasib lo di sini.', cam: 'close_speaker', next: 'ch3_choice' }),
-    N({ id: 'ch3_fc4b', speaker: 'REN', portrait: 'ren', emotion: 'calm', text: 'Gue ke sini cuma butuh ijazah, bukan tahta sekolah.', cam: 'ren_ots', next: 'ch3_fc4b2' }),
-    N({ id: 'ch3_fc4b2', speaker: 'BIMO', portrait: 'bimo', emotion: 'dark', text: '(Mata menyempit, tersenyum dingin) Niat yang bagus. Tapi di Yuson, lo enggak bisa dapat ijazah tanpa izin dari gue. Makanya dengerin baik-baik pilihan lo.', cam: 'close_speaker', next: 'ch3_choice' }),
+    N({ id: 'ch3_fc4a', speaker: 'REN', portrait: 'ren', emotion: 'tense', text: 'Segitu doang ternyata bos Yuson? Bisanya cuma ngancem?', cam: 'ren_ots', next: 'ch3_fc4a2' }),
+    N({ id: 'ch3_fc4a2', speaker: 'BIMO', portrait: 'bimo', emotion: 'dark', text: '(Tertawa sinis) Gue gak ngancem, Ren. Gue cuma ngasih tau aturan main di sini. Tinggal lo pilih mau selamat apa enggak.', cam: 'close_speaker', next: 'ch3_choice' }),
+    N({ id: 'ch3_fc4b', speaker: 'REN', portrait: 'ren', emotion: 'calm', text: 'Gue pindah ke sini cuma nyari ijazah, Bimo. Bukan nyari tongkrongan.', cam: 'ren_ots', next: 'ch3_fc4b2' }),
+    N({ id: 'ch3_fc4b2', speaker: 'BIMO', portrait: 'bimo', emotion: 'dark', text: '(Mata menyempit, tersenyum dingin) Simpel. Gue suka gaya lo. Masalahnya, di Yuson lo gak bakal bisa lulus dengan tenang tanpa restu gue. Jadi mending pikirin baik-baik.', cam: 'close_speaker', next: 'ch3_choice' }),
     N({
       id: 'ch3_choice',
       speaker: 'REN',
@@ -125,18 +112,8 @@ export const CHAPTER3_NODES: DialogueNode[] = [
         },
       ],
     }),
-    // ============================================================
-    // BAB 4 — RUTE BAD (GARIS MERAH): eksekutor geng → gudang
-    // → kelulusan sebagai pemimpin baru. BAD ENDING 1:
-    // "TUNDUK PADA KEKUASAAN".
-    // ============================================================
     N({ id: 'ch3_accept_1', speaker: 'BIMO', portrait: 'bimo', emotion: 'dark', text: 'Pilihan yang benar. Lo gak akan nyesal. Semua yang butuh dilindungi — bakal terlindungi.', cam: 'close_speaker', next: 'ch3_accept_2' }),
     N({ id: 'ch3_accept_2', speaker: 'REN', portrait: 'ren', emotion: 'dark', text: 'Hanya sampai lulus. Hanya sampai gue punya jalan keluar. Begitu kata gue, waktu itu.', cam: 'ren_ots', effects: [{ k: 'stat', stat: 'violence', delta: 5 }, { k: 'chapter', id: 4 }, { k: 'beat', id: 'ch4_bad_warehouse' }, { k: 'scene', id: 'campus' }, { k: 'save' }], end: true }),
-    // ============================================================
-    // BAB 4 — RUTE RESISTANCE (GARIS MERAH): klimaks gang belakang.
-    // Penyanderaan Aris + taktik OSIS → FIGHT 3 FINAL BOSS (Ren vs
-    // Bimo) → CHOICE 3 → GOOD "Lulus Bersama" / BAD 2 "Rantai Dendam".
-    // ============================================================
     N({ id: 'ch3_reject_1', speaker: 'BIMO', portrait: 'bimo', emotion: 'dark', text: '...Lo tahu, orang yang nolak gue jarang bisa bilang dua kali. Tapi baiklah. Gue kira lo beda. Salah, mungkin.', cam: 'close_speaker', next: 'ch3_reject_2' }),
     N({ id: 'ch3_reject_2', speaker: 'REN', portrait: 'ren', emotion: 'calm', text: 'Gue cuma mau lulus. Kalau itu jadi masalah buat lo — itu masalah lo.', cam: 'ren_ots', effects: [{ k: 'chapter', id: 4 }, { k: 'beat', id: 'ch4_res_search' }, { k: 'scene', id: 'campus' }, { k: 'time', minutes: 1500 }, { k: 'notify', text: 'Lo nolak Bimo. Dia enggak akan lupa.' }, { k: 'save' }], end: true }),
 ];

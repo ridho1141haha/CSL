@@ -84,7 +84,7 @@ function Student({ home, wander, color, seed }: { home: [number, number]; wander
     <group ref={group} position={[home[0], 0.03, home[1]]} scale={0.96}>
       {/* v0.14.4: trim — ambient wanderers never get a close-up; on weak boot
           profiles drop their micro-detail meshes (buttons/catchlights/hem) */}
-      <Figure anim={anim} color={color} accent="#e5e7eb" trim={BOOT_LOW} />
+      <Figure anim={anim} color={color} accent="#e5e7eb" trim={BOOT_LOW} modelId={seed % 2 === 0 ? 'npc_female' : 'npc_male'} />
     </group>
   );
 }

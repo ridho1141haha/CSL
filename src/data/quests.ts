@@ -179,6 +179,46 @@ export const QUESTS: QuestDef[] = [
       { k: 'notify', text: 'Tanda geng tercatat. Laporkan ke Siti. (Diplomasi +2)' },
     ],
   },
+  // ---- 3 Side Quest dokumen Final project terbaru ----
+  {
+    id: 'kunci_gudang',
+    title: 'Kunci Gudang Tua yang Hilang',
+    type: 'side',
+    desc: 'Kunci gudang laboratorium tua milik Pak Budi raib — diduga terbawa anak geng ke arah parkiran tua.',
+    objective: 'Ambil kunci gudang tua di sekitar parkiran secara diam-diam, lalu kembalikan ke Pak Budi',
+    chapter: 1,
+    waypoint: 'parking',
+    completeWhen: { k: 'zone', id: 'parking' },
+    onComplete: [
+      { k: 'quest', id: 'kunci_gudang', state: 'completed' },
+      { k: 'flag', id: 'kunci_gudang_found' },
+      { k: 'notify', text: 'Kunci gudang ditemukan di atas tembok parkiran tua. Kembalikan ke Pak Budi.' },
+    ],
+  },
+  {
+    id: 'bekas_luka_dion',
+    title: 'Bekas Luka Adik Kelas',
+    type: 'side',
+    desc: 'Dion, murid kelas 10, dipojokkan dua kroco geng Bimo di belakang toilet lantai 1 untuk dimintai uang parkir harian.',
+    objective: 'Bantu Dion dari pemalakan kroco geng Bimo',
+    chapter: 2,
+    waypoint: 'hall',
+  },
+  {
+    id: 'rekaman_cctv',
+    title: 'Rekaman CCTV Tahun Lalu',
+    type: 'side',
+    desc: 'Pintu ruang arsip OSIS macet karena disumbat lem oleh kroco Bimo. Flashdisk rekaman kasus pemerasan tahun lalu tersimpan di laci dalam.',
+    objective: 'Buka paksa ruang arsip OSIS (Gedung B) dan ambil flashdisk untuk Siti',
+    chapter: 3,
+    waypoint: 'gedung_b',
+    completeWhen: { k: 'zone', id: 'gedung_b' },
+    onComplete: [
+      { k: 'quest', id: 'rekaman_cctv', state: 'completed' },
+      { k: 'flag', id: 'rekaman_cctv_found' },
+      { k: 'notify', text: 'Flashdisk rekaman CCTV aman di tanganmu. Serahkan ke Siti.' },
+    ],
+  },
 ];
 
 export const QUEST_BY_ID: Record<string, QuestDef> = Object.fromEntries(QUESTS.map((q) => [q.id, q]));

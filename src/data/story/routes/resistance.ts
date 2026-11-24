@@ -3,33 +3,30 @@ import type { DialogueNode } from '../../../types';
 const N = (n: DialogueNode) => n;
 
 // ============================================================================
-// RUTE RESISTANCE — montase, penyanderaan gang, goons fight, FINAL BOSS, CHOICE 3
-// ch4_res_1..4 montase, ch4_res_alley penyanderaan, ch4_res_goons_win, ch4_res_choice.
-// Dipindah apa adanya dari data/dialogue.ts (v0.14.0 modularisasi cerita) —
-// isi node TIDAK diubah. Graph integrity dijaga test/dialogue.test.ts +
-// test/storyStructure.test.ts.
+// RUTE RESISTANCE — doc Chapter 9 (Taktik OSIS & Penyanderaan) &
+// Chapter 10 (Duel Final Gang Belakang + FLAVOR CHOICE 5 + CHOICE 3)
 // ============================================================================
 
 export const RESISTANCE_NODES: DialogueNode[] = [
-    N({ id: 'ch4_res_1', speaker: 'NARATOR', portrait: 'narrator', text: 'Dua hari kemudian, hukuman mulai. Bukan untuk Ren — untuk orang-orang di sekitarnya. Anak-anak yang pernah bicara pada Ren dihadang satu per satu.', next: 'ch4_res_2' }),
-    N({ id: 'ch4_res_2', speaker: 'ARIS', portrait: 'aris', emotion: 'worried', text: 'Ren... kalau mereka datang lagi ke aku, kamu enggak perlu ikut campur. Serius. Kamu udah kelewat terlihat.', cam: 'close_speaker', next: 'ch4_res_3' }),
-    N({ id: 'ch4_res_3', speaker: 'SITI', portrait: 'siti', emotion: 'firm', text: 'Bimo lagi nguji lu, Ren. Dia tahu cara menang dari orang yang enggak mau bertarung: dia nyerang apa yang enggak bisa bela diri. Kalau ada apa-apa di gang — gue akan catat semuanya. Semua.', cam: 'close_speaker', effects: [{ k: 'quest', id: 'find_aris', state: 'active' }, { k: 'notify', text: 'Quest baru: Aris Tidak Pulang' }, { k: 'save' }], next: 'ch4_res_4' }),
-    N({ id: 'ch4_res_4', speaker: 'NARATOR', portrait: 'narrator', text: 'Keesokan harinya, Aris tidak masuk. Pesan terakhirnya, jam tiga pagi: "maaf ya".', end: true }),
-    // ---- Penyanderaan di gang (trigger StoryDirector: find_aris + back_alley) ----
-    N({ id: 'ch4_res_alley', speaker: 'NARATOR', portrait: 'narrator', text: 'Gang belakang kantin. Dua anak buah Bimo membentuk lingkaran — di tengahnya Aris, tas robek, tangan gemetar melindungi kepala. Bimo berdiri sedikit di belakang, santai.', next: 'ch4_res_alley_2' }),
+    N({ id: 'ch4_res_1', speaker: 'NARATOR', portrait: 'narrator', text: 'Ruang Kelas 12-B menuju Ruang OSIS. Menjelang Ujian Akhir, bangku Aris kosong. Di laci mejanya tertinggal kacamata Aris bersama kertas kusut: "Temen belajar lo nunggu di gang belakang kantin — Bimo."', next: 'ch4_res_2' }),
+    N({ id: 'ch4_res_2', speaker: 'REN', portrait: 'ren', emotion: 'tense', text: '(Menunjukkan kertas ancaman kepada Siti) Bimo nyekap Aris di gang belakang. Dia sengaja mancing gue ke sana.', cam: 'close_speaker', next: 'ch4_res_3' }),
+    N({ id: 'ch4_res_3', speaker: 'SITI', portrait: 'siti', emotion: 'firm', text: 'Dia pasti kalap gara-gara lo tolak di rooftop kemarin. Tapi ini celah buat kita, Ren. Biar gue ngumpet di balkon atas bawa kamera OSIS — gue rekam semua kelakuan mereka biar polisi punya bukti kuat.', cam: 'close_speaker', effects: [{ k: 'quest', id: 'find_aris', state: 'active' }, { k: 'notify', text: 'Quest baru: Aris Tidak Pulang' }, { k: 'save' }], next: 'ch4_res_4' }),
+    N({ id: 'ch4_res_4', speaker: 'REN', portrait: 'ren', emotion: 'tense', text: 'Oke. Tapi tahan dulu polisinya sampai gue beresin kroco-kroconya dan narik Aris keluar. Kalau polisi keburu masuk, takutnya Aris yang diapa-apain.', end: true }),
+    // ---- Penyanderaan di gang belakang kantin (hujan gerimis) ----
+    N({ id: 'ch4_res_alley', speaker: 'NARATOR', portrait: 'narrator', text: 'Gang sempit belakang kantin, hujan gerimis. Anak buah Bimo mengepung Aris di tengah gang. Bimo berdiri di belakang, santai.', next: 'ch4_res_alley_2' }),
     N({ id: 'ch4_res_alley_2', speaker: 'BIMO', portrait: 'bimo', emotion: 'dark', text: 'Lo terus sok pahlawan. Nah, sekarang tunjukin. Pahlawan biasanya datang tepat waktu.', next: 'ch4_res_alley_3' }),
-    N({ id: 'ch4_res_alley_3', speaker: 'NARATOR', portrait: 'narrator', text: 'Dari balik tembok, cahaya ponsel kecil menyala. Siti merekam — pemerasan, penyanderaan, nama-nama. Bukti hukum: senjata yang lebih tajam dari tinju.', next: 'ch4_res_alley_4' }),
+    N({ id: 'ch4_res_alley_3', speaker: 'NARATOR', portrait: 'narrator', text: 'Dari balkon atas, kamera OSIS di tangan Siti mulai merekam seluruh kejadian sebagai bukti hukum.', next: 'ch4_res_alley_4' }),
     N({ id: 'ch4_res_alley_4', speaker: 'REN', portrait: 'ren', emotion: 'tense', text: 'Dari semua alasan untuk tidak ikut campur — tidak ada satu pun yang berdiri di sini.', next: '__combat__' }),
-    // ---- anak buah tumbang → FINAL BOSS: Ren vs Bimo ----
-    N({ id: 'ch4_res_goons_win', speaker: 'NARATOR', portrait: 'narrator', text: 'Kedua anak buah itu bergelimbang di tanah. Bimo melepas jaketnya, melangkah maju — pelan, seperti orang yang belum pernah kalah di sekolahnya sendiri.', effects: [{ k: 'beat', id: 'ch4_res_bimo' }], next: 'ch4_res_goons_win_2' }),
+    // ---- Anak buah tumbang → FINAL BOSS: Ren vs Bimo ----
+    N({ id: 'ch4_res_goons_win', speaker: 'NARATOR', portrait: 'narrator', text: 'Ren berhasil menumbangkan seluruh sisa anak buah Bimo hingga Aris bisa menepi ke tempat aman. Kini tersisa duel sengit satu lawan satu antara Ren melawan Bimo.', effects: [{ k: 'beat', id: 'ch4_res_bimo' }], next: 'ch4_res_goons_win_2' }),
     N({ id: 'ch4_res_goons_win_2', speaker: 'BIMO', portrait: 'bimo', emotion: 'dark', text: 'Dua kali anak buah gue lo tumbangin. Gue pikir lo cuma beruntung. Sekarang giliran gue mastiin.', next: 'ch4_fc5' }),
-    // v0.15.0 — FLAVOR CHOICE 5 (doc: "Gertakan Sebelum Duel Final")
+    // FLAVOR CHOICE 5: Gertakan Sebelum Duel Final
     N({
       id: 'ch4_fc5',
       speaker: 'REN',
       portrait: 'ren',
       emotion: 'tense',
-      text: '(Aris masih dibelakang mereka. Bimo berdiri di antara Ren dan sandera.)',
+      text: '(Hujan gerimis membasahi gang belakang. Bimo berdiri di hadapan Ren.)',
       choices: [
         {
           id: 'duel_langsung',
@@ -43,21 +40,21 @@ export const RESISTANCE_NODES: DialogueNode[] = [
         },
       ],
     }),
-    N({ id: 'ch4_fc5a', speaker: 'REN', portrait: 'ren', emotion: 'tense', text: 'Nggak usah banyak bacot lagi, Bimo. Selesaikan sekarang.', next: 'ch4_fc5a2' }),
-    N({ id: 'ch4_fc5a2', speaker: 'BIMO', portrait: 'bimo', emotion: 'dark', text: '(Meringis, mengepalkan tangan) Sombong lu! Sini maju kalau mau mati!', next: '__combat__' }),
-    N({ id: 'ch4_fc5b', speaker: 'REN', portrait: 'ren', emotion: 'tense', text: 'Lepasin Aris dulu, baru kita selesaikan ini.', next: 'ch4_fc5b2' }),
-    N({ id: 'ch4_fc5b2', speaker: 'BIMO', portrait: 'bimo', emotion: 'dark', text: '(Tertawa mengejek) Lepasin? Enak aja! Habis lu tumbang, baru temen penakut lu ini gue beresin sekalian!', next: '__combat__' }),
-    // ---- CHOICE 3 (GARIS MERAH) ----
+    N({ id: 'ch4_fc5a', speaker: 'REN', portrait: 'ren', emotion: 'tense', text: 'Udah abis kan anak buah lo? Sekarang giliran lo, Bimo.', next: 'ch4_fc5a2' }),
+    N({ id: 'ch4_fc5a2', speaker: 'BIMO', portrait: 'bimo', emotion: 'dark', text: '(Meringis, mengepalkan tangan) Belagu banget lo! Sini maju kalau udah bosen hidup!', next: '__combat__' }),
+    N({ id: 'ch4_fc5b', speaker: 'REN', portrait: 'ren', emotion: 'tense', text: 'Urusan lo sama gue. Suruh Aris cabut dulu, baru kita beresin.', next: 'ch4_fc5b2' }),
+    N({ id: 'ch4_fc5b2', speaker: 'BIMO', portrait: 'bimo', emotion: 'dark', text: '(Tertawa mengejek) Enak aja! Justru dia gue simpen buat penutup abis gue bikin lo rata sama tanah!', next: '__combat__' }),
+    // ---- CHOICE 3 (PENENTU GOOD / BAD ENDING 2) ----
     N({
       id: 'ch4_res_choice',
       speaker: 'REN',
       portrait: 'ren',
       emotion: 'tense',
-      text: 'Bimo tergeletak tidak berdaya di tanah. Amarah Ren berada di puncaknya.',
+      text: 'Pukulan telak Ren mengenai rahang Bimo, membuatnya tergeletak tidak berdaya di tanah. Amarah Ren berada di puncak.',
       choices: [
         {
           id: 'restrain_bimo',
-          text: '[A] Tahan emosi. Biarkan hukum yang bekerja.',
+          text: '[A] Tahan emosi & biarkan hukum bekerja.',
           next: 'ch4_good_1',
           effects: [
             { k: 'flag', id: 'restrained_bimo' },
@@ -68,7 +65,7 @@ export const RESISTANCE_NODES: DialogueNode[] = [
         },
         {
           id: 'brutal_bimo',
-          text: '[B] Hajar brutal. Jadilah monster yang sama.',
+          text: '[B] Kehilangan kendali / balas dendam.',
           next: 'ch4_bad2_1',
           effects: [
             { k: 'flag', id: 'brutal_bimo' },

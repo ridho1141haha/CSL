@@ -3,17 +3,13 @@ import type { DialogueNode } from '../../../types';
 const N = (n: DialogueNode) => n;
 
 // ============================================================================
-// RUTE BAD — montase eksekutor geng + gudang (CHOICE 2: terima)
-// ch4_bad_1..3 montase, ch4_bad_4..warehouse (scene gudang), ch4_bad_after.
-// Dipindah apa adanya dari data/dialogue.ts (v0.14.0 modularisasi cerita) —
-// isi node TIDAK diubah. Graph integrity dijaga test/dialogue.test.ts +
-// test/storyStructure.test.ts.
+// RUTE BAD — doc Sub-Cabang 2A: Tangan Kanan Baru & Pewaris Tahta Yuson
 // ============================================================================
 
 export const BAD_ROUTE_NODES: DialogueNode[] = [
-    N({ id: 'ch4_bad_1', speaker: 'NARATOR', portrait: 'narrator', text: 'Minggu-minggu berjalan. Ren bekerja untuk Bimo — dan tugasnya selalu sama: pastikan anak-anak lain patuh.', next: 'ch4_bad_2' }),
-    N({ id: 'ch4_bad_2', speaker: 'REN', portrait: 'ren', emotion: 'dark', text: 'Perlahan, tangan gue mulai dipakai buat hal yang dulu gue hindari. Memalak murid kelas 10 demi mempertahankan posisi. "Nilai lo gue jamin aman seratus persen" — begitu katanya. Dan gue percaya.', effects: [{ k: 'stat', stat: 'violence', delta: 6 }, { k: 'stat', stat: 'focus', delta: -10 }, { k: 'time', minutes: 2600 }], next: 'ch4_bad_3' }),
-    N({ id: 'ch4_bad_3', speaker: 'NARATOR', portrait: 'narrator', text: 'Aris kini menatap Ren dengan rasa takut yang sama seperti saat ia melihat Bimo. Teman sebangku yang dulu menawarkan penghapus — sekarang memilih duduk sedikit lebih jauh setiap hari.', next: 'ch4_bad_4' }),
+    N({ id: 'ch4_bad_1', speaker: 'NARATOR', portrait: 'narrator', text: 'Koridor Kelas 10 & Belakang Kantin. Ren memilih jalan aman demi nilainya — menerima tawaran Bimo dan menjadi eksekutor geng baru.', next: 'ch4_bad_2' }),
+    N({ id: 'ch4_bad_2', speaker: 'BIMO', portrait: 'bimo', emotion: 'dark', text: 'Mantap, Ren. Kasih paham, besok-besok kalau setoran telat lagi, lo langsung yang turun tangan. — Ren (wajah datar, melepaskan kerah adik kelas): "Lo denger, kan? Besok jangan bikin gue capek nyariin lo lagi."', effects: [{ k: 'stat', stat: 'violence', delta: 6 }, { k: 'stat', stat: 'focus', delta: -10 }, { k: 'time', minutes: 2600 }], next: 'ch4_bad_3' }),
+    N({ id: 'ch4_bad_3', speaker: 'ARIS', portrait: 'aris', emotion: 'worried', text: '(Berdiri terpaku dari kejauhan, menatap Ren dengan rasa takut yang sama seperti saat ia melihat Bimo) R-Ren...? Kamu ngapain...? — Ren (memalingkan wajah dingin): "Lewat aja sana, Ris. Gak usah ngeliatin gue."', next: 'ch4_bad_4' }),
     N({ id: 'ch4_bad_4', speaker: 'BIMO', portrait: 'bimo', emotion: 'dark', text: 'Malem ini ada urusan di gudang tua. Geng dari luar nyoba masuk wilayah kita. Lo ikut. Bukan permintaan.', effects: [{ k: 'quest', id: 'warehouse_call', state: 'active' }], next: 'ch4_bad_4b' }),
     N({ id: 'ch4_bad_4b', speaker: 'REN', portrait: 'ren', emotion: 'dark', text: '"Ini yang terakhir." Kata yang sama, minggu lalu. Dan minggu sebelumnya.', next: 'ch4_bad_warehouse' }),
     N({ id: 'ch4_bad_warehouse', speaker: 'NARATOR', portrait: 'narrator', text: 'Gudang tua. Bau karat dan asap rokok. Penghuninya tidak datang untuk berbicara.', effects: [{ k: 'scene', id: 'warehouse', spawn: [0, 7] }, { k: 'visit-zone', zone: 'warehouse_in' }], next: '__combat__' }),
@@ -23,7 +19,7 @@ export const BAD_ROUTE_NODES: DialogueNode[] = [
       speaker: 'REN',
       portrait: 'ren',
       emotion: 'dark',
-      text: 'Gue menang terus. Tapi tiap kali nangkep bayangan gue di kaca jendela kelas, gue makin enggak kenal cowok yang berdiri di sana.',
+      text: 'Gue gak pernah kalah berantem. Tapi pas ngelihat bayangan gue di kaca jendela kelas, gue makin gak kenal siapa cowok yang berdiri di sana.',
       effects: [
         { k: 'quest', id: 'warehouse_call', state: 'completed' },
         { k: 'beat', id: 'ch4_bad_grad' },

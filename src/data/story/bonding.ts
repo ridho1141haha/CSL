@@ -3,21 +3,11 @@ import type { DialogueNode } from '../../types';
 const N = (n: DialogueNode) => n;
 
 // ============================================================================
-// v0.15.0 — BONDING ARC (dokumen laporan Ch3 + Ch4), disisipkan di hub BAB I
-// SEBELUM insiden tangga (doc Ch5 = game BAB II). Dibuka StoryDirector sebagai
-// montase otomatis (pattern montase rute: beat-driven, tidak butuh zona):
+// BONDING ARC (dokumen laporan Ch3 + Ch4 — versi terbaru)
 //   beat ch1_friendship → ch1_lib_*  (doc CH3: perpustakaan, tukar catatan)
-//   beat ch1_pts        → ch1_pts_exam (v0.18.0: hari PTS → mini-game ujian)
-//                       → ch1_pts_*  (doc CH4: hasil PTS, Pak Budi, nilai 98)
-// Rantai beat: ch1_explore → ch1_friendship → ch1_pts → ch1_break (tangga).
+//   beat ch1_pts        → ch1_pts_exam → ch1_pts_* (doc CH4: hasil PTS kelas 12-B)
 // ============================================================================
 
-// v0.18.0 — PTS mini-game wiring (DATA, bukan engine). UI quiz-nya generik
-// (game-ui/StudyQuiz.tsx); di mana cerita dilanjutkan dan flag penanda
-// selesai adalah fakta cerita — jadi hidup di sini. Flag disimpan via
-// storyStore.setFlag (tersimpan di csl-save-v2, dicek handler __exam__ di
-// dialogueStore supaya scene yang di-trigger ulang tidak pernah memutar
-// ulang quiz).
 export const PTS_EXAM = {
   /** flag penanda PTS sudah dimainkan (storyStore.flags — save-safe) */
   doneFlag: 'pts_quiz_done',
@@ -28,47 +18,33 @@ export const PTS_EXAM = {
 } as const;
 
 export const BONDING_NODES: DialogueNode[] = [
-    // ============================================================
-    // doc CHAPTER 3 — "PERSAHABATAN ARIS": Ikatan Belajar & Ketergantungan
-    // Scene 1: Saling Tukar Catatan & Rutinitas (perpustakaan, sore)
-    // ============================================================
+    // ---- doc CHAPTER 3: PERSAHABATAN ARIS (Perpustakaan, sore) ----
     N({ id: 'ch1_lib_1', speaker: 'NARATOR', portrait: 'narrator', text: 'Perpustakaan sekolah yang sepi, sore hari. Ren dan Aris duduk berhadapan dengan tumpukan buku di meja. Hubungan mereka makin akrab secara akademis.', next: 'ch1_lib_2' }),
-    N({ id: 'ch1_lib_2', speaker: 'ARIS', portrait: 'aris', emotion: 'neutral', text: 'Nih, Ren. Soal latihan Fisika buat minggu depan udah aku buatkan rangkumannya. Rumus cepatnya juga udah aku kasih stabilo.', next: 'ch1_lib_3' }),
-    N({ id: 'ch1_lib_3', speaker: 'REN', portrait: 'ren', emotion: 'calm', text: '(Menerima buku rangkuman) Rapi banget tulisan lo, Ris. Makasih ya. Nih, cara cepat ngerjain kalkulus yang kemarin lo tanyain. Cuma butuh tiga langkah.', next: 'ch1_lib_4' }),
-    N({ id: 'ch1_lib_4', speaker: 'ARIS', portrait: 'aris', emotion: 'warm', text: '(Tersenyum gembira, mencatat cepat) Wah... gampang banget kalau dijelasin sama kamu. Jujur ya, Ren... sejak kamu pindah ke sini, aku jadi enggak terlalu takut masuk sekolah.', next: 'ch1_lib_5' }),
-    N({ id: 'ch1_lib_5', speaker: 'REN', portrait: 'ren', emotion: 'neutral', text: 'Lo pinter, Ris. Cuma kurang berani aja. Jangan biasain nunduk kalau ada orang yang sengaja nyari gara-gara.', next: 'ch1_lib_6' }),
+    N({ id: 'ch1_lib_2', speaker: 'ARIS', portrait: 'aris', emotion: 'neutral', text: 'Nih, Ren, rangkuman Fisika buat minggu depan. Rumus cepatnya udah aku stabilo sekalian biar gampang dicari.', next: 'ch1_lib_3' }),
+    N({ id: 'ch1_lib_3', speaker: 'REN', portrait: 'ren', emotion: 'calm', text: '(Menerima buku rangkuman) Rapi banget catatan lo, Ris. Makasih ya. Oiya nih, trik ngerjain soal kalkulus yang kemarin lo tanyain. Tiga langkah langsung ketemu.', next: 'ch1_lib_4' }),
+    N({ id: 'ch1_lib_4', speaker: 'ARIS', portrait: 'aris', emotion: 'warm', text: '(Tersenyum gembira, mencatat cepat) Wah... asli, jauh lebih masuk akal pas kamu yang jelasin. Jujur ya, Ren... semenjak ada kamu di kelas, aku jadi gak sewas-was dulu tiap berangkat sekolah.', next: 'ch1_lib_5' }),
+    N({ id: 'ch1_lib_5', speaker: 'REN', portrait: 'ren', emotion: 'neutral', text: 'Lo itu sebenernya pinter, Ris. Kurang nekat dikit aja. Jangan dikit-dikit nunduk kalau lagi diisengin orang.', next: 'ch1_lib_6' }),
     N({
       id: 'ch1_lib_6',
       speaker: 'ARIS',
       portrait: 'aris',
       emotion: 'worried',
-      text: '(Menunduk pelan, menyentuh kacamatanya) Susah, Ren... di sekolah ini, kalau kamu enggak punya backing-an geng, milih berani itu sama aja kayak bunuh diri.',
+      text: '(Menunduk pelan, menyentuh kacamatanya) Susah, Ren... di Yuson, kalau gak punya bekingan geng, nekat ngelawan itu sama aja nyari mati.',
       effects: [{ k: 'beat', id: 'ch1_pts' }, { k: 'rel', target: 'aris', delta: 2 }, { k: 'time', minutes: 90 }, { k: 'save' }],
       end: true,
     }),
-    // ============================================================
-    // doc CHAPTER 4 — "UJIAN PERTAMA": Penilaian Tengah Semester (PTS)
-    // v0.18.0: hari PTS kini BENAR-BENAR dimainkan (mini-game ujian) di
-    // antara bonding perpustakaan dan pengumuman hasil. Node jembatan ini
-    // dibuka trigger montage_pts (data/story/triggers.ts); advance ke
-    // '__exam__' menutup dialog dan memasuki mode EXAM (dialogueStore).
-    // Setelah quiz selesai, systems/exam.ts membuka ch1_pts_1 (hasil kanon) —
-    // cabang cerita SETELAH PTS tidak berubah sama sekali.
-    // ============================================================
-    N({ id: 'ch1_pts_exam', speaker: 'NARATOR', portrait: 'narrator', text: 'Hari penilaian tengah semester. Suara kipas angin di plafon kelas 11-B terdengar jelas di antara derit bangku. Lembar soal berpindah dari tangan ke tangan, dan Ren menarik napas pelan — punggung Aris di sebelahnya tegak, pensil sudah di tangan.', next: '__exam__' }),
-    // -----------------------------------------------------------
-    // Scene 1: Pembagian Lembar Hasil Ujian (kelas 11-B, pagi)
-    // -----------------------------------------------------------
-    N({ id: 'ch1_pts_1', speaker: 'NARATOR', portrait: 'narrator', text: 'Kelas 11-B, pagi hari. Pak Budi berjalan di antara barisan meja, membagikan lembar hasil Ujian Tengah Semester dengan raut bangga.', next: 'ch1_pts_2' }),
-    N({ id: 'ch1_pts_2', speaker: 'PAK BUDI', portrait: 'budi', emotion: 'neutral', text: 'Anak-anak, hasil PTS minggu lalu sudah bapak rekap. Bapak sangat mengapresiasi murid baru kita, Ren, yang meraih nilai tertinggi sembilan puluh delapan di angkatan ini. Dan Aris juga menunjukkan peningkatan luar biasa di peringkat lima besar.', next: 'ch1_pts_3' }),
-    N({ id: 'ch1_pts_3', speaker: 'NARATOR', portrait: 'narrator', text: 'Murid-murid lain berbisik-bisik. Beberapa anak preman di meja depan melirik sinis ke arah meja belakang.', next: 'ch1_pts_4' }),
-    N({ id: 'ch1_pts_4', speaker: 'ARIS', portrait: 'aris', emotion: 'warm', text: '(Menoleh ke Ren dengan mata berbinar) Ren! Kita berhasil! Nilai Fisika dan Matematika aku dapet sembilan puluh!', next: 'ch1_pts_5' }),
+    // ---- doc CHAPTER 4: UJIAN PERTAMA (PTS — Ruang Kelas 12-B, pagi) ----
+    N({ id: 'ch1_pts_exam', speaker: 'NARATOR', portrait: 'narrator', text: 'Hari Penilaian Tengah Semester. Suara kipas angin di plafon kelas 12-B terdengar jelas di antara derit bangku. Lembar soal berpindah dari tangan ke tangan, dan Ren menarik napas pelan — punggung Aris di sebelahnya tegak, pensil sudah di tangan.', next: '__exam__' }),
+    N({ id: 'ch1_pts_1', speaker: 'NARATOR', portrait: 'narrator', text: 'Ruang Kelas 12-B, pagi hari. Pak Budi membagikan kertas hasil Ujian Tengah Semester dengan raut bangga menatap ke arah meja belakang.', next: 'ch1_pts_2' }),
+    N({ id: 'ch1_pts_2', speaker: 'PAK BUDI', portrait: 'budi', emotion: 'neutral', text: 'Anak-anak, nilai PTS minggu lalu sudah keluar. Bapak salut sama murid baru kita, Ren, nilainya tembus sembilan puluh delapan — tertinggi di angkatan. Aris juga naik pesat sekarang, masuk lima besar.', next: 'ch1_pts_3' }),
+    N({ id: 'ch1_pts_3', speaker: 'NARATOR', portrait: 'narrator', text: 'Murid-murid lain berbisik-bisik. Beberapa anak preman di meja depan melirik sinis.', next: 'ch1_pts_4' }),
+    N({ id: 'ch1_pts_4', speaker: 'ARIS', portrait: 'aris', emotion: 'warm', text: '(Menoleh ke Ren dengan mata berbinar) Ren! Lihat deh! Fisika sama Matematikaku tembus sembilan puluh!', next: 'ch1_pts_5' }),
     N({
       id: 'ch1_pts_5',
       speaker: 'REN',
       portrait: 'ren',
       emotion: 'calm',
-      text: '(Tersenyum tipis, menyimpan kertas ujian) Bagus. Strategi kita berhasil. (Sempurna. Strategi gue jalan seratus persen. Fokus belajar, abaikan geng preman, jaga nilai. Cuma perlu dipertahankan sampai kelulusan.)',
+      text: '(Tersenyum tipis, menyimpan kertas ujiannya) Mantap, Ris. Gak sia-sia kita lembur di perpus. (Aman. Rencana gue jalan mulus. Fokus belajar, cuekin geng preman, jaga nilai. Tinggal pertahanin kayak gini sampe lulus.)',
       effects: [
         { k: 'beat', id: 'ch1_break' },
         { k: 'stat', stat: 'academic', delta: 3 },
