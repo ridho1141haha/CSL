@@ -9,6 +9,7 @@ import { QUESTS } from '../data/quests';
 import { DAYS, formatHhmm, periodFor } from '../game/systems/time';
 import { ZONE_BY_ID } from '../data/world';
 import { audio, notifySound } from '../game/audio';
+import { input } from '../game/input';
 import { pickActiveQuest, questTargetFor, distanceToTarget, type WaypointTarget } from '../game/waypoint';
 
 // v0.10.0: live objective distance for the HUD mission card. Polls (400ms,
@@ -155,9 +156,13 @@ export function Hud() {
       )}
 
       {interactTarget && (
-        <div className="interact brackets">
+        <button
+          type="button"
+          className="interact brackets"
+          onClick={() => { audio.click(); input.injectPress('interact'); }}
+        >
           <kbd>E</kbd> BICARA <i>//</i> <span>{interactTarget.toUpperCase()}</span>
-        </div>
+        </button>
       )}
 
       <footer className="hud-controls">
@@ -213,23 +218,41 @@ export function CombatHud() {
     return () => document.body.classList.remove('in-combat');
   }, []);
 
+  const lowHp = hp / Math.max(1, maxHp) <= 0.3;
+  const enemyLowHp = cur ? cur.hp / Math.max(1, cur.maxHp) <= 0.3 : false;
+
   return (
-    <div className="combat-ui">
+    <div className={`combat-ui ${lowHp ? 'low-hp' : ''}`}>
       <div className="cb-top">
-        <div className="cb-panel player">
-          <div className="cb-head"><b>REN PRATAMA</b><span>X-C</span></div>
-          <Meter label="HP" value={`${Math.round(hp)} / ${maxHp}`} color="red" width={`${(hp / maxHp) * 100}%`} />
-          <Meter label="FOKUS" value={`${Math.round(focus)} / 100`} color="amber" width={`${focus}%`} />
-          <span className="chip chip-amber">STREET BRAWLER</span>
+        <div className={`cb-panel player ${lowHp ? 'danger' : ''}`}>
+          <div className="cb-head">
+            <span className="cb-avatar player-av">R</span>
+            <div className="cb-id">
+              <b>REN PRATAMA</b>
+              <span>X-C // STREET BRAWLER</span>
+            </div>
+          </div>
+          <div className="cb-meters">
+            <Meter label="HP" value={`${Math.round(hp)} / ${maxHp}`} color="red" width={`${Math.max(0, Math.min(100, (hp / maxHp) * 100))}%`} />
+            <Meter label="FOKUS" value={`${Math.round(focus)} / 100`} color="amber" width={`${Math.max(0, Math.min(100, focus))}%`} />
+          </div>
         </div>
         <div className="cb-mid">
-          <span className="cb-mode">MODE SKIRMISH <i>//</i> DUEL</span>
-          <span className="cb-round">REN {Math.round(hp)} HP <i>·</i> {enemies.length} LAWAN</span>
+          <span className="cb-mode">SKIRMISH <i>//</i> DUEL</span>
+          <span className="cb-round">{enemies.length > 1 ? `LAWAN ${index + 1}/${enemies.length}` : '1 VS 1'}</span>
         </div>
         {cur && (
-          <div className="cb-panel enemy">
-            <div className="cb-head"><span>{enemies.length > 1 ? `TARGET ${index + 1}/${enemies.length}` : 'TARGET'}</span><b>{cur.name.toUpperCase()}</b></div>
-            <Meter label={cur.name.toUpperCase()} value={`${cur.hp} / ${cur.maxHp}`} color="red" width={`${(cur.hp / cur.maxHp) * 100}%`} />
+          <div className={`cb-panel enemy ${enemyLowHp ? 'danger' : ''}`}>
+            <div className="cb-head">
+              <div className="cb-id">
+                <b>{cur.name.toUpperCase()}</b>
+                <span>{enemies.length > 1 ? `TARGET ${index + 1}/${enemies.length}` : 'TARGET AKTIF'}</span>
+              </div>
+              <span className="cb-avatar enemy-av">{cur.name[0]?.toUpperCase() ?? '!'}</span>
+            </div>
+            <div className="cb-meters">
+              <Meter label="HP LAWAN" value={`${Math.max(0, Math.round(cur.hp))} / ${cur.maxHp}`} color="red" width={`${Math.max(0, Math.min(100, (cur.hp / cur.maxHp) * 100))}%`} />
+            </div>
           </div>
         )}
       </div>

@@ -360,7 +360,7 @@ export default function App() {
       {phase === 'play' && (mode === 'CINEMATIC' || mode === 'DIALOGUE') && <DialogueUI cinematic={mode === 'CINEMATIC'} />}
 
       {phase === 'play' && mode === 'GAMEPLAY' && <Hud />}
-      {phase === 'play' && mode === 'GAMEPLAY' && !pointerLocked && <PointerLockHint />}
+      {phase === 'play' && mode === 'GAMEPLAY' && !pointerLocked && !mobile.touch && <PointerLockHint />}
       {phase === 'play' && mode === 'COMBAT' && <CombatHud />}
       {phase === 'play' && mode === 'TRANSITION' && <ChapterTransition />}
       <Notifications />
