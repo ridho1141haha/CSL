@@ -119,6 +119,9 @@ class MobileSys {
     this.installed = true;
 
     this.touch = detectTouch();
+    if (typeof document !== 'undefined') {
+      document.documentElement.classList.toggle('is-touch', this.touch);
+    }
     this.tier = classifyTier({
       mobileUA: detectMobileUA(),
       touch: this.touch,

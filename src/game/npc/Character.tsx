@@ -7,6 +7,9 @@ import { mobile } from '../mobile';
 import { useSettings } from '../../stores/settingsStore';
 import { lowSpecProfile } from '../quality';
 import { acting, tickActing, type ActingState } from '../systems/acting';
+import { retargetMixamoClip } from './retarget';
+
+export const ANIM_GLB_PATH = '/models/csl_animations.glb';
 import type { HoldKind } from '../../types';
 
 export const BOOT_LOW = lowSpecProfile(useSettings.getState().quality, mobile.tier);
@@ -326,9 +329,11 @@ export function Figure(props: Props) {
 
   const charId = resolveCharModelId(props);
   const { scene } = useGLTF(CHAR_GLB_PATHS[charId]);
+  const animGltf = useGLTF(ANIM_GLB_PATH);
   const SH = !mobile.lowSpec;
+  const activeClip = useRef<string | null>(null);
 
-  const { cloned, normScale, isVrm, vrm, legacy, faceMorph } = useMemo(() => {
+  const { cloned, normScale, isVrm, vrm, legacy, faceMorph, mixer, actions } = useMemo(() => {
     const clone = cloneSkinned(scene);
     let foundMorph: VrmFaceMorph | null = null;
     const bbox = new THREE.Box3();
@@ -410,6 +415,25 @@ export function Figure(props: Props) {
       shinR: clone.getObjectByName('ShinR') ?? null,
     };
 
+    let animMixer: THREE.AnimationMixer | null = null;
+    const actionMap: Record<string, THREE.AnimationAction> = {};
+    if (isVrmRig && animGltf.animations?.length) {
+      animMixer = new THREE.AnimationMixer(clone);
+      for (const rawClip of animGltf.animations) {
+        const retargeted = retargetMixamoClip(rawClip, animGltf.scene, clone);
+        if (retargeted.tracks.length > 0) {
+          const action = animMixer.clipAction(retargeted);
+          if (rawClip.name === 'punch' || rawClip.name === 'cross_punch_bimo' || rawClip.name === 'cross_punch_mc' || rawClip.name === 'nod') {
+            action.setLoop(THREE.LoopOnce, 1);
+            action.clampWhenFinished = false;
+          } else {
+            action.setLoop(THREE.LoopRepeat, Infinity);
+          }
+          actionMap[rawClip.name] = action;
+        }
+      }
+    }
+
     return {
       cloned: clone,
       normScale: computedNormScale,
@@ -417,8 +441,17 @@ export function Figure(props: Props) {
       vrm: vrmBones,
       legacy: legacyJoints,
       faceMorph: foundMorph as VrmFaceMorph | null,
+      mixer: animMixer,
+      actions: actionMap,
     };
-  }, [scene, SH]);
+  }, [scene, animGltf, SH]);
+
+  useEffect(() => {
+    activeClip.current = null;
+    return () => {
+      mixer?.stopAllAction();
+    };
+  }, [mixer]);
 
   // Attach HoldProp to J_Bip_R_Hand (VRoid) or ForeArmR/ArmR (legacy)
   useEffect(() => {
@@ -621,6 +654,79 @@ export function Figure(props: Props) {
 
     // 6. Apply kinematics to VRoid Humanoid Rig OR Legacy Node Rig
     if (isVrm && vrm) {
+      // Choose retargeted Mixamo clip when applicable (stand / sit / explain / nod / punch)
+      let desiredClip: string | null = null;
+      if (mixer) {
+        if (a.attackT >= 0) {
+          desiredClip =
+            charId === 'bimo' && actions['cross_punch_bimo']
+              ? 'cross_punch_bimo'
+              : charId === 'ren' && actions['cross_punch_mc']
+                ? 'cross_punch_mc'
+                : actions['punch']
+                  ? 'punch'
+                  : null;
+        } else if (a.sit && actions['sit']) {
+          desiredClip = 'sit';
+        } else if (!moving && !a.crouch && !a.block && a.hurtT < 0) {
+          if (act && act.nodT >= 0 && actions['nod']) {
+            desiredClip = 'nod';
+          } else if (act && act.talking && actions['explain']) {
+            desiredClip = 'explain';
+          } else if (actions['stand']) {
+            desiredClip = 'stand';
+          }
+        }
+      }
+
+      if (mixer && desiredClip && actions[desiredClip]) {
+        if (activeClip.current !== desiredClip) {
+          const prevAction = activeClip.current ? actions[activeClip.current] : null;
+          const nextAction = actions[desiredClip];
+          if (desiredClip === 'punch' || desiredClip === 'cross_punch_bimo' || desiredClip === 'cross_punch_mc') {
+            nextAction.setEffectiveTimeScale(1.65);
+          } else {
+            nextAction.setEffectiveTimeScale(1.0);
+          }
+          nextAction.reset().setEffectiveWeight(1).play();
+          if (prevAction && prevAction !== nextAction) {
+            prevAction.crossFadeTo(nextAction, 0.22, false);
+          }
+          activeClip.current = desiredClip;
+        }
+        mixer.update(dt);
+
+        // Keep facial morphs (lip-sync + natural blinking) alive during clips
+        if (faceMorph && faceMorph.mesh.morphTargetInfluences) {
+          const inf = faceMorph.mesh.morphTargetInfluences;
+          if (faceMorph.mouthIdx >= 0) {
+            const open = act && act.talking && !moving ? Math.abs(Math.sin(act.talkPhase)) * 0.72 * act.energy : 0;
+            inf[faceMorph.mouthIdx] = THREE.MathUtils.lerp(
+              inf[faceMorph.mouthIdx],
+              open,
+              1 - Math.exp(-14 * dt),
+            );
+          }
+          if (faceMorph.blinkIdx >= 0) {
+            blinkTimer.current -= dt;
+            let blinkVal = 0;
+            if (blinkTimer.current <= 0) {
+              if (blinkTimer.current > -0.14) {
+                blinkVal = Math.sin(((-blinkTimer.current) / 0.14) * Math.PI);
+              } else {
+                blinkTimer.current = 2.6 + Math.random() * 3.4;
+              }
+            }
+            inf[faceMorph.blinkIdx] = blinkVal;
+          }
+        }
+        return;
+      }
+
+      if (mixer && activeClip.current) {
+        mixer.stopAllAction();
+        activeClip.current = null;
+      }
       // Hips vertical bob
       if (vrm.hips) {
         vrm.hips.node.position.y = THREE.MathUtils.lerp(
@@ -753,3 +859,4 @@ useGLTF.preload(CHAR_GLB_PATHS.bimo);
 useGLTF.preload(CHAR_GLB_PATHS.budi);
 useGLTF.preload(CHAR_GLB_PATHS.npc_male);
 useGLTF.preload(CHAR_GLB_PATHS.npc_female);
+useGLTF.preload(ANIM_GLB_PATH);

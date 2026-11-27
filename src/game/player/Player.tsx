@@ -9,7 +9,6 @@ import { useCombat } from '../../stores/combatStore';
 import { playerPos, camState, npcPositions, crowdPositions, enemyPos } from '../runtime';
 import { resolveOverlaps, stripIntoVelocity, nearbyBodies } from '../systems/collision';
 import { approachFacing, camForwardAngle } from '../systems/facing';
-import { useSettings } from '../../stores/settingsStore';
 import { Figure } from '../npc/Character';
 import { acting } from '../systems/acting';
 import { playerAnim, combatTick, camYaw } from '../combat/combat';
@@ -309,8 +308,7 @@ function PlayerFigure() {
     // combat — otherwise the figure fills the whole screen. Story modes
     // (DIALOGUE / CINEMATIC) always show the body: their cameras are
     // authored third-person shots that need Ren in frame.
-    const s = useSettings.getState();
-    const fpActive = s.camMode === 'first' && (game.mode === 'GAMEPLAY' || game.mode === 'COMBAT');
+    const fpActive = game.mode === 'GAMEPLAY' || game.mode === 'COMBAT';
     g.visible = !fpActive;
     const act = acting['ren'];
     // During dialogue Ren turns his body toward the conversation partner

@@ -1,27 +1,23 @@
 import { useEffect, useRef, useState } from 'react';
 import { useGame } from '../stores/gameStore';
+import { audio } from '../game/audio';
 import { input } from '../game/input';
 import { mobile } from '../game/mobile';
 
 // ============================================================================
-// TouchControls (v0.5.0) — on-screen controls for touch devices.
+// TouchControls (v0.19.0) — ergonomic on-screen controls for mobile devices.
 //
 // Layout (landscape):
-//   ┌──────────────────────────────────────────────┐
-//   │  ◉ joystick                        [ ⤒ ]     │  ← jump
-//   │  (left thumb)              [E] [⚡] [✦] [🛡] │  ← interact/attack/dodge/block
-//   │                                  (right thumb)│
-//   └──────────────────────────────────────────────┘
+//   ┌────────────────────────────────────────────────────────────┐
+//   │  [vitals]                               [MAP][HP][CAM][II] │
+//   │                                                 [obj-card] │
+//   │  ◉ joystick                                   [HEV]  [BLK] │
+//   │  (left thumb)                                 [ATK]  [DGE] │
+//   └────────────────────────────────────────────────────────────┘
 //   Right half of the screen (not covered by buttons) = camera drag pad.
-//
-// Notes:
-// - Only mounted when mobile.touch && phase === 'play'.
-// - Uses pointer events with setPointerCapture, multi-touch safe (joystick and
-//   buttons can be held simultaneously).
-// - PAUSE button top-right; dialogue advance taps are handled by DialogueUI.
 // ============================================================================
 
-const STICK_R = 46; // px — joystick travel radius
+const STICK_R = 42; // px — joystick travel radius
 
 export function TouchControls() {
   const phase = useGame((s) => s.phase);
@@ -34,21 +30,25 @@ export function TouchControls() {
   const lookId = useRef<number | null>(null);
   const lookLast = useRef({ x: 0, y: 0 });
 
-  // release everything if the game leaves play (mode switches to menus etc.)
+  // release everything if the game leaves play or gameplay/combat
+  const inCombat = mode === 'COMBAT';
+  const inGameplay = mode === 'GAMEPLAY' || inCombat;
+
   useEffect(() => {
-    if (!show) {
+    if (!show || !inGameplay) {
       input.setAxes(0, 0);
       input.touch.run = false;
       input.touch.block = false;
       stickId.current = null;
       lookId.current = null;
+      setStick({ active: false, ox: 0, oy: 0 });
+      if (nubRef.current) {
+        nubRef.current.style.transform = 'translate(0px, 0px)';
+      }
     }
-  }, [show]);
+  }, [show, inGameplay]);
 
   if (!show) return null;
-
-  const inCombat = mode === 'COMBAT';
-  const inGameplay = mode === 'GAMEPLAY' || inCombat;
 
   // ---- joystick handlers ----
   const onStickDown = (e: React.PointerEvent) => {
@@ -60,7 +60,7 @@ export function TouchControls() {
     const oy = rect.top + rect.height / 2;
     setStick({ active: true, ox, oy });
     if (nubRef.current) {
-      nubRef.current.style.transform = `translate(0px, 0px)`;
+      nubRef.current.style.transform = 'translate(0px, 0px)';
     }
   };
   const onStickMove = (e: React.PointerEvent) => {
@@ -78,14 +78,14 @@ export function TouchControls() {
     }
     // axes: screen y-down → game y-up forward
     input.setAxes(dx / max, -dy / max);
-    input.touch.run = len > max * 0.92;
+    input.touch.run = len > max * 0.9;
   };
   const onStickUp = (e: React.PointerEvent) => {
     if (stickId.current !== e.pointerId) return;
     stickId.current = null;
     setStick((s) => ({ ...s, active: false }));
     if (nubRef.current) {
-      nubRef.current.style.transform = `translate(0px, 0px)`;
+      nubRef.current.style.transform = 'translate(0px, 0px)';
     }
     input.setAxes(0, 0);
     input.touch.run = false;
@@ -131,57 +131,97 @@ export function TouchControls() {
           onPointerUp={onStickUp}
           onPointerCancel={onStickUp}
         >
-          <div className="tc-stick-ring" />
-          <div className="tc-stick-nub" ref={nubRef} style={{ transform: `translate(0px, 0px)` }} />
+          <div className="tc-stick-ring">
+            <span className="tc-tick t-n" />
+            <span className="tc-tick t-s" />
+            <span className="tc-tick t-e" />
+            <span className="tc-tick t-w" />
+          </div>
+          <div className="tc-stick-nub" ref={nubRef} style={{ transform: 'translate(0px, 0px)' }} />
         </div>
       )}
 
       {/* action cluster — bottom right */}
       {inGameplay && (
-        <div className="tc-actions">
+        <div className={`tc-actions ${inCombat ? 'tc-combat-grid' : 'tc-explore-grid'}`}>
           {inCombat ? (
             <>
-              <button className="tc-btn amber" onPointerDown={() => input.injectLeftTap()}>ATK</button>
-              <button className="tc-btn red" onPointerDown={() => input.injectPress('attack_heavy')}>HEV</button>
+              <button type="button" className="tc-btn red tc-heavy" onPointerDown={() => input.injectPress('attack_heavy')}>
+                <span>HEV</span>
+                <small>-10</small>
+              </button>
               <button
-                className="tc-btn cyan"
+                type="button"
+                className="tc-btn cyan tc-block"
                 onPointerDown={() => { input.touch.block = true; }}
                 onPointerUp={() => { input.touch.block = false; }}
                 onPointerCancel={() => { input.touch.block = false; }}
-              >BLK</button>
-              <button className="tc-btn" onPointerDown={() => input.injectPress('dodge')}>DGE</button>
+              >
+                <span>BLK</span>
+                <small>TAHAN</small>
+              </button>
+              <button type="button" className="tc-btn amber tc-atk" onPointerDown={() => input.injectLeftTap()}>
+                <span>ATK</span>
+                <small>PUKUL</small>
+              </button>
+              <button type="button" className="tc-btn tc-dodge" onPointerDown={() => input.injectPress('dodge')}>
+                <span>DGE</span>
+                <small>-6</small>
+              </button>
             </>
           ) : (
             <>
-              <button className="tc-btn amber" onPointerDown={() => input.injectPress('interact')}>E</button>
-              <button className="tc-btn" onPointerDown={() => input.injectPress('jump')}>↑</button>
+              <button type="button" className="tc-btn amber" onPointerDown={() => input.injectPress('interact')}>
+                <span>E</span>
+                <small>AKSI</small>
+              </button>
+              <button type="button" className="tc-btn" onPointerDown={() => input.injectPress('jump')}>
+                <span>↑</span>
+                <small>LOMPAT</small>
+              </button>
             </>
           )}
         </div>
       )}
 
-      {/* pause — always available during play */}
-      <button className="tc-pause" onPointerDown={() => setMode('PAUSE')}>II</button>
+      {/* top-right utility strip: quick map/phone/camera in gameplay + pause */}
+      <div className="tc-top-bar">
+        {mode === 'GAMEPLAY' && (
+          <>
+            <button type="button" className="tc-util" onPointerDown={() => { audio.click(); setMode('MAP_MENU'); }} aria-label="Peta">
+              PETA
+            </button>
+            <button type="button" className="tc-util tc-util-phone" onPointerDown={() => { audio.click(); setMode('PHONE_MENU'); }} aria-label="Ponsel">
+              HP
+            </button>
+          </>
+        )}
+        <button type="button" className="tc-pause" onPointerDown={() => { audio.click(); setMode('PAUSE'); }} aria-label="Jeda">
+          II
+        </button>
+      </div>
 
       <PortraitHint />
     </div>
   );
 }
 
-// Gentle rotate-your-phone suggestion in portrait (game is tuned for landscape).
+// Gentle dismissible rotate-your-phone suggestion in portrait.
 function PortraitHint() {
   const [portrait, setPortrait] = useState(false);
+  const [dismissed, setDismissed] = useState(false);
   useEffect(() => {
     const check = () => setPortrait(window.innerHeight > window.innerWidth);
     check();
     window.addEventListener('resize', check);
     return () => window.removeEventListener('resize', check);
   }, []);
-  if (!portrait) return null;
+  if (!portrait || dismissed) return null;
   return (
     <div className="tc-rotate">
-      <span className="chip chip-amber">MODE POTRET</span>
-      <p>Putar HP ke <b>mode lanskap</b> untuk pengalaman terbaik</p>
+      <span className="chip chip-amber">POTRET</span>
+      <p>Putar ke <b>lanskap</b> agar layar lebih lega</p>
+      <button type="button" className="tc-rotate-close" onPointerDown={() => setDismissed(true)} aria-label="Tutup">×</button>
     </div>
   );
 }

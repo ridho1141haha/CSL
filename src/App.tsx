@@ -34,7 +34,6 @@ import { Npcs, StoryActors } from './game/npc/Npc';
 import { CombatScene } from './game/combat/CombatScene';
 import { StoryDirector } from './game/StoryDirector';
 import { resetCombatRuntime, finishCombatWin } from './game/combat/combat';
-import { nextMode } from './game/camera/mode';
 import { useSettings } from './stores/settingsStore';
 import { lowSpecProfile } from './game/quality';
 import { SCENES } from './data/world';
@@ -203,15 +202,6 @@ export default function App() {
         }
         return;
       }
-      // v0.13.0: V toggles first-person / third-person camera in gameplay AND
-      // combat — persisted via settings so the choice survives reloads.
-      if (e.code === 'KeyV' && (inGameplay || g.mode === 'COMBAT')) {
-        const s = useSettings.getState();
-        const next = nextMode(s.camMode);
-        s.set('camMode', next);
-        g.notify(next === 'first' ? 'Kamera: Orang Pertama' : 'Kamera: Orang Ketiga', 'quest');
-        return;
-      }
       if (!inGameplay) return;
       if (e.code === 'Tab') { e.preventDefault(); g.setMode('STATUS_MENU'); }
       if (e.code === 'KeyR') g.setMode('RELATIONSHIP_MENU');
@@ -360,7 +350,7 @@ export default function App() {
       {phase === 'play' && (mode === 'CINEMATIC' || mode === 'DIALOGUE') && <DialogueUI cinematic={mode === 'CINEMATIC'} />}
 
       {phase === 'play' && mode === 'GAMEPLAY' && <Hud />}
-      {phase === 'play' && mode === 'GAMEPLAY' && !pointerLocked && <PointerLockHint />}
+      {phase === 'play' && mode === 'GAMEPLAY' && !pointerLocked && !mobile.touch && <PointerLockHint />}
       {phase === 'play' && mode === 'COMBAT' && <CombatHud />}
       {phase === 'play' && mode === 'TRANSITION' && <ChapterTransition />}
       <Notifications />
