@@ -1,7 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
 import { useGame } from '../stores/gameStore';
-import { useSettings } from '../stores/settingsStore';
-import { nextMode } from '../game/camera/mode';
 import { audio } from '../game/audio';
 import { input } from '../game/input';
 import { mobile } from '../game/mobile';
@@ -25,7 +23,6 @@ export function TouchControls() {
   const phase = useGame((s) => s.phase);
   const mode = useGame((s) => s.mode);
   const setMode = useGame((s) => s.setMode);
-  const camMode = useSettings((s) => s.camMode);
   const show = mobile.touch && phase === 'play';
   const [stick, setStick] = useState<{ active: boolean; ox: number; oy: number }>({ active: false, ox: 0, oy: 0 });
   const stickId = useRef<number | null>(null);
@@ -112,14 +109,6 @@ export function TouchControls() {
     lookId.current = null;
   };
 
-  const toggleCam = () => {
-    audio.click();
-    const s = useSettings.getState();
-    const next = nextMode(s.camMode);
-    s.set('camMode', next);
-    useGame.getState().notify(next === 'first' ? 'Kamera: Orang Pertama' : 'Kamera: Orang Ketiga', 'quest');
-  };
-
   return (
     <div className="touch-ui" data-combat={inCombat ? '1' : undefined}>
       {/* camera drag pad — right half, under the buttons (z-order) */}
@@ -204,9 +193,6 @@ export function TouchControls() {
             </button>
             <button type="button" className="tc-util tc-util-phone" onPointerDown={() => { audio.click(); setMode('PHONE_MENU'); }} aria-label="Ponsel">
               HP
-            </button>
-            <button type="button" className="tc-util" onPointerDown={toggleCam} aria-label="Ganti Kamera">
-              {camMode === 'first' ? 'FPS' : 'TPS'}
             </button>
           </>
         )}
