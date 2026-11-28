@@ -12,7 +12,9 @@ export default defineConfig({
       output: {
         manualChunks(id) {
           if (id.includes('node_modules')) {
-            if (id.includes('three') || id.includes('@react-three')) return 'engine3d';
+            if (id.includes('@dimforge') || id.includes('rapier')) return 'physics';
+            if (id.includes('@react-three')) return 'r3f';
+            if (id.includes('/three/')) return 'three-core';
             if (id.includes('zustand')) return 'state';
             if (id.includes('react') || id.includes('scheduler')) return 'react-vendor';
           }
