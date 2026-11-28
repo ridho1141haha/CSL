@@ -852,11 +852,11 @@ export function Figure(props: Props) {
   );
 }
 
-useGLTF.preload(CHAR_GLB_PATHS.ren);
-useGLTF.preload(CHAR_GLB_PATHS.aris);
-useGLTF.preload(CHAR_GLB_PATHS.siti);
-useGLTF.preload(CHAR_GLB_PATHS.bimo);
-useGLTF.preload(CHAR_GLB_PATHS.budi);
-useGLTF.preload(CHAR_GLB_PATHS.npc_male);
-useGLTF.preload(CHAR_GLB_PATHS.npc_female);
+// v0.20.1 mobile memory optimization: always preload the tiny shared animations
+// pack (746 KB), and only preload the opening pair on high-tier desktops.
+// Other character models stream on-demand via Suspense to avoid a 60 MB mobile boot spike.
 useGLTF.preload(ANIM_GLB_PATH);
+if (!mobile.lowSpec) {
+  useGLTF.preload(CHAR_GLB_PATHS.ren);
+  useGLTF.preload(CHAR_GLB_PATHS.aris);
+}

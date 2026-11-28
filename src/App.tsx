@@ -19,7 +19,7 @@ import { periodFor } from './game/systems/time';
 import { saveGame } from './game/save';
 import { loadGame } from './game/loadFlow';
 import { mobile } from './game/mobile';
-import { perfState, PREWARM, enemyPos } from './game/runtime';
+import { perfState, PREWARM, enemyPos, playerPos } from './game/runtime';
 import { GraphicsManager, CullingManager, WorldReadyProbe } from './game/perf';
 import { OPENING_ROOT, OPENING_ACTORS, SCENE_ACTORS, type StorySpot } from './data/chapters';
 import { PLAYER_SPAWN } from './data/world';
@@ -33,7 +33,7 @@ import { CameraRig } from './game/camera/CameraRig';
 import { Npcs, StoryActors } from './game/npc/Npc';
 import { CombatScene } from './game/combat/CombatScene';
 import { StoryDirector } from './game/StoryDirector';
-import { resetCombatRuntime, finishCombatWin } from './game/combat/combat';
+import { resetCombatRuntime, finishCombatWin, playerCombat } from './game/combat/combat';
 import { useSettings } from './stores/settingsStore';
 import { lowSpecProfile } from './game/quality';
 import { SCENES } from './data/world';
@@ -539,27 +539,119 @@ function FPViewModel() {
   const nodeId = useDialogue((s) => s.nodeId);
   const mode = useGame((s) => s.mode);
   const openingDone = useStory((s) => s.flags.includes('opening_complete'));
-  const kind = FP_MAP_NODES.has(nodeId ?? '') ? 'map' : FP_BOOK_NODES.has(nodeId ?? '') ? 'book' : null;
-  const ref = useRef<THREE.Group>(null);
+  const kind = !openingDone && mode === 'CINEMATIC'
+    ? (FP_MAP_NODES.has(nodeId ?? '') ? 'map' : FP_BOOK_NODES.has(nodeId ?? '') ? 'book' : null)
+    : null;
+  const inCombat = mode === 'COMBAT';
+
+  const propRef = useRef<THREE.Group>(null);
+  const combatRootRef = useRef<THREE.Group>(null);
+  const leftArmRef = useRef<THREE.Group>(null);
+  const rightArmRef = useRef<THREE.Group>(null);
   const tmp = useRef(new THREE.Vector3());
+
   useFrame(({ camera, clock }) => {
-    const g = ref.current;
-    if (!g) return;
     const t = clock.elapsedTime;
-    tmp.current.set(0.33, -0.3 + Math.sin(t * 1.6) * 0.007, -0.55)
-      .applyQuaternion(camera.quaternion)
-      .add(camera.position);
-    g.position.copy(tmp.current);
-    g.quaternion.copy(camera.quaternion);
-    g.rotateY(-0.3);
-    g.rotateX(0.12);
-    g.rotateZ(Math.sin(t * 1.1) * 0.02);
+    if (propRef.current && kind) {
+      const g = propRef.current;
+      tmp.current.set(0.33, -0.3 + Math.sin(t * 1.6) * 0.007, -0.55)
+        .applyQuaternion(camera.quaternion)
+        .add(camera.position);
+      g.position.copy(tmp.current);
+      g.quaternion.copy(camera.quaternion);
+      g.rotateY(-0.3);
+      g.rotateX(0.12);
+      g.rotateZ(Math.sin(t * 1.1) * 0.02);
+    }
+
+    if (combatRootRef.current && inCombat) {
+      const root = combatRootRef.current;
+      root.position.copy(camera.position);
+      root.quaternion.copy(camera.quaternion);
+
+      const atk = playerCombat.attack;
+      const blk = playerCombat.block;
+      const sway = Math.sin(t * (playerPos.speed > 0.4 ? 9.5 : 2.2)) * (playerPos.speed > 0.4 ? 0.018 : 0.006);
+      const bob = Math.abs(Math.cos(t * (playerPos.speed > 0.4 ? 9.5 : 2.2))) * (playerPos.speed > 0.4 ? 0.016 : 0.005);
+
+      let lx = -0.25 + sway;
+      let ly = -0.27 - bob;
+      let lz = -0.44;
+      let lrx = 0.25;
+      let lrz = -0.18;
+
+      let rx = 0.25 + sway;
+      let ry = -0.27 - bob;
+      let rz = -0.44;
+      let rrx = 0.25;
+      let rrz = 0.18;
+
+      if (blk) {
+        lx = -0.13; ly = -0.14; lz = -0.36; lrx = 0.65; lrz = -0.42;
+        rx = 0.13; ry = -0.14; rz = -0.36; rrx = 0.65; rrz = 0.42;
+      } else if (atk) {
+        const total = atk.heavy ? 0.82 : 0.44;
+        const p = Math.min(1, atk.t / total);
+        const thrust = Math.sin(p * Math.PI);
+        if (atk.heavy) {
+          // Heavy: windup back then strong left+right haymaker
+          rx = 0.22 - thrust * 0.16;
+          ry = -0.24 + thrust * 0.1;
+          rz = -0.42 - thrust * 0.34;
+          rrx = 0.1 + thrust * 0.55;
+          lx = -0.27 - thrust * 0.06;
+          lz = -0.42 + thrust * 0.08;
+        } else {
+          // Light: snappy right jab
+          rx = 0.23 - thrust * 0.13;
+          ry = -0.25 + thrust * 0.08;
+          rz = -0.44 - thrust * 0.26;
+          rrx = 0.18 + thrust * 0.4;
+        }
+      }
+
+      if (leftArmRef.current) {
+        leftArmRef.current.position.lerp(tmp.current.set(lx, ly, lz), 0.32);
+        leftArmRef.current.rotation.set(lrx, 0.18, lrz);
+      }
+      if (rightArmRef.current) {
+        rightArmRef.current.position.lerp(tmp.current.set(rx, ry, rz), 0.36);
+        rightArmRef.current.rotation.set(rrx, -0.18, rrz);
+      }
+    }
   });
-  if (openingDone || mode !== 'CINEMATIC' || !kind) return null;
+
+  if (inCombat) {
+    return (
+      <group ref={combatRootRef}>
+        <group ref={leftArmRef} position={[-0.25, -0.27, -0.44]}>
+          <mesh position={[0, -0.09, 0.09]} rotation={[1.25, 0, 0]}>
+            <boxGeometry args={[0.075, 0.24, 0.075]} />
+            <meshStandardMaterial color="#1e293b" roughness={0.75} />
+          </mesh>
+          <mesh position={[0, -0.02, -0.02]}>
+            <boxGeometry args={[0.082, 0.085, 0.095]} />
+            <meshStandardMaterial color="#f1c6a8" roughness={0.6} />
+          </mesh>
+        </group>
+        <group ref={rightArmRef} position={[0.25, -0.27, -0.44]}>
+          <mesh position={[0, -0.09, 0.09]} rotation={[1.25, 0, 0]}>
+            <boxGeometry args={[0.075, 0.24, 0.075]} />
+            <meshStandardMaterial color="#1e293b" roughness={0.75} />
+          </mesh>
+          <mesh position={[0, -0.02, -0.02]}>
+            <boxGeometry args={[0.082, 0.085, 0.095]} />
+            <meshStandardMaterial color="#f1c6a8" roughness={0.6} />
+          </mesh>
+        </group>
+      </group>
+    );
+  }
+
+  if (!kind) return null;
   return (
-    <group ref={ref}>
+    <group ref={propRef}>
       {kind === 'map' ? (
-        // map merah berkas pindahan (naskah scene 1)
         <group rotation={[0.9, 0, 0.1]}>
           <mesh>
             <boxGeometry args={[0.13, 0.006, 0.17]} />
@@ -571,7 +663,6 @@ function FPViewModel() {
           </mesh>
         </group>
       ) : (
-        // buku catatan dibaca ulang (scene 2 & 4)
         <group rotation={[1.0, 0, 0]}>
           <mesh>
             <boxGeometry args={[0.12, 0.006, 0.16]} />
@@ -606,6 +697,7 @@ function InputJanitor() {
 function PhysicsProbe() {
   const { world, rapier } = useRapier();
   useEffect(() => {
+    if (!import.meta.env.DEV) return;
     (window as unknown as Record<string, unknown>).__cslWorld = world;
     (window as unknown as Record<string, unknown>).__cslRayClass = (rapier as unknown as { Ray: unknown }).Ray;
     (window as unknown as Record<string, unknown>).__cslInput = input;

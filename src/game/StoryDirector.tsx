@@ -72,12 +72,16 @@ export function StoryDirector() {
 
     // prompt: nearest NPC (campus only; hidden during combat)
     let near: string | null = null;
+    let bestDist = 2.3;
     if (!enemyPos.active && game.scene === 'campus') {
       for (const [id, p] of Object.entries(npcPositions)) {
         const d = Math.hypot(playerPos.x - p.x, playerPos.z - p.z);
-        if (d < 2.3) {
+        if (d < bestDist) {
           const def = NPC_BY_ID[id];
-          if (def) near = def.name;
+          if (def) {
+            bestDist = d;
+            near = def.name;
+          }
         }
       }
     }

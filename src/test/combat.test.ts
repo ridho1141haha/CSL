@@ -166,6 +166,15 @@ describe('ekonomi Fokus (v0.15.1: regen + hit reward)', () => {
     expect(playerCombat.block).toBe(true);
   });
 
+  it('v0.20.1 FP combat: mundur sambil menatap musuh tetap mengarahkan pukulan ke kamera', () => {
+    useCombat.getState().start('stair_fight');
+    enemyPos.z = 1.5; // musuh di +z
+    camState.yaw = Math.PI; // kamera menghadap +z (camForwardAngle(π) = 0)
+    input.held.add('back'); // pemain jalan mundur (-z)
+    tick(1);
+    expect(playerPos.facing).toBeCloseTo(0, 5);
+  });
+
   it('pukulan light yang menghubungkan memberi +4 fokus dan damage 9', () => {
     useCombat.getState().start('stair_fight');
     enemyPos.z = 1.5;

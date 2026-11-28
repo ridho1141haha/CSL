@@ -14,7 +14,7 @@ import { input } from './game/input';
 import { playerPos, enemyPos, camState } from './game/runtime';
 import { camForwardAngle } from './game/systems/facing';
 
-(window as unknown as Record<string, unknown>).__csl = {
+if (import.meta.env.DEV) (window as unknown as Record<string, unknown>).__csl = {
   mode: () => useGame.getState().mode,
   phase: () => useGame.getState().phase,
   pos: () => ({ x: playerPos.x, y: playerPos.y, z: playerPos.z, facing: playerPos.facing }),
