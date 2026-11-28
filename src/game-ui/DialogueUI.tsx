@@ -66,15 +66,19 @@ export function DialogueUI({ cinematic }: { cinematic: boolean }) {
     const fx = NODE_FX[nodeId];
     if (!fx) return;
     const game = useGame.getState();
+    let timer: number | undefined;
     if (fx.fx === 'shake') {
       requestShake(0.5);
     } else if (fx.fx === 'fade-out') {
       game.setFade('out');
-      setTimeout(() => game.setFade('none'), 600);
+      timer = window.setTimeout(() => game.setFade('none'), 600);
     } else if (fx.fx === 'fade-in') {
       game.setFade('in');
-      setTimeout(() => game.setFade('none'), 600);
+      timer = window.setTimeout(() => game.setFade('none'), 600);
     }
+    return () => {
+      if (timer !== undefined) window.clearTimeout(timer);
+    };
     // 'fp-to-tp' is handled by CameraRig via opening_complete flag, skip here
   }, [nodeId]);
 

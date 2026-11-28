@@ -23,6 +23,7 @@ export type PlayerCombatState = {
   stagger: number;
   hitPause: number;
   stepTimer: number;
+  lastHitAt: number;
 };
 
 export const playerCombat: PlayerCombatState = {
@@ -33,6 +34,7 @@ export const playerCombat: PlayerCombatState = {
   stagger: 0,
   hitPause: 0,
   stepTimer: 0,
+  lastHitAt: 0,
 };
 
 export const playerAnim = { current: makeAnim() };
@@ -161,6 +163,7 @@ export function combatTick(
         audio.hit();
         requestShake(a.heavy ? 0.3 : 0.16);
         playerCombat.hitPause = a.heavy ? 0.08 : 0.05;
+        playerCombat.lastHitAt = Date.now();
         enemyAnim.current.hurtT = 0;
         // v0.15.1: pukulan yang menghubungkan mengembalikan sedikit Fokus.
         usePlayer.getState().addFocus(HIT_FOCUS_REWARD);

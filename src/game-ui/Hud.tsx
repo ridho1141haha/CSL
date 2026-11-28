@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useGame } from '../stores/gameStore';
 import { usePlayer } from '../stores/playerStore';
 import { useCombat } from '../stores/combatStore';
@@ -9,6 +9,7 @@ import { DAYS, formatHhmm, periodFor } from '../game/systems/time';
 import { ZONE_BY_ID } from '../data/world';
 import { audio, notifySound } from '../game/audio';
 import { input } from '../game/input';
+import { enemyRuntime, playerCombat } from '../game/combat/combat';
 import { pickActiveQuest, questTargetFor, distanceToTarget, type WaypointTarget } from '../game/waypoint';
 
 // v0.10.0: live objective distance for the HUD mission card. Polls (400ms,
@@ -81,6 +82,10 @@ export function Hud() {
   // periode). Walk tidak mengambil alih kontrol — waypoint ◆ + jarak di HUD
   // sudah aktif, jadi cukup menegaskan arah ke pemain.
   const [walkHint, setWalkHint] = useState(false);
+  const walkTimerRef = useRef<number | null>(null);
+  useEffect(() => () => {
+    if (walkTimerRef.current !== null) window.clearTimeout(walkTimerRef.current);
+  }, []);
   const sceneLoading = useGame((s) => s.sceneLoading);
   const teleportToMission = () => {
     const g = useGame.getState();
@@ -93,7 +98,11 @@ export function Hud() {
     if (!target) return;
     audio.click();
     setWalkHint(true);
-    window.setTimeout(() => setWalkHint(false), 3200);
+    if (walkTimerRef.current !== null) window.clearTimeout(walkTimerRef.current);
+    walkTimerRef.current = window.setTimeout(() => {
+      setWalkHint(false);
+      walkTimerRef.current = null;
+    }, 3200);
     useGame.getState().notify(`Ikuti penanda ◆ ke ${target.label} (${dist}m)`, 'info');
   };
 
@@ -209,16 +218,26 @@ export function CombatHud() {
 
   // v0.15.2: tandai body saat combat — notifikasi digeser turun supaya tidak
   // menumpuk panel darah musuh (anti-bertumpuk; CSS body.in-combat).
+  const [windup, setWindup] = useState(false);
+  const [hitConfirm, setHitConfirm] = useState(false);
+
   useEffect(() => {
     document.body.classList.add('in-combat');
-    return () => document.body.classList.remove('in-combat');
+    const iv = window.setInterval(() => {
+      setWindup(enemyRuntime.state.state === 'windup');
+      setHitConfirm(Date.now() - playerCombat.lastHitAt < 220);
+    }, 60);
+    return () => {
+      window.clearInterval(iv);
+      document.body.classList.remove('in-combat');
+    };
   }, []);
 
   const lowHp = hp / Math.max(1, maxHp) <= 0.3;
   const enemyLowHp = cur ? cur.hp / Math.max(1, cur.maxHp) <= 0.3 : false;
 
   return (
-    <div className={`combat-ui ${lowHp ? 'low-hp' : ''}`}>
+    <div className={`combat-ui ${lowHp ? 'low-hp' : ''} ${windup ? 'enemy-windup' : ''}`}>
       <div className="cb-top">
         <div className={`cb-panel player ${lowHp ? 'danger' : ''}`}>
           <div className="cb-head">
@@ -252,6 +271,12 @@ export function CombatHud() {
           </div>
         )}
       </div>
+      {windup && (
+        <div className="cb-telegraph" role="status">
+          <span>!</span> SERANGAN MASUK — TANGKIS / ELAK
+        </div>
+      )}
+      <div className={`fp-crosshair cb-crosshair ${hitConfirm ? 'hit' : ''}`} />
       <div className="cb-actions">
         <span><kbd>LMB</kbd> PUKUL</span>
         <span><kbd>Q</kbd> HEAVY <i>−10</i></span>

@@ -6,7 +6,6 @@ import { applyEffects } from '../game/systems/effects';
 import { resolveCast, applyDialogueActing, clearDialogueActing } from '../game/systems/acting';
 import { useGame } from './gameStore';
 import { useStory } from './storyStore';
-import { useCombat } from './combatStore';
 import type { Choice } from '../types';
 
 // Encounter selection by story beat when a dialogue reaches __combat__

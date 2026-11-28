@@ -564,6 +564,10 @@ export function StudyPanel() {
   const [picked, setPicked] = useState<number | null>(null);
   const [correct, setCorrect] = useState(0);
   const [done, setDone] = useState(false);
+  const studyTimerRef = useRef<number | null>(null);
+  useEffect(() => () => {
+    if (studyTimerRef.current !== null) window.clearTimeout(studyTimerRef.current);
+  }, []);
   const questions = STUDY_QUESTIONS;
 
   if (done) {
@@ -592,7 +596,7 @@ export function StudyPanel() {
               setPicked(i);
               audio.click();
               if (i === q.correctIndex) setCorrect((c) => c + 1);
-              setTimeout(() => {
+              studyTimerRef.current = window.setTimeout(() => {
                 if (idx + 1 >= questions.length) {
                   // v0.18.0: delta stat kini dari scoreStudy() — SATU rumus
                   // skoring untuk sesi belajar sukarela DAN PTS mini-game

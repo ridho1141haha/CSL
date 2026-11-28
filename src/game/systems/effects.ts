@@ -12,6 +12,7 @@ import { useCombat } from '../../stores/combatStore';
 // store itself (see dialogueStore.advance/choose ENDING guard).
 import { CHAPTERS } from '../../data/chapters';
 import { resolveEnding } from './endingResolver';
+import { saveGame } from '../save';
 import type { Route } from '../../types';
 
 // Central effect pipeline: dialogue nodes/choices and quest rewards mutate
@@ -119,10 +120,8 @@ export function applyEffect(e: Effect) {
       game.setMode('STUDY');
       break;
     case 'save':
-      // Story checkpoint: persist to the auto slot (see dialogue.ts usages).
-      // Dynamic import on purpose: save.ts pulls in combat/combat.ts which
-      // imports dialogueStore → this module; a static edge would be circular.
-      void import('../save').then(({ saveGame }) => saveGame('auto'));
+      // Story checkpoint: persist to the auto slot (save.ts is cycle-free since v0.17.0).
+      saveGame('auto');
       break;
   }
 }

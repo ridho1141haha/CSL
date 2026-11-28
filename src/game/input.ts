@@ -155,14 +155,32 @@ class Input {
     this.wheel += e.deltaY;
   };
 
+  releaseAll() {
+    this.held.clear();
+    this.heldKeys.clear();
+    this.pressed.clear();
+    this.touchAutoRelease.clear();
+    this.mouse.left = false;
+    this.mouse.right = false;
+    this.leftPressed = false;
+    this.rightPressed = false;
+    this.touch.run = false;
+    this.touch.block = false;
+    this.touch.axes.x = 0;
+    this.touch.axes.y = 0;
+  }
+
   private onLockChange = () => {
     this.pointerLocked = document.pointerLockElement != null;
-    if (!this.pointerLocked) {
-      this.held.clear();
-      this.heldKeys.clear();
-      this.mouse.left = false;
-      this.mouse.right = false;
-    }
+    if (!this.pointerLocked) this.releaseAll();
+  };
+
+  private onBlur = () => {
+    this.releaseAll();
+  };
+
+  private onVisibility = () => {
+    if (document.hidden) this.releaseAll();
   };
 
   attach() {
@@ -174,6 +192,8 @@ class Input {
     window.addEventListener('mouseup', this.onMouseUp);
     window.addEventListener('wheel', this.onWheel, { passive: true });
     window.addEventListener('contextmenu', (e) => e.preventDefault());
+    window.addEventListener('blur', this.onBlur);
+    document.addEventListener('visibilitychange', this.onVisibility);
     document.addEventListener('pointerlockchange', this.onLockChange);
     // also track raw keydown/keyup for tap-key aliasing
     window.addEventListener('keydown', (e) => this.heldKeys.add(e.code));

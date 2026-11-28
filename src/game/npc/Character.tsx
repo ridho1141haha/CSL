@@ -139,6 +139,12 @@ function NameSprite({ text, tag, y = 1.95 }: { text: string; tag?: string; y?: n
     t.colorSpace = THREE.SRGBColorSpace;
     tex.current = t;
   }
+  useEffect(() => {
+    return () => {
+      tex.current?.dispose();
+      tex.current = null;
+    };
+  }, []);
   const w = 1.35;
   const h = tag ? 0.42 : 0.34;
   return (
