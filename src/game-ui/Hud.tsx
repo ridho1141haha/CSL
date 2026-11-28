@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useGame } from '../stores/gameStore';
 import { usePlayer } from '../stores/playerStore';
 import { useCombat } from '../stores/combatStore';
@@ -82,6 +82,10 @@ export function Hud() {
   // periode). Walk tidak mengambil alih kontrol — waypoint ◆ + jarak di HUD
   // sudah aktif, jadi cukup menegaskan arah ke pemain.
   const [walkHint, setWalkHint] = useState(false);
+  const walkTimerRef = useRef<number | null>(null);
+  useEffect(() => () => {
+    if (walkTimerRef.current !== null) window.clearTimeout(walkTimerRef.current);
+  }, []);
   const sceneLoading = useGame((s) => s.sceneLoading);
   const teleportToMission = () => {
     const g = useGame.getState();
@@ -94,7 +98,11 @@ export function Hud() {
     if (!target) return;
     audio.click();
     setWalkHint(true);
-    window.setTimeout(() => setWalkHint(false), 3200);
+    if (walkTimerRef.current !== null) window.clearTimeout(walkTimerRef.current);
+    walkTimerRef.current = window.setTimeout(() => {
+      setWalkHint(false);
+      walkTimerRef.current = null;
+    }, 3200);
     useGame.getState().notify(`Ikuti penanda ◆ ke ${target.label} (${dist}m)`, 'info');
   };
 

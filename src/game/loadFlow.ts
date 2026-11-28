@@ -1,4 +1,5 @@
 import { useCombat } from '../stores/combatStore';
+import { useDialogue } from '../stores/dialogueStore';
 import { useGame } from '../stores/gameStore';
 import { applySave, parseSave, slotRaw, type SaveV2, type SlotId } from './save';
 import { resetCombatRuntime } from './combat/combat';
@@ -24,6 +25,7 @@ export function loadGame(slot: SlotId): string {
     // player anim (down) and enemyPos.active persist in module state and would
     // otherwise render the character lying down + suppress NPC interaction.
     useCombat.getState().reset();
+    useDialogue.getState().reset();
     resetCombatRuntime();
     enemyPos.active = false;
     applySave(data);
