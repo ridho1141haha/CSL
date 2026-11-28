@@ -8,7 +8,7 @@ import { useDialogue } from '../../stores/dialogueStore';
 import { useStats } from '../../stores/statsStore';
 import { audio } from '../audio';
 import { playerPos, enemyPos, requestShake, camState } from '../runtime';
-import { approachFacing, COMBAT_TURN_RATE } from '../systems/facing';
+import { approachFacing, camForwardAngle, COMBAT_TURN_RATE } from '../systems/facing';
 import { makeAnim, type FigureAnim } from '../npc/Character';
 import { ENCOUNTERS } from '../../data/quests';
 
@@ -225,9 +225,10 @@ export function combatTick(
         moveX = (fX * iz + rX * ix) * speed;
         moveZ = (fZ * iz + rZ * ix) * speed;
         playerAnim.current.speed = speed;
-        // BUG-FIX: update playerPos.facing during combat movement so attacks/blocks
-        // connect in the direction the player is visually moving.
-        playerPos.facing = Math.atan2(moveX, moveZ);
+        // v0.20.1 First-Person combat fix: aim follows crosshair (camera forward),
+        // so backpedaling (S) or strafing (A/D) while looking at the enemy still
+        // connects punches and keeps block facing the threat.
+        playerPos.facing = camForwardAngle(yaw);
       } else {
         playerAnim.current.speed = 0;
         // v0.16.1: combat IDLE squares up to the ENEMY, not the camera. First

@@ -6,7 +6,8 @@ import { useGame } from '../../stores/gameStore';
 import { usePlayer } from '../../stores/playerStore';
 import { enemyPos, playerPos, requestShake } from '../runtime';
 import { Figure } from '../npc/Character';
-import { enemyAnim, resetCombatRuntime, resetEnemyRuntime, finishCombatWin } from './combat';
+import { enemyAnim, resetCombatRuntime, resetEnemyRuntime, finishCombatWin, camYaw } from './combat';
+import { camForwardAngle } from '../systems/facing';
 import { audio } from '../audio';
 
 // Renders the encounter enemy + drives victory transition. The enemy FSM runs
@@ -29,9 +30,10 @@ export function CombatScene() {
     // dodge/invuln/block pemain di tengah pukulan pembunuh lawan sebelumnya.
     if (enemyIndex > 0) resetEnemyRuntime();
     else resetCombatRuntime();
-    const a = Math.random() * Math.PI * 2;
-    enemyPos.x = playerPos.x + Math.sin(a) * 3.4;
-    enemyPos.z = playerPos.z + Math.cos(a) * 3.4;
+    // v0.20.1 First-Person fix: spawn enemy directly in front of player's camera
+    const fwd = camForwardAngle(camYaw()) + (Math.random() - 0.5) * 0.35;
+    enemyPos.x = playerPos.x + Math.sin(fwd) * 3.2;
+    enemyPos.z = playerPos.z + Math.cos(fwd) * 3.2;
     enemyPos.active = true;
     enemyAnim.current.down = false;
     winTimer.current = -1;
